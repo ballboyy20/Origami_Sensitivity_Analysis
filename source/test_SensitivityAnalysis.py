@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 # Assuming your main file is named SensitivityAnalysis.py
 from SensitivityAnalysis import *
+import sys
+import os
 from helper_classes import *
 
 class TestBarPhysics(unittest.TestCase):

@@ -90,16 +90,27 @@ class SensitivityModel:
                 ids1 = {n.id for n in panel1.nodes}
                 ids2 = {n.id for n in panel2.nodes}
 
+                occupied_axis = set()
+
                 # Intersection finds shared nodes
                 shared = sorted(ids1.intersection(ids2))
 
                 # If they share exactly 2 nodes, it's a hinge axis
                 if len(shared) == 2:
+
+                    # The next few lines check to see if theres already an axis here
+                    axis_key = tuple(sorted(shared))
+                    if axis_key in occupied_axis:
+                        continue
+                    occupied_axis.add(axis_key)
+
+
                     # 1. Identify Hinge Axis Nodes (j, k)
                     # Note: We grab the node objects from panel1's list
                     node_j = next(n for n in panel1.nodes if n.id == shared[0])
                     node_k = next(n for n in panel1.nodes if n.id == shared[1])
 
+                    
                     # 2. Identify "Wing" Nodes (i, l)
                     # Use 'next' to find the first node in the panel that ISN'T in the shared set
                     # This works for triangles AND quads/n-gons (any point off the axis defines the plane)
@@ -111,34 +122,111 @@ class SensitivityModel:
         return hinges
 
 
-    def analyze_sensitivity(self):
-        number_DOFs = len(self.nodes) * 3 # three DOF for each node, (not each panel. FEA only sees nodes and elements. Our rigid panels are made when we add realyl high stiffness to the bar elements)
+    def assemble_stiffness_matrix(self):
+        """
+        Constructs the Global Stiffness Matrix (K_total) by combining:
+        1. Bar Stiffness (Stretching energy) -> K_bars
+        2. Hinge Stiffness (Folding energy) -> K_hinges
+        """
+        num_dof = len(self.nodes) * 3
+        num_bars = len(self.bars)
+        num_hinges = len(self.hinges)
 
+        # 1. Intialize Compatibility Matrix and Bar Stiffness matrix (which is diagonal)
+        # Compatibility Matrix dimensions: [Number of Bars x Total DOFs]
+        self.compatibility_matrix = np.zeros((num_bars, num_dof)) 
+        bar_stiffness_matrix = np.zeros(num_bars)
 
-        #  Calculate Sensitivity: 
-            # Multiply jacobian_matrix by eigen vector 7
+        for i, bar in enumerate(self.bars):
+            self.compatibility_matrix[i, :] = bar.get_compatibility_matrix_row(num_dof)
+            bar_stiffness_matrix[i] = bar.stiffness
 
-            # and boom thats your sensitivity
+        # 2. Build Jacobian Matrix and Hinge Stiffness (which is diagonal)
+        # Jacobian Matrix dimensions: [Number of Hinges x Total DOFs]
+        self.jacobian_matrix = np.zeros((num_hinges, num_dof))
+        hinge_stiffness_matrix = np.zeros(num_hinges)
+
+        for i, hinge in enumerate(self.hinges):
+            self.jacobian_matrix[i, :] = hinge.get_jacobian_row(num_dof)
+            hinge_stiffness_matrix[i] = hinge.stiffness
+
+        # 3. Matrix Multiplication to get K_total 
+        # We use np.diag() to turn the 1D stiffness arrays into diagonal matrices
+
+        # K_bars = compatibility_matrix.T * bar_stiffness_matrix * compatibility_matrix
+        K_bars = self.compatibility_matrix.T @ np.diag(bar_stiffness_matrix) @ self.compatibility_matrix
+
+        # K_hinges = jacobian_matrix.T * hinge_stiffness_matrix * jacobian_matrix
+        K_hinges = self.jacobian_matrix.T @ np.diag(hinge_stiffness_matrix) @ self.jacobian_matrix
+
+        # K_total = K_bars + K_hinges
+        return K_bars + K_hinges
 
     def solve_for_eigenvalues(self):
-        #  Solve Eigenvalues
+        """
+        Solves the generalized eigenvalue problem: K * v = lambda * v
+        Returns sorted eigenvalues and eigenvectors.
+        """
+        # 1. Get the stiffness matrix
+        K = self.assemble_stiffness_matrix()
 
-        #  Isolate mode 7:
-            # make sure that modes 1-6 (0-5) are actually zero or near zero
-        pass
+        # 2. Solve for eigenvalues (eigh is optimized for symmetric/Hermitian matrices)
+        eigenvalues, eigenvectors = eigh(K)
 
-    def assemble_stiffness_matrix(self):
-        # STEP 2: Build Stiff Matrix
-            # K_bars = compatiblity_matrix.transpose() * bar_stiffness_matrix * compatibility_matrix
-            # K_hinges = jacobian_matrix.transpose() * higne_stiffness_matrix * jacobian_matrix
-            # K_total = K_bars + K_hignes
-        pass
+        # 3. Sort results (smallest eigenvalues first)
+        # The index array 'idx' tells us how to re-order the vectors to match the values
+        idx = np.argsort(eigenvalues)
+        sorted_eigenvalues = eigenvalues[idx]
+        sorted_eigenvectors = eigenvectors[:, idx]
+
+        return sorted_eigenvalues, sorted_eigenvectors
+
+    def analyze_sensitivity(self):
+        """
+        Performs the analysis to find the mechanism sensitivity.
+        1. Solves Eigenvalues
+        2. Isolates Mode 7 (The first non-rigid mechanism)
+        3. Calculates Sensitivity (Change in fold angles) = J * eigenvector
+        """
+        eigenvalues, eigenvectors = self.solve_for_eigenvalues()
+        
+        print("\n--- Eigenvalue Analysis Results ---")
+        # Check Rigid Body Modes (Modes 0-5 should be practically zero)
+        print("First 6 Eigenvalues (should be ~0 for rigid body motion):")
+        print(np.round(eigenvalues[:6], 5))
+        
+        print(f"Mode 7 Eigenvalue (Mechanism energy): {eigenvalues[6]:.5e}")
+
+        # --- Isolate Mode 7 ---
+        # In a free-floating 3D structure, the first 6 modes are Rigid Body Motions (3 trans + 3 rot).
+        # Therefore, the 7th mode (index 6) is the first actual deformation mechanism.
+        mechanism_mode_index = 6
+        
+        if len(eigenvalues) <= mechanism_mode_index:
+            print("Error: System does not have enough DOFs for a mechanism mode.")
+            return None
+
+        # This is 'v', the displacement vector of the nodes
+        mechanism_eigenvector = eigenvectors[:, mechanism_mode_index]
+
+        # --- Calculate Sensitivity ---
+        # Sensitivity = How much do the hinges rotate for this mechanism?
+        # Formula: d_theta = J * v
+        sensitivity = self.jacobian_matrix @ mechanism_eigenvector
+        
+        # Normalize sensitivity so the max fold change is 1.0 (makes it easier to read)
+        sensitivity = sensitivity / np.max(np.abs(sensitivity))
+
+        print("\n--- Sensitivity Analysis (Fold Angle Changes) ---")
+        for i, val in enumerate(sensitivity):
+            print(f"Hinge {i}: Sensitivity = {val:.4f}")
+
+        return sensitivity
         
 
     def plot_pattern(self):
-        """ This plots the whole dang thing so I can see what the beep is happening"""
+        """Visualizes nodes, bars, hinges, node indices, and hinge indices."""
 
-        """ Visualizes the generated nodes, bars, and hinge axes. """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
@@ -148,22 +236,67 @@ class SensitivityModel:
         zs = [n.coordinates[2] for n in self.nodes]
         ax.scatter(xs, ys, zs, c='black', marker='o')
 
+        # --- NODE LABELS ---
+        for n in self.nodes:
+            x, y, z = n.coordinates
+
+            if hasattr(n, "vertex_id"):
+                label = f"{n.id} (v{n.vertex_id})"
+            else:
+                label = f"{n.id}"
+
+            ax.text(
+                x, y, z,
+                label,
+                fontsize=8,
+                color='darkred'
+            )
+
         # 2. Plot Bars (Blue Lines)
         for bar in self.bars:
             p1 = bar.nodes[0].coordinates
             p2 = bar.nodes[1].coordinates
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 'b-', alpha=0.3)
+            ax.plot(
+                [p1[0], p2[0]],
+                [p1[1], p2[1]],
+                [p1[2], p2[2]],
+                'b-',
+                alpha=0.3
+            )
 
-        # 3. Plot Hinges (Red Dashed Lines) to verify detection
-        for h in self.hinges:
+        # 3. Plot Hinges (Red Dashed Lines + Labels)
+        for h_id, h in enumerate(self.hinges):
             p_j = h.node_j.coordinates
             p_k = h.node_k.coordinates
-            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 'r--', linewidth=2)
+
+            # Draw hinge line
+            ax.plot(
+                [p_j[0], p_k[0]],
+                [p_j[1], p_k[1]],
+                [p_j[2], p_k[2]],
+                'r--',
+                linewidth=2
+            )
+
+            # Hinge midpoint
+            mx = 0.5 * (p_j[0] + p_k[0])
+            my = 0.5 * (p_j[1] + p_k[1])
+            mz = 0.5 * (p_j[2] + p_k[2])
+
+            # Label hinge
+            ax.text(
+                mx, my, mz,
+                f"H{h_id}",
+                fontsize=9,
+                color='blue',
+                fontweight='bold'
+            )
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show()
-        
 
-        
+        ax.set_aspect('equal', adjustable='box')
+        plt.tight_layout()
+        plt.show()
+                
