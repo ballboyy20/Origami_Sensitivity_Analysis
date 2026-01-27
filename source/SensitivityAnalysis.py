@@ -5,7 +5,7 @@ from scipy.linalg import eigh
 from scipy.sparse import coo_matrix
 import sys
 import os
-from helper_classes import *
+from source.helper_classes import *
 
 class SensitivityModel:
     def __init__(self, coordinates, panel_indices):
