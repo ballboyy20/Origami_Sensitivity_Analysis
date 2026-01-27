@@ -1,9 +1,8 @@
 import unittest
 import numpy as np
-import sys
-import os
 # Assuming your main file is named SensitivityAnalysis.py
 from SensitivityAnalysis import *
+from helper_classes import *
 
 class TestBarPhysics(unittest.TestCase):
     
@@ -240,6 +239,83 @@ class TestHingePhysics(unittest.TestCase):
                 print(f"\nFAILED on Random Iteration {i}")
                 print(f"Coords:\n{coords}")
                 raise e
+            
+class TestModelAssembly(unittest.TestCase):
+    
+    def test_shared_node_memory(self):
+        """CRITICAL: Verify that if two panels share a node index, 
+        they point to the EXACT same Node object in memory."""
+        
+        # Geometry: Two triangles sharing Node 1 and Node 2
+        # P0: 0-1-2
+        # P1: 1-2-3
+        coords = [[0,0,0], [1,0,0], [1,1,0], [0,1,0]]
+        indices = [[0,1,2], [1,2,3]]
+        
+        model = SensitivityModel(coords, indices)
+        
+        # Get Node 1 from Panel 0
+        n1_p0 = next(n for n in model.panels[0].nodes if n.id == 1)
+        # Get Node 1 from Panel 1
+        n1_p1 = next(n for n in model.panels[1].nodes if n.id == 1)
+        
+        # Assert they are the same object
+        self.assertIs(n1_p0, n1_p1, "Shared nodes must be the same object instance")
+
+    def test_bar_generation_triangle(self):
+        """Verify a simple triangle creates exactly 3 bars."""
+        coords = [[0,0,0], [1,0,0], [0,1,0]]
+        indices = [[0,1,2]]
+        model = SensitivityModel(coords, indices)
+        
+        # A triangle has 3 edges -> 3 bars
+        self.assertEqual(len(model.bars), 3)
+
+    def test_bar_generation_quad_truss(self):
+        """Verify your 'Fully Connected' logic: A 4-node panel should have 6 bars."""
+        # Square: 4 perimeter bars + 2 diagonal bars = 6 bars
+        coords = [[0,0,0], [1,0,0], [1,1,0], [0,1,0]]
+        indices = [[0,1,2,3]] # One big panel
+        model = SensitivityModel(coords, indices)
+        
+        self.assertEqual(len(model.bars), 6, "A 4-node panel should be triangulated into 6 bars")
+
+    def test_duplicate_bar_removal(self):
+        """Verify that shared edges do not create double bars."""
+        # Two triangles sharing one edge.
+        # Triangle 1 (3 bars) + Triangle 2 (3 bars) = 6 raw bars
+        # Minus 1 duplicate shared bar = 5 unique bars expected.
+        coords = [[0,0,0], [1,0,0], [1,1,0], [0,1,0]]
+        indices = [[0,1,2], [1,2,3]] # Share edge 1-2
+        model = SensitivityModel(coords, indices)
+        
+        self.assertEqual(len(model.bars), 5)
+
+    def test_hinge_detection(self):
+        """Verify the model correctly identifies a hinge and its axis."""
+        # Two triangles sharing edge 1-2
+        coords = [[0,0,0], [1,0,0], [1,1,0], [0,1,0]]
+        indices = [[0,1,2], [1,2,3]]
+        model = SensitivityModel(coords, indices)
+        
+        self.assertEqual(len(model.hinges), 1)
+        
+        h = model.hinges[0]
+        # Check that the hinge axis is indeed nodes 1 and 2
+        axis_ids = sorted([h.node_j.id, h.node_k.id])
+        self.assertEqual(axis_ids, [1, 2], "Hinge axis should be on the shared nodes")
+
+    def test_hinge_wing_nodes(self):
+        """Verify the hinge correctly identifies the non-shared 'wing' nodes."""
+        # P0: 0-1-2 (Wing is 0)
+        # P1: 1-2-3 (Wing is 3)
+        coords = [[0,0,0], [1,0,0], [1,1,0], [0,1,0]]
+        indices = [[0,1,2], [1,2,3]]
+        model = SensitivityModel(coords, indices)
+        
+        h = model.hinges[0]
+        wings = sorted([h.node_i.id, h.node_l.id])
+        self.assertEqual(wings, [0, 3], "Hinge wings should be the unique nodes")
 
 if __name__ == '__main__':
     unittest.main()

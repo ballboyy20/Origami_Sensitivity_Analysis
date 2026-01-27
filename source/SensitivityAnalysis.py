@@ -1,161 +1,113 @@
 import numpy as np
+import itertools
+import matplotlib.pyplot as plt
 from scipy.linalg import eigh
 from scipy.sparse import coo_matrix
+import sys
+import os
+from helper_classes import *
 
-class Node:
-    def __init__(self, id, x,y,z):
-        # NOTE: These are the vertex coordinates of the pattern in the deployed state
-        self.id = id
-        self.coordinates = np.array([x,y,z], dtype=float)
+class SensitivityModel:
+    def __init__(self, coordinates, panel_indices):
+        self.nodes, self.panels = self.generate_geometry(coordinates, panel_indices)
 
-class BarElement:
-    def __init__(self,node_a, node_b, stiffness = 1e12):
-        self.nodes = [node_a, node_b]
-        self.stiffness = stiffness # Has really high stiffness to simulate the bars being rigid. We are assuming the panels themselves are ideally rigid. 
-        
-    def get_compatibility_matrix_row(self,total_DOFs):
-        #TODO...Calculate direction cosines ...
-        # extract the node coordinates
-        point1 = self.nodes[0].coordinates
-        point2 = self.nodes[1].coordinates
+        self.bars = self.generate_bars()
+        self.hinges = self.generate_hinges()
 
-        # Calculate length between the nodes (length of the bar)
-        vector_between_nodes = point2 - point1
-        length_of_bar = np.linalg.norm(vector_between_nodes)
+    def generate_geometry(self,coordinates, panel_indices):
+        """ Coordinates: List of [X,Y,Z] for every unique vertex (node)
+        panel_indices: List of lists, e.g., [[0,1,2], [0,2,3,4]]
+        This handles n-sides polygon panels"""
 
-        # The direction cosines are the normalized components
-        direction_cosine_x, direction_cosine_y, direction_cosine_z = vector_between_nodes/ length_of_bar
+        # This loop creates all the nodes with the provided coordinates
+        nodes = []
+        count = 0
+        for coordinate_list in coordinates:
+            x = coordinate_list[0]
+            y = coordinate_list[1]
+            z = coordinate_list[2]
 
-        # Intialize the row vector that will get put into the compatibility matrix
-        row_vector = np.zeros(total_DOFs)
+            new_node = Node(count, x ,y ,z)
+            nodes.append(new_node)
+            count += 1
 
-        # Node 1 indices
-        # The syntax "* 3" is how we skip through the array to find the exact "starting slot" for a specific node.
-        # The "index_1 : index_1 + 3" put the direction cosines for this bar in the right spot of the matrix
-        index_1 = self.nodes[0].id * 3
-        row_vector[index_1 : index_1 + 3] = [-direction_cosine_x, - direction_cosine_y, -direction_cosine_z]
+        # This loop assigns nodes to different panels
+        panels = []
+        for i, idxs in enumerate(panel_indices):
+            """ We look up the Ndoe objects using the indices provided.
+            If panel 1 uses node index 2, and panel 2 uses node index 2,
+            they both get the EXACT SAME Node object from memory. 
+            This makes sure that if Node 2 moves, it moves for both panels"""
 
-        # Node 2 indices
-        index_2 = self.nodes[1].id * 3
-        row_vector[index_2 : index_2 + 3] = [direction_cosine_x, direction_cosine_y, direction_cosine_z]
+            p_nodes = [nodes[k] for k in idxs]
+            panels.append(Panel(i, p_nodes))
 
-        
-        # Return the row for the compatibility matrix
-        return row_vector
-
-class HingeElement:
-    def __init__(self,node_i, node_j, node_k, node_l, stiffness = 1.0):
-        """By convention: j and k are the SHARED nodes (the hinge line)
-             and l are the unique nodes on either side"""
-        
-        # Enforce hinge direction j -> k, in case they are input incorrectly into intializer
-        if node_j.id > node_k.id:
-            node_j, node_k = node_k, node_j
-            node_i, node_l = node_l, node_i
-
-        self.node_i = node_i
-        self.node_j = node_j
-        self.node_k = node_k
-        self.node_l = node_l
-        self.stiffness = stiffness # Has much lower stiffness than the bar element because this is the part we are interested in, we want the hignes to move
-
-    def calculate_vectors(self):
-        """ calculates/intializes several vectors used in this class to reduce duplicate code """
-
-        # Vector for the hinge line (intersection between the panels)
-        self.hinge_line_vector = self.node_k.coordinates - self.node_j.coordinates
-        self.length_of_hinge_line = np.linalg.norm(self.hinge_line_vector)
-
-        # Vectors from the hinge to the outer nodes 
-        self.r_ji = self.node_i.coordinates - self.node_j.coordinates # (j -> i)
-        self.r_jl = self.node_l.coordinates - self.node_j.coordinates # (j -> l)
-
-        # Get vectors normal to each panel
-        self.panel_1_normal_vector = np.cross(self.r_ji, self.hinge_line_vector)
-        self.panel_2_normal_vector = np.cross(self.hinge_line_vector, self.r_jl)
-
-    def calculate_dihedral_angle(self): 
-        """The dihedral angle is the angle between two planes, 
-            we find this by finding the angle between the vectors normal to each plane"""
-        
-        self.calculate_vectors()
-
-        # use arctan2 to calculate angle between the two panels
-        y_component = np.dot(np.cross(self.panel_1_normal_vector,self.panel_2_normal_vector), self.hinge_line_vector) / self.length_of_hinge_line
-        x_component = np.dot(self.panel_1_normal_vector, self.panel_2_normal_vector)
-
-        return np.arctan2(y_component,x_component)
-
-    def get_jacobian_row(self, total_DOFs):
-        """Mathematically, the Jacobian (J) answers:
-        "If I wiggle Node i in some direction, exactly how much does the fold angle θ change?"""
-        
-        self.calculate_vectors()
-
-        # Calculate squared magnitudes (needed for the denominator)
-        panel_1_normal_vector_squared = np.dot(self.panel_1_normal_vector, self.panel_1_normal_vector)
-        panel_2_normal_vector_squared = np.dot(self.panel_2_normal_vector, self.panel_2_normal_vector)
-
-        # Safety check for zero-area triangles (collinear nodes)
-        if panel_1_normal_vector_squared < 1e-12 or panel_2_normal_vector_squared < 1e-12:
-            return np.zeros(total_DOFs)
-        
-        # Calculate gradients (The "sensitivity" vectors)
-        # [cite_start]Formulas derived from Schenk & Guest (2011)
-
-        # Gradient for nodes i & l
-        gradient_i = (self.length_of_hinge_line / panel_1_normal_vector_squared) * self.panel_1_normal_vector
-        gradient_l = (self.length_of_hinge_line / panel_2_normal_vector_squared) * self.panel_2_normal_vector
-
-        # Projection factors: How far along the hinge are node i and l?
-        alpha_i = np.dot(self.r_ji, self.hinge_line_vector) / (self.length_of_hinge_line * self.length_of_hinge_line)
-        alpha_l = np.dot(self.r_jl, self.hinge_line_vector) / (self.length_of_hinge_line * self.length_of_hinge_line)
-
-        # gradient for j & k
-        gradient_j = (alpha_i - 1) * gradient_i + (alpha_l - 1) * gradient_l
-        gradient_k = (-alpha_i) * gradient_i - alpha_l * gradient_l
-
-        # intialize empty row vector to populate with gradients
-        row = np.zeros(total_DOFs)
-
-        # Helper function  to stamp 3 values at a time into the correct slots
-        def stamp(node_id, vector):
-            idx = node_id * 3
-            row[idx : idx+3] = vector
-
-        stamp(self.node_i.id, gradient_i)
-        stamp(self.node_j.id, gradient_j)
-        stamp(self.node_k.id, gradient_k)
-        stamp(self.node_l.id, gradient_l)
-
-        return row
-
-    
-class Panel:
-    def __init__(self, id, nodes):
-        ## a panel will hold its own nodes. I will check each panel against all other panels to see if it shares nodes with other panels
-        ## If it does share nodes we will make a hinge there. If the panel already has 4 hinges, we won't check it against other panels. waste of compute
-        self.id = id
-        self.nodes = nodes
-
-    def get_nodes(self):
-        return self.nodes
-
-
-
-class FlasherSensitivityModel:
-    def __init__(self, nodes, bars, hinges):
-        self.nodes = nodes
-        self.bars = bars
-        self.hinges = hinges
+        return nodes, panels
 
     def generate_bars(self):
-        pass
+        """ 
+        Creates a rigid "truss" for every panel, regardless of how many sides the panel has.
+        It makes a bar between a node and every other node. 4 nodes = 6 bars, 3 nodes = regular trianlge
+        
+        WARNING: This creates non-deterministic panels. If this program were to be scaled/edited to analyze 
+        panel bending/shearing, this function would need to be edited to generate deterministic panels. 
 
-    def generate_hinge(self):
-        pass
+        """
 
-    def analyze_sensativity(self):
+        unique_edges = set()
+        bars = []
+
+        for panel in self.panels:
+            # Connect every node to every other node in this specific panel
+            for node_a, node_b in itertools.combinations(panel.nodes,2):
+
+                # Sort IDs to ensure Edge(1,2) = Edge (2,1)
+                edge_id = tuple(sorted((node_a.id, node_b.id)))
+
+                if edge_id not in unique_edges:
+                    unique_edges.add(edge_id)
+                    #Add the rigid bar
+                    bars.append(BarElement(node_a, node_b))
+
+        return bars
+
+
+    def generate_hinges(self):
+        """ Detects shared edges and creates a hinge element. """
+        hinges = []
+
+        # Iterate through unique pairs of panels
+        # Logic: Compare Panel 0 with 1, 2, 3... then Panel 1 with 2, 3...
+        for i in range(len(self.panels)):
+            for j in range(i + 1, len(self.panels)):
+                panel1 = self.panels[i]
+                panel2 = self.panels[j]
+
+                ids1 = {n.id for n in panel1.nodes}
+                ids2 = {n.id for n in panel2.nodes}
+
+                # Intersection finds shared nodes
+                shared = sorted(ids1.intersection(ids2))
+
+                # If they share exactly 2 nodes, it's a hinge axis
+                if len(shared) == 2:
+                    # 1. Identify Hinge Axis Nodes (j, k)
+                    # Note: We grab the node objects from panel1's list
+                    node_j = next(n for n in panel1.nodes if n.id == shared[0])
+                    node_k = next(n for n in panel1.nodes if n.id == shared[1])
+
+                    # 2. Identify "Wing" Nodes (i, l)
+                    # Use 'next' to find the first node in the panel that ISN'T in the shared set
+                    # This works for triangles AND quads/n-gons (any point off the axis defines the plane)
+                    node_i = next(n for n in panel1.nodes if n.id not in shared)
+                    node_l = next(n for n in panel2.nodes if n.id not in shared)
+                    
+                    hinges.append(HingeElement(node_i, node_j, node_k, node_l))
+        
+        return hinges
+
+
+    def analyze_sensitivity(self):
         number_DOFs = len(self.nodes) * 3 # three DOF for each node, (not each panel. FEA only sees nodes and elements. Our rigid panels are made when we add realyl high stiffness to the bar elements)
 
         # STEP 1: Assemble Matrices
@@ -180,6 +132,33 @@ class FlasherSensitivityModel:
 
     def plot_pattern(self):
         """ This plots the whole dang thing so I can see what the beep is happening"""
-        pass
+
+        """ Visualizes the generated nodes, bars, and hinge axes. """
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 1. Plot Nodes
+        xs = [n.coordinates[0] for n in self.nodes]
+        ys = [n.coordinates[1] for n in self.nodes]
+        zs = [n.coordinates[2] for n in self.nodes]
+        ax.scatter(xs, ys, zs, c='black', marker='o')
+
+        # 2. Plot Bars (Blue Lines)
+        for bar in self.bars:
+            p1 = bar.nodes[0].coordinates
+            p2 = bar.nodes[1].coordinates
+            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 'b-', alpha=0.3)
+
+        # 3. Plot Hinges (Red Dashed Lines) to verify detection
+        for h in self.hinges:
+            p_j = h.node_j.coordinates
+            p_k = h.node_k.coordinates
+            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 'r--', linewidth=2)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()
+        
 
         
