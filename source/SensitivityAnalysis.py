@@ -3,9 +3,13 @@ import itertools
 import matplotlib.pyplot as plt
 from scipy.linalg import eigh
 from scipy.sparse import coo_matrix
-import sys
-import os
 from source.helper_classes import *
+
+"""
+This is the meat of this script
+January 2026
+Jake Sutton
+"""
 
 class SensitivityModel:
     def __init__(self, coordinates, panel_indices):
@@ -110,25 +114,26 @@ class SensitivityModel:
     def analyze_sensitivity(self):
         number_DOFs = len(self.nodes) * 3 # three DOF for each node, (not each panel. FEA only sees nodes and elements. Our rigid panels are made when we add realyl high stiffness to the bar elements)
 
-        # STEP 1: Assemble Matrices
-            # Step 1.1: build combatibility matrix
-            # Step 1.2: Build jacobian matrix
-            # Step 1.3: Build physics matrix
 
+        #  Calculate Sensitivity: 
+            # Multiply jacobian_matrix by eigen vector 7
+
+            # and boom thats your sensitivity
+
+    def solve_for_eigenvalues(self):
+        #  Solve Eigenvalues
+
+        #  Isolate mode 7:
+            # make sure that modes 1-6 (0-5) are actually zero or near zero
+        pass
+
+    def assemble_stiffness_matrix(self):
         # STEP 2: Build Stiff Matrix
             # K_bars = compatiblity_matrix.transpose() * bar_stiffness_matrix * compatibility_matrix
             # K_hinges = jacobian_matrix.transpose() * higne_stiffness_matrix * jacobian_matrix
             # K_total = K_bars + K_hignes
-
-        # STEP 3: Solve Eigenvalues
-
-        # STEP 4: Isolate mode 7:
-            # make sure that modes 1-6 (0-5) are actually zero or near zero
-
-        # STEP 5: Calculate Sensitivity: 
-            # Multiply jacobian_matrix by eigen vector 7
-
-            # and boom thats your sensitivity
+        pass
+        
 
     def plot_pattern(self):
         """ This plots the whole dang thing so I can see what the beep is happening"""

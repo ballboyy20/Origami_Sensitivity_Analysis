@@ -1,5 +1,7 @@
 import numpy as np
-
+"""
+These are the smaller less functional classes used in the the SensitivtyAnalysis class
+"""
 
 class Node:
     def __init__(self, id, x,y,z):
@@ -13,7 +15,6 @@ class BarElement:
         self.stiffness = stiffness # Has really high stiffness to simulate the bars being rigid. We are assuming the panels themselves are ideally rigid. 
         
     def get_compatibility_matrix_row(self,total_DOFs):
-        #TODO...Calculate direction cosines ...
         # extract the node coordinates
         point1 = self.nodes[0].coordinates
         point2 = self.nodes[1].coordinates
