@@ -57,5 +57,6 @@ if __name__ == "__main__":
     print(f"Panels:  {len(model.panels)}")
     print(f"Bars:    {len(model.bars)}")
     print(f"Hinges:  {len(model.hinges)} ")
-
+    model.analyze_sensitivity()
+    model.print_stiffness_matrix()
     model.plot_pattern()

@@ -1,9 +1,16 @@
 import numpy as np
+import sympy as sp
 import itertools
 import matplotlib.pyplot as plt
 from scipy.linalg import eigh
-from scipy.sparse import coo_matrix
-from source.helper_classes import *
+
+#  IMPORT BLOCK
+try:
+    # This works when running from the ROOT directory (e.g., main.py)
+    from source.helper_classes import *
+except ModuleNotFoundError:
+    # This works when running from INSIDE the source directory (e.g., test files)
+    from helper_classes import *
 
 """
 This is the meat of this script
@@ -17,6 +24,7 @@ class SensitivityModel:
 
         self.bars = self.generate_bars()
         self.hinges = self.generate_hinges()
+        self.total_K = None
 
     def generate_geometry(self,coordinates, panel_indices):
         """ Coordinates: List of [X,Y,Z] for every unique vertex (node)
@@ -150,36 +158,44 @@ class SensitivityModel:
             self.jacobian_matrix[i, :] = hinge.get_jacobian_row(num_dof)
             hinge_stiffness_matrix[i] = hinge.stiffness
 
-        # 3. Matrix Multiplication to get K_total 
+        # Matrix Multiplication and addition to get K_total 
         # We use np.diag() to turn the 1D stiffness arrays into diagonal matrices
-
-        # K_bars = compatibility_matrix.T * bar_stiffness_matrix * compatibility_matrix
         K_bars = self.compatibility_matrix.T @ np.diag(bar_stiffness_matrix) @ self.compatibility_matrix
-
-        # K_hinges = jacobian_matrix.T * hinge_stiffness_matrix * jacobian_matrix
         K_hinges = self.jacobian_matrix.T @ np.diag(hinge_stiffness_matrix) @ self.jacobian_matrix
 
-        # K_total = K_bars + K_hinges
-        return K_bars + K_hinges
+        total_K = K_bars + K_hinges
+        return total_K
+
+    def print_stiffness_matrix(self):
+        sp.init_printing(use_unicode=True)
+        if getattr(self, 'total_K', None) is None:
+            print("Total K not found. Assembling now...")
+            self.total_K = self.assemble_stiffness_matrix()
+        K_sym = sp.Matrix(np.round(self.total_K, 4)) 
+        sp.pretty_print(K_sym)
+        
 
     def solve_for_eigenvalues(self):
         """
         Solves the generalized eigenvalue problem: K * v = lambda * v
         Returns sorted eigenvalues and eigenvectors.
         """
-        # 1. Get the stiffness matrix
-        K = self.assemble_stiffness_matrix()
+        if getattr(self, 'total_K', None) is None:
+            self.total_K = self.assemble_stiffness_matrix()
 
-        # 2. Solve for eigenvalues (eigh is optimized for symmetric/Hermitian matrices)
-        eigenvalues, eigenvectors = eigh(K)
 
-        # 3. Sort results (smallest eigenvalues first)
+        # Solve for eigenvalues (eigh is optimized for symmetric/Hermitian matrices)
+        eigenvalues, eigenvectors = eigh(self.total_K)
+
+        # Sort results (smallest eigenvalues first)
         # The index array 'idx' tells us how to re-order the vectors to match the values
         idx = np.argsort(eigenvalues)
         sorted_eigenvalues = eigenvalues[idx]
         sorted_eigenvectors = eigenvectors[:, idx]
 
         return sorted_eigenvalues, sorted_eigenvectors
+    
+
 
     def analyze_sensitivity(self):
         """
@@ -224,79 +240,152 @@ class SensitivityModel:
         return sensitivity
         
 
-    def plot_pattern(self):
-        """Visualizes nodes, bars, hinges, node indices, and hinge indices."""
-
-        fig = plt.figure()
+    def plot_pattern(self, sensitivity_vector=None):
+        """
+        Visualizes the mechanism.
+        If 'sensitivity_vector' is provided, it color-codes hinges:
+        Blue = Stationary, Red = Moving
+        """
+        fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
 
-        # 1. Plot Nodes
+        # --- 1. Plot Nodes ---
         xs = [n.coordinates[0] for n in self.nodes]
         ys = [n.coordinates[1] for n in self.nodes]
         zs = [n.coordinates[2] for n in self.nodes]
-        ax.scatter(xs, ys, zs, c='black', marker='o')
+        ax.scatter(xs, ys, zs, c='black', marker='o', s=20)
 
-        # --- NODE LABELS ---
+        # Node Labels
         for n in self.nodes:
-            x, y, z = n.coordinates
+            ax.text(n.coordinates[0], n.coordinates[1], n.coordinates[2], 
+                    f"{n.id}", fontsize=8, color='black', zorder=10)
 
-            if hasattr(n, "vertex_id"):
-                label = f"{n.id} (v{n.vertex_id})"
-            else:
-                label = f"{n.id}"
-
-            ax.text(
-                x, y, z,
-                label,
-                fontsize=8,
-                color='darkred'
-            )
-
-        # 2. Plot Bars (Blue Lines)
+        # --- 2. Plot Bars ---
         for bar in self.bars:
             p1 = bar.nodes[0].coordinates
             p2 = bar.nodes[1].coordinates
-            ax.plot(
-                [p1[0], p2[0]],
-                [p1[1], p2[1]],
-                [p1[2], p2[2]],
-                'b-',
-                alpha=0.3
-            )
+            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
+                    'k-', alpha=0.2, linewidth=1)
 
-        # 3. Plot Hinges (Red Dashed Lines + Labels)
+        # --- 3. Plot Hinges (With Sensitivity Coloring) ---
+        
+        # Prepare color map if sensitivity data exists
+        if sensitivity_vector is not None:
+            # Normalize to 0.0 - 1.0
+            max_val = np.max(np.abs(sensitivity_vector))
+            if max_val > 0:
+                norm_sens = np.abs(sensitivity_vector) / max_val
+            else:
+                norm_sens = np.zeros(len(self.hinges))
+        
         for h_id, h in enumerate(self.hinges):
             p_j = h.node_j.coordinates
             p_k = h.node_k.coordinates
 
-            # Draw hinge line
-            ax.plot(
-                [p_j[0], p_k[0]],
-                [p_j[1], p_k[1]],
-                [p_j[2], p_k[2]],
-                'r--',
-                linewidth=2
-            )
+            # Determine Color and Width
+            if sensitivity_vector is not None:
+                intensity = norm_sens[h_id]
+                color = plt.cm.coolwarm(intensity) # Blue -> Red
+                width = 1.5 + (3 * intensity) 
+                label_color = color
+                should_label = intensity > 0.1 # Only label active hinges
+            else:
+                color = 'blue'
+                width = 2
+                label_color = 'blue'
+                should_label = True
 
-            # Hinge midpoint
-            mx = 0.5 * (p_j[0] + p_k[0])
-            my = 0.5 * (p_j[1] + p_k[1])
-            mz = 0.5 * (p_j[2] + p_k[2])
+            # Plot Hinge Line
+            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 
+                    color=color, linestyle='--', linewidth=width)
 
             # Label hinge
-            ax.text(
-                mx, my, mz,
-                f"H{h_id}",
-                fontsize=9,
-                color='blue',
-                fontweight='bold'
-            )
+            if should_label:
+                mx = 0.5 * (p_j[0] + p_k[0])
+                my = 0.5 * (p_j[1] + p_k[1])
+                mz = 0.5 * (p_j[2] + p_k[2])
+                
+                ax.text(mx, my, mz, f"H{h_id}", 
+                        fontsize=10, color=label_color, fontweight='bold')
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-
-        ax.set_aspect('equal', adjustable='box')
+        ax.set_aspect('equal')
         plt.tight_layout()
         plt.show()
-                
+        """
+        Visualizes the mechanism.
+        If 'sensitivity_vector' is provided, it color-codes hinges:
+        Blue = Stationary, Red = Moving
+        """
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # --- 1. Plot Nodes ---
+        xs = [n.coordinates[0] for n in self.nodes]
+        ys = [n.coordinates[1] for n in self.nodes]
+        zs = [n.coordinates[2] for n in self.nodes]
+        ax.scatter(xs, ys, zs, c='black', marker='o', s=20)
+
+        # Node Labels
+        for n in self.nodes:
+            ax.text(n.coordinates[0], n.coordinates[1], n.coordinates[2], 
+                    f"{n.id}", fontsize=8, color='black', zorder=10)
+
+        # --- 2. Plot Bars ---
+        for bar in self.bars:
+            p1 = bar.nodes[0].coordinates
+            p2 = bar.nodes[1].coordinates
+            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
+                    'k-', alpha=0.2, linewidth=1)
+
+        # --- 3. Plot Hinges (With Sensitivity Coloring) ---
+        
+        # Prepare color map if sensitivity data exists
+        if sensitivity_vector is not None:
+            # Normalize to 0.0 - 1.0
+            max_val = np.max(np.abs(sensitivity_vector))
+            if max_val > 0:
+                norm_sens = np.abs(sensitivity_vector) / max_val
+            else:
+                norm_sens = np.zeros(len(self.hinges))
+        
+        for h_id, h in enumerate(self.hinges):
+            p_j = h.node_j.coordinates
+            p_k = h.node_k.coordinates
+
+            # Determine Color and Width
+            if sensitivity_vector is not None:
+                # Get intensity (0 to 1)
+                intensity = norm_sens[h_id]
+                # Use Matplotlib Colormap (Coolwarm: Blue->Red)
+                color = plt.cm.coolwarm(intensity) 
+                # Make active hinges thicker
+                width = 1 + (4 * intensity) 
+                label_color = color
+            else:
+                color = 'blue'
+                width = 2
+                label_color = 'blue'
+
+            # Plot Hinge Line
+            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 
+                    color=color, linestyle='--', linewidth=width)
+
+            # Plot Hinge Label (H0, H1...) at midpoint
+            mx = 0.5 * (p_j[0] + p_k[0])
+            my = 0.5 * (p_j[1] + p_k[1])
+            mz = 0.5 * (p_j[2] + p_k[2])
+            
+            # Only label if it's moving (cleaner plot) or if no sensitivity data
+            if sensitivity_vector is None or norm_sens[h_id] > 0.1:
+                ax.text(mx, my, mz, f"H{h_id}", 
+                        fontsize=10, color=label_color, fontweight='bold')
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_aspect('equal')
+        plt.tight_layout()
+        plt.show()
