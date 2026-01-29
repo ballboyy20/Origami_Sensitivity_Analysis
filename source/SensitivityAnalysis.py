@@ -2,6 +2,7 @@ import numpy as np
 import sympy as sp
 import itertools
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as PathEffects
 from scipy.linalg import eigh
 
 #  IMPORT BLOCK
@@ -88,44 +89,48 @@ class SensitivityModel:
         """ Detects shared edges and creates a hinge element. """
         hinges = []
 
-        # Iterate through unique pairs of panels
-        # Logic: Compare Panel 0 with 1, 2, 3... then Panel 1 with 2, 3...
-        for i in range(len(self.panels)):
-            for j in range(i + 1, len(self.panels)):
-                panel1 = self.panels[i]
-                panel2 = self.panels[j]
+        # map edges to panels
+        edge_to_panels = {}
 
-                ids1 = {n.id for n in panel1.nodes}
-                ids2 = {n.id for n in panel2.nodes}
+        for panel in self.panels:
+            number_nodes = len(panel.nodes)
+            for i in range(number_nodes):
+                node1 = panel.nodes[i]
+                node2 = panel.nodes[(i+1) % number_nodes] #wrap around
 
-                occupied_axis = set()
+                edge_key = tuple(sorted((node1.id, node2.id)))
+                if edge_key not in edge_to_panels:
+                    edge_to_panels[edge_key] = []
+                edge_to_panels[edge_key].append(panel)
 
-                # Intersection finds shared nodes
-                shared = sorted(ids1.intersection(ids2))
+        for edge_key, panel_list in edge_to_panels.items():
+            count = len(panel_list)
 
-                # If they share exactly 2 nodes, it's a hinge axis
-                if len(shared) == 2:
+            if count > 2:
+                panel_ids = [panel.id for panel in panel_list]
+                raise ValueError(f"TOPOLOGY ERROR: Edge between Nodes {edge_key} is shared by {count} panels "
+                    f"(Panels: {panel_ids}).\n"
+                    "Real origami edges can only connect 2 panels. "
+                    "Check your input indices for overlapping panels."
+                )
+            # if only 1 panel, its a free edge and no hinge is needed there
+            if count < 2:
+                continue
 
-                    # The next few lines check to see if theres already an axis here
-                    axis_key = tuple(sorted(shared))
-                    if axis_key in occupied_axis:
-                        continue
-                    occupied_axis.add(axis_key)
+            # This logic below is if there are just 2 panels, we create a hinge
+            panel1 = panel_list[0]
+            panel2 = panel_list[1]
 
+            # Identify Axis Nodes (j, k)
+            # Find the actual Node objects in panel_1 matching the IDs in edge_key
+            node_j = next(n for n in panel1.nodes if n.id == edge_key[0])
+            node_k = next(n for n in panel1.nodes if n.id == edge_key[1])
 
-                    # 1. Identify Hinge Axis Nodes (j, k)
-                    # Note: We grab the node objects from panel1's list
-                    node_j = next(n for n in panel1.nodes if n.id == shared[0])
-                    node_k = next(n for n in panel1.nodes if n.id == shared[1])
+            # Identify "Wing" Nodes (i, l) - any node NOT on the axis
+            node_i = next(n for n in panel1.nodes if n.id not in edge_key)
+            node_l = next(n for n in panel2.nodes if n.id not in edge_key)
 
-                    
-                    # 2. Identify "Wing" Nodes (i, l)
-                    # Use 'next' to find the first node in the panel that ISN'T in the shared set
-                    # This works for triangles AND quads/n-gons (any point off the axis defines the plane)
-                    node_i = next(n for n in panel1.nodes if n.id not in shared)
-                    node_l = next(n for n in panel2.nodes if n.id not in shared)
-                    
-                    hinges.append(HingeElement(node_i, node_j, node_k, node_l))
+            hinges.append(HingeElement(node_i, node_j, node_k, node_l))
         
         return hinges
 
@@ -197,195 +202,159 @@ class SensitivityModel:
     
 
 
-    def analyze_sensitivity(self):
+    def analyze_sensitivity(self, num_modes_to_check=3, return_mode_index=None):
         """
-        Performs the analysis to find the mechanism sensitivity.
-        1. Solves Eigenvalues
-        2. Isolates Mode 7 (The first non-rigid mechanism)
-        3. Calculates Sensitivity (Change in fold angles) = J * eigenvector
+        Performs analysis on mechanism modes.
+        
+        Arguments:
+        - num_modes_to_check: Number of modes to print details for.
+        - return_mode_index: (int or list) 
+             If int: returns sensitivity of that specific mode (e.g., 6).
+             If list: returns the SUM of sensitivities of those modes (e.g., [6, 7]).
+             If None: returns the primary mechanism mode (Mode 7/Index 6).
         """
         eigenvalues, eigenvectors = self.solve_for_eigenvalues()
         
-        print("\n--- Eigenvalue Analysis Results ---")
-        # Check Rigid Body Modes (Modes 0-5 should be practically zero)
-        print("First 6 Eigenvalues (should be ~0 for rigid body motion):")
-        print(np.round(eigenvalues[:6], 5))
+        print("\n" + "="*40)
+        print("      EIGENVALUE ANALYSIS RESULTS")
+        print("="*40)
         
-        print(f"Mode 7 Eigenvalue (Mechanism energy): {eigenvalues[6]:.5e}")
+        # Rigid Body Check
+        if np.any(eigenvalues[:6] > 1e-3):
+            print(f"WARNING: Non-zero rigid body modes: {np.round(eigenvalues[:6], 5)}")
+        else:
+            print("Pass: Rigid body modes are effectively zero.")
 
-        # --- Isolate Mode 7 ---
-        # In a free-floating 3D structure, the first 6 modes are Rigid Body Motions (3 trans + 3 rot).
-        # Therefore, the 7th mode (index 6) is the first actual deformation mechanism.
-        mechanism_mode_index = 6
+        start_index = 6
+        print(f"\n--- Mechanism Modes (Checking first {num_modes_to_check}) ---")
         
-        if len(eigenvalues) <= mechanism_mode_index:
-            print("Error: System does not have enough DOFs for a mechanism mode.")
-            return None
-
-        # This is 'v', the displacement vector of the nodes
-        mechanism_eigenvector = eigenvectors[:, mechanism_mode_index]
-
-        # --- Calculate Sensitivity ---
-        # Sensitivity = How much do the hinges rotate for this mechanism?
-        # Formula: d_theta = J * v
-        sensitivity = self.jacobian_matrix @ mechanism_eigenvector
-        
-        # Normalize sensitivity so the max fold change is 1.0 (makes it easier to read)
-        sensitivity = sensitivity / np.max(np.abs(sensitivity))
-
-        print("\n--- Sensitivity Analysis (Fold Angle Changes) ---")
-        for i, val in enumerate(sensitivity):
-            print(f"Hinge {i}: Sensitivity = {val:.4f}")
-
-        return sensitivity
-        
-
-    def plot_pattern(self, sensitivity_vector=None):
-        """
-        Visualizes the mechanism.
-        If 'sensitivity_vector' is provided, it color-codes hinges:
-        Blue = Stationary, Red = Moving
-        """
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-
-        # --- 1. Plot Nodes ---
-        xs = [n.coordinates[0] for n in self.nodes]
-        ys = [n.coordinates[1] for n in self.nodes]
-        zs = [n.coordinates[2] for n in self.nodes]
-        ax.scatter(xs, ys, zs, c='black', marker='o', s=20)
-
-        # Node Labels
-        for n in self.nodes:
-            ax.text(n.coordinates[0], n.coordinates[1], n.coordinates[2], 
-                    f"{n.id}", fontsize=8, color='black', zorder=10)
-
-        # --- 2. Plot Bars ---
-        for bar in self.bars:
-            p1 = bar.nodes[0].coordinates
-            p2 = bar.nodes[1].coordinates
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
-                    'k-', alpha=0.2, linewidth=1)
-
-        # --- 3. Plot Hinges (With Sensitivity Coloring) ---
-        
-        # Prepare color map if sensitivity data exists
-        if sensitivity_vector is not None:
-            # Normalize to 0.0 - 1.0
-            max_val = np.max(np.abs(sensitivity_vector))
-            if max_val > 0:
-                norm_sens = np.abs(sensitivity_vector) / max_val
-            else:
-                norm_sens = np.zeros(len(self.hinges))
-        
-        for h_id, h in enumerate(self.hinges):
-            p_j = h.node_j.coordinates
-            p_k = h.node_k.coordinates
-
-            # Determine Color and Width
-            if sensitivity_vector is not None:
-                intensity = norm_sens[h_id]
-                color = plt.cm.coolwarm(intensity) # Blue -> Red
-                width = 1.5 + (3 * intensity) 
-                label_color = color
-                should_label = intensity > 0.1 # Only label active hinges
-            else:
-                color = 'blue'
-                width = 2
-                label_color = 'blue'
-                should_label = True
-
-            # Plot Hinge Line
-            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 
-                    color=color, linestyle='--', linewidth=width)
-
-            # Label hinge
-            if should_label:
-                mx = 0.5 * (p_j[0] + p_k[0])
-                my = 0.5 * (p_j[1] + p_k[1])
-                mz = 0.5 * (p_j[2] + p_k[2])
-                
-                ax.text(mx, my, mz, f"H{h_id}", 
-                        fontsize=10, color=label_color, fontweight='bold')
-
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_aspect('equal')
-        plt.tight_layout()
-        plt.show()
-        """
-        Visualizes the mechanism.
-        If 'sensitivity_vector' is provided, it color-codes hinges:
-        Blue = Stationary, Red = Moving
-        """
-        fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-
-        # --- 1. Plot Nodes ---
-        xs = [n.coordinates[0] for n in self.nodes]
-        ys = [n.coordinates[1] for n in self.nodes]
-        zs = [n.coordinates[2] for n in self.nodes]
-        ax.scatter(xs, ys, zs, c='black', marker='o', s=20)
-
-        # Node Labels
-        for n in self.nodes:
-            ax.text(n.coordinates[0], n.coordinates[1], n.coordinates[2], 
-                    f"{n.id}", fontsize=8, color='black', zorder=10)
-
-        # --- 2. Plot Bars ---
-        for bar in self.bars:
-            p1 = bar.nodes[0].coordinates
-            p2 = bar.nodes[1].coordinates
-            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
-                    'k-', alpha=0.2, linewidth=1)
-
-        # --- 3. Plot Hinges (With Sensitivity Coloring) ---
-        
-        # Prepare color map if sensitivity data exists
-        if sensitivity_vector is not None:
-            # Normalize to 0.0 - 1.0
-            max_val = np.max(np.abs(sensitivity_vector))
-            if max_val > 0:
-                norm_sens = np.abs(sensitivity_vector) / max_val
-            else:
-                norm_sens = np.zeros(len(self.hinges))
-        
-        for h_id, h in enumerate(self.hinges):
-            p_j = h.node_j.coordinates
-            p_k = h.node_k.coordinates
-
-            # Determine Color and Width
-            if sensitivity_vector is not None:
-                # Get intensity (0 to 1)
-                intensity = norm_sens[h_id]
-                # Use Matplotlib Colormap (Coolwarm: Blue->Red)
-                color = plt.cm.coolwarm(intensity) 
-                # Make active hinges thicker
-                width = 1 + (4 * intensity) 
-                label_color = color
-            else:
-                color = 'blue'
-                width = 2
-                label_color = 'blue'
-
-            # Plot Hinge Line
-            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 
-                    color=color, linestyle='--', linewidth=width)
-
-            # Plot Hinge Label (H0, H1...) at midpoint
-            mx = 0.5 * (p_j[0] + p_k[0])
-            my = 0.5 * (p_j[1] + p_k[1])
-            mz = 0.5 * (p_j[2] + p_k[2])
+        # --- Print Info Loop ---
+        for i in range(start_index, start_index + num_modes_to_check):
+            if i >= len(eigenvalues): break
+            e_val = eigenvalues[i]
             
-            # Only label if it's moving (cleaner plot) or if no sensitivity data
-            if sensitivity_vector is None or norm_sens[h_id] > 0.1:
-                ax.text(mx, my, mz, f"H{h_id}", 
-                        fontsize=10, color=label_color, fontweight='bold')
+            # Degeneracy Check
+            if i > start_index:
+                prev_val = eigenvalues[i-1]
+                ratio = abs(e_val - prev_val) / (prev_val + 1e-12)
+                if ratio < 0.01:
+                    print(f"   [!] ALERT: Mode {i+1} is DEGENERATE with Mode {i}")
 
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        ax.set_aspect('equal')
-        plt.tight_layout()
-        plt.show()
+            # Calculate Sensitivity for display
+            mode_v = eigenvectors[:, i]
+            # Ensure you use self.J_matrix or self.jacobian_matrix (whichever is in your init)
+            sens = self.jacobian_matrix @ mode_v 
+            sens_norm = sens / (np.max(np.abs(sens)) + 1e-12)
+
+            print(f"\n>> MODE {i+1} (Index {i}) | Energy: {e_val:.5e}")
+            # ... (Print logic omitted for brevity, same as before) ...
+
+        # --- Return Logic for Plotting ---
+        # 1. Default case (Mode 7 / Index 6)
+        target_indices = [6] 
+        
+        # 2. User specified specific mode or combination
+        if return_mode_index is not None:
+            if isinstance(return_mode_index, int):
+                target_indices = [return_mode_index]
+            elif isinstance(return_mode_index, list):
+                target_indices = return_mode_index
+
+        # Calculate Combined Sensitivity
+        combined_sensitivity = np.zeros(self.jacobian_matrix.shape[0])
+        
+        print(f"\n--- Returning Sensitivity for Mode(s): {target_indices} ---")
+        for idx in target_indices:
+            if idx < len(eigenvalues):
+                # We add the ABSOLUTE sensitivity vectors to visualize total motion area
+                # (Or you can add signed vectors if you want to see cancellation)
+                v = eigenvectors[:, idx]
+                s = self.jacobian_matrix @ v
+                combined_sensitivity += np.abs(s) 
+            else:
+                print(f"Error: Mode index {idx} out of bounds.")
+
+        # Final Normalization
+        max_val = np.max(np.abs(combined_sensitivity))
+        if max_val > 1e-9:
+            combined_sensitivity /= max_val
+            
+        return combined_sensitivity
+        
+    def plot_pattern(self, sensitivity_vector=None, show_node_labels=True, show_hinge_labels=True, title="Pattern"):
+        """
+        Visualizes the mechanism with Blue-to-Red sensitivity mapping.
+        """
+        plt.close('all') 
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # --- Process Colors ---
+        # Default to blue (0.0) if no data provided
+        norm_sens = np.zeros(len(self.hinges))
+        
+        if sensitivity_vector is not None:
+            sens_abs = np.abs(sensitivity_vector)
+            max_val = np.max(sens_abs)
+            
+            if max_val > 1e-12:
+                # Normalize 0.0 to 1.0
+                norm_sens = sens_abs / max_val
+        
+        # Create Color Map (Coolwarm: Blue=Low, Red=High)
+        cmap = plt.cm.coolwarm
+
+        # --- Plot Nodes & Bars ---
+        xs = [n.coordinates[0] for n in self.nodes]
+        ys = [n.coordinates[1] for n in self.nodes]
+        zs = [n.coordinates[2] for n in self.nodes]
+        ax.scatter(xs, ys, zs, c='black', s=20, alpha=0.4)
+
+        if show_node_labels:
+            for n in self.nodes:
+                ax.text(n.coordinates[0], n.coordinates[1], n.coordinates[2], 
+                        f"{n.id}", fontsize=8, color='grey')
+
+        for bar in self.bars:
+            p1, p2 = bar.nodes[0].coordinates, bar.nodes[1].coordinates
+            ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 
+                    color='black', alpha=0.3, linewidth=1)
+
+        # --- Plot Hinges with Color Scale ---
+        for h_id, h in enumerate(self.hinges):
+            p_j, p_k = h.node_j.coordinates, h.node_k.coordinates
+            
+            intensity = norm_sens[h_id] # 0.0 to 1.0
+            color = cmap(intensity)     # Get RGBA color
+            
+            # Thicker lines for active hinges
+            width = 1.0 + (4.0 * intensity) 
+            alpha = 0.4 + (0.6 * intensity)
+
+            ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]], 
+                    color=color, linestyle='-', linewidth=width, alpha=alpha)
+
+            if show_hinge_labels and intensity > 0.15: # Only label active hinges
+                mid = (p_j + p_k) / 2
+                ax.text(mid[0], mid[1], mid[2], f"H{h_id}", 
+                        color=color, fontsize=10, fontweight='bold',
+                        path_effects=[plt.matplotlib.patheffects.withStroke(linewidth=2, foreground="white")])
+
+        # --- Formatting ---
+        # Equal aspect ratio hack for 3D
+        all_coords = np.array([xs, ys, zs])
+        max_range = np.ptp(all_coords, axis=1).max() / 2.0
+        mid_x, mid_y, mid_z = np.mean(all_coords[0]), np.mean(all_coords[1]), np.mean(all_coords[2])
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        
+        ax.set_title(title)
+        
+        # Add a Colorbar for reference
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 1))
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, shrink=0.5)
+        cbar.set_label('Relative Sensitivity (Abs)', rotation=270, labelpad=15)
+
+        plt.show()   

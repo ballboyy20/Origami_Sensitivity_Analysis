@@ -10,7 +10,7 @@ class Node:
         self.coordinates = np.array([x,y,z], dtype=float)
 
 class BarElement:
-    def __init__(self,node_a, node_b, stiffness = 1e12):
+    def __init__(self,node_a, node_b, stiffness = 1e5):
         self.nodes = [node_a, node_b]
         self.stiffness = stiffness # Has really high stiffness to simulate the bars being rigid. We are assuming the panels themselves are ideally rigid. 
         
@@ -44,7 +44,7 @@ class BarElement:
         return row_vector
 
 class HingeElement:
-    def __init__(self,node_i, node_j, node_k, node_l, stiffness = 1.0):
+    def __init__(self,node_i, node_j, node_k, node_l, stiffness = 50.0):
         """By convention: j and k are the SHARED nodes (the hinge line)
              and l are the unique nodes on either side"""
         

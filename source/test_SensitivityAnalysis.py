@@ -319,5 +319,56 @@ class TestModelAssembly(unittest.TestCase):
         wings = sorted([h.node_i.id, h.node_l.id])
         self.assertEqual(wings, [0, 3], "Hinge wings should be the unique nodes")
 
+
+class TestTopologyLogic(unittest.TestCase):
+
+    def setUp(self):
+        """
+        Define a simple 4-node diamond shape for testing.
+        Nodes 0 and 1 form the shared 'spine'.
+        """
+        self.coords = [
+            [0.0, 0.0, 0.0],  # Node 0 (Spine Bottom)
+            [0.0, 1.0, 0.0],  # Node 1 (Spine Top)
+            [1.0, 0.5, 0.0],  # Node 2 (Right Wing)
+            [-1.0, 0.5, 0.0], # Node 3 (Left Wing)
+            [0.0, 0.5, 1.0]   # Node 4 (Vertical Fin - for failure test)
+        ]
+
+    def test_valid_topology(self):
+        """
+        Test that a normal 2-panel hinge does NOT raise an error.
+        """
+        print("\nRunning Valid Topology Test...")
+        valid_indices = [
+            [0, 1, 2], # Right Triangle
+            [0, 1, 3]  # Left Triangle
+        ]
+        
+        try:
+            model = SensitivityModel(self.coords, valid_indices)
+            print(f"Success! Created {len(model.hinges)} hinge(s) for 2 panels.")
+        except ValueError as e:
+            self.fail(f"Valid topology raised ValueError unexpectedly: {e}")
+
+    def test_invalid_sandwich_topology(self):
+        """
+        Test that 3 panels sharing the same edge (0-1) RAISES a ValueError.
+        This simulates the Hexagon+Triangle overlapping issue.
+        """
+        print("\nRunning Invalid (3-Panel) Topology Test...")
+        
+        sandwich_indices = [
+            [0, 1, 2], # Panel A (Right)
+            [0, 1, 3], # Panel B (Left)
+            [0, 1, 4]  # Panel C (Sticking up) - All share edge 0-1
+        ]
+
+        # We assert that this MUST raise a ValueError
+        with self.assertRaises(ValueError) as context:
+            SensitivityModel(self.coords, sandwich_indices)
+        
+        print(f"Caught Expected Error: {context.exception}")
+
 if __name__ == '__main__':
     unittest.main()

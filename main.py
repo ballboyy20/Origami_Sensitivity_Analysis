@@ -57,6 +57,16 @@ if __name__ == "__main__":
     print(f"Panels:  {len(model.panels)}")
     print(f"Bars:    {len(model.bars)}")
     print(f"Hinges:  {len(model.hinges)} ")
-    model.analyze_sensitivity()
-    model.print_stiffness_matrix()
-    model.plot_pattern()
+
+    sensitivity_results = model.analyze_sensitivity()
+
+   
+    combined_sens = model.analyze_sensitivity(num_modes_to_check=5, return_mode_index=[12])
+
+    # 2. Plot it
+    model.plot_pattern(
+            sensitivity_vector=combined_sens,
+            show_node_labels=False,   # Turn OFF node IDs for a cleaner look
+            show_hinge_labels=True,    # Keep Hinge IDs ON
+            title="Combined Modes 7 + 8 (Recovered Radial Symmetry)"
+        )
