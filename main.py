@@ -61,12 +61,12 @@ if __name__ == "__main__":
     sensitivity_results = model.analyze_sensitivity()
 
    
-    combined_sens = model.analyze_sensitivity(num_modes_to_check=5, return_mode_index=[12])
+    combined_sens = model.analyze_sensitivity(num_modes_to_check=5, return_mode_index=[8])
 
     # 2. Plot it
     model.plot_pattern(
             sensitivity_vector=combined_sens,
             show_node_labels=False,   # Turn OFF node IDs for a cleaner look
             show_hinge_labels=True,    # Keep Hinge IDs ON
-            title="Combined Modes 7 + 8 (Recovered Radial Symmetry)"
+            title=" Modes 9 (Breathing Mode)"
         )

@@ -202,7 +202,7 @@ class SensitivityModel:
     
 
 
-    def analyze_sensitivity(self, num_modes_to_check=3, return_mode_index=None):
+    def analyze_sensitivity(self, num_modes_to_check=3, return_mode_index=None): #TODO understand this function better
         """
         Performs analysis on mechanism modes.
         
