@@ -68,5 +68,6 @@ if __name__ == "__main__":
             sensitivity_vector=combined_sens,
             show_node_labels=False,   # Turn OFF node IDs for a cleaner look
             show_hinge_labels=True,    # Keep Hinge IDs ON
-            title=" Modes 9 (Breathing Mode)"
+            title=" Mode 9 (Breathing Mode)"
         )
+    

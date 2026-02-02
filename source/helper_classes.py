@@ -3,6 +3,16 @@ import numpy as np
 These are the smaller less functional classes used in the the SensitivtyAnalysis class
 """
 
+class Panel:
+    def __init__(self, id, nodes):
+        ## a panel will hold its own nodes. I will check each panel against all other panels to see if it shares nodes with other panels
+        ## If it does share nodes we will make a hinge there. If the panel already has 4 hinges, we won't check it against other panels. waste of compute
+        self.id = id
+        self.nodes = nodes
+
+    def get_nodes(self):
+        return self.nodes
+
 class Node:
     def __init__(self, id, x,y,z):
         # NOTE: These are the vertex coordinates of the pattern in the deployed state
@@ -48,9 +58,12 @@ class HingeElement:
         """By convention: j and k are the SHARED nodes (the hinge line)
              and l are the unique nodes on either side"""
         
-        # Enforce hinge direction j -> k, in case they are input incorrectly into intializer
-        if node_j.id > node_k.id:
-            node_j, node_k = node_k, node_j
+       # Ensure consistent hinge orientation (geometry-based)
+        e = node_k.coordinates - node_j.coordinates
+        r_ji = node_i.coordinates - node_j.coordinates
+        r_jl = node_l.coordinates - node_j.coordinates
+
+        if np.dot(np.cross(e, r_ji), r_jl) < 0:
             node_i, node_l = node_l, node_i
 
         self.node_i = node_i
@@ -66,6 +79,9 @@ class HingeElement:
         self.hinge_line_vector = self.node_k.coordinates - self.node_j.coordinates
         self.length_of_hinge_line = np.linalg.norm(self.hinge_line_vector)
 
+        if self.length_of_hinge_line < 1e-12:
+            raise ValueError("Degenerate hinge: coincident nodes")
+
         # Vectors from the hinge to the outer nodes 
         self.r_ji = self.node_i.coordinates - self.node_j.coordinates # (j -> i)
         self.r_jl = self.node_l.coordinates - self.node_j.coordinates # (j -> l)
@@ -80,11 +96,15 @@ class HingeElement:
         
         self.calculate_vectors()
 
-        # use arctan2 to calculate angle between the two panels
-        y_component = np.dot(np.cross(self.panel_1_normal_vector,self.panel_2_normal_vector), self.hinge_line_vector) / self.length_of_hinge_line
-        x_component = np.dot(self.panel_1_normal_vector, self.panel_2_normal_vector)
+        n1 = self.panel_1_normal_vector / np.linalg.norm(self.panel_1_normal_vector)
+        n2 = self.panel_2_normal_vector / np.linalg.norm(self.panel_2_normal_vector)
 
-        return np.arctan2(y_component,x_component)
+        e_hat = self.hinge_line_vector / np.linalg.norm(self.hinge_line_vector)
+
+        y = np.dot(np.cross(n1, n2), e_hat)
+        x = np.dot(n1, n2)
+
+        return np.arctan2(y, x)
 
     def get_jacobian_row(self, total_DOFs):
         """Mathematically, the Jacobian (J) answers:
@@ -129,16 +149,3 @@ class HingeElement:
         stamp(self.node_l.id, gradient_l)
 
         return row
-
-    
-class Panel:
-    def __init__(self, id, nodes):
-        ## a panel will hold its own nodes. I will check each panel against all other panels to see if it shares nodes with other panels
-        ## If it does share nodes we will make a hinge there. If the panel already has 4 hinges, we won't check it against other panels. waste of compute
-        self.id = id
-        self.nodes = nodes
-
-    def get_nodes(self):
-        return self.nodes
-
-

@@ -242,6 +242,56 @@ class TestHingePhysics(unittest.TestCase):
                 print(f"Coords:\n{coords}")
                 raise e
             
+    def test_node_permutation_invariance(self):
+        """
+        Reordering node inputs (as happens during mesh import)
+        must NOT change the dihedral angle.
+        """
+        base_angle = self.hinge.calculate_dihedral_angle()
+
+        # All permutations of (i, j, k, l) that preserve hinge membership
+        permutations = [
+            (self.ni, self.nj, self.nk, self.nl),
+            (self.ni, self.nk, self.nj, self.nl),  # swap hinge direction
+            (self.nl, self.nj, self.nk, self.ni),  # swap wings
+            (self.nl, self.nk, self.nj, self.ni),
+        ]
+
+        for ni, nj, nk, nl in permutations:
+            hinge = HingeElement(ni, nj, nk, nl)
+            angle = hinge.calculate_dihedral_angle()
+            self.assertAlmostEqual(
+                wrap_angle_difference(angle - base_angle),
+                0.0,
+                places=7,
+                msg="Dihedral angle changed due to node ordering"
+            )
+    def test_panel_winding_invariance(self):
+        """
+        Flipping triangle winding (CW vs CCW) should not flip the dihedral angle.
+        """
+        base_angle = self.hinge.calculate_dihedral_angle()
+
+        # Reverse panel 1 winding
+        hinge1 = HingeElement(
+            self.ni, self.nk, self.nj, self.nl  # reversed hinge order
+        )
+
+        # Reverse panel 2 winding
+        hinge2 = HingeElement(
+            self.ni, self.nj, self.nk, self.nl
+        )
+        hinge2.node_i, hinge2.node_l = hinge2.node_l, hinge2.node_i
+
+        for h in [hinge1, hinge2]:
+            angle = h.calculate_dihedral_angle()
+            self.assertAlmostEqual(
+                wrap_angle_difference(angle - base_angle),
+                0.0,
+                places=7,
+                msg="Panel winding flipped dihedral sign"
+            )
+            
 class TestModelAssembly(unittest.TestCase):
     
     def test_shared_node_memory(self):
@@ -318,7 +368,39 @@ class TestModelAssembly(unittest.TestCase):
         h = model.hinges[0]
         wings = sorted([h.node_i.id, h.node_l.id])
         self.assertEqual(wings, [0, 3], "Hinge wings should be the unique nodes")
+    def test_panel_upload_order_invariance(self):
+        """
+        Uploading panels in different orders must not flip hinge orientation.
+        """
+        coords = [
+            [0,0,0],  # 0
+            [1,0,0],  # 1
+            [1,1,0],  # 2
+            [0,1,0],  # 3
+        ]
 
+        indices_a = [
+            [0,1,2],
+            [1,2,3]
+        ]
+
+        indices_b = [
+            [1,2,3],
+            [0,1,2]  # reversed upload order
+        ]
+
+        model_a = SensitivityModel(coords, indices_a)
+        model_b = SensitivityModel(coords, indices_b)
+
+        angle_a = model_a.hinges[0].calculate_dihedral_angle()
+        angle_b = model_b.hinges[0].calculate_dihedral_angle()
+
+        self.assertAlmostEqual(
+            wrap_angle_difference(angle_a - angle_b),
+            0.0,
+            places=7,
+            msg="Panel upload order flipped hinge orientation"
+        )
 
 class TestTopologyLogic(unittest.TestCase):
 
@@ -369,6 +451,34 @@ class TestTopologyLogic(unittest.TestCase):
             SensitivityModel(self.coords, sandwich_indices)
         
         print(f"Caught Expected Error: {context.exception}")
+class TestGlobalHingeConsistency(unittest.TestCase):
 
+    def test_hinge_chain_sign_consistency(self):
+        """
+        A chain of hinges folded in the same direction must
+        produce consistent dihedral signs.
+        """
+        coords = [
+            [0,0,0], [1,0,0], [2,0,0],
+            [0,1,0], [1,1,0], [2,1,0]
+        ]
+
+        indices = [
+            [0,1,3],
+            [1,4,3],
+            [1,2,4],
+            [2,5,4]
+        ]
+
+        model = SensitivityModel(coords, indices)
+
+        angles = [h.calculate_dihedral_angle() for h in model.hinges]
+
+        # All angles should have the same sign
+        signs = np.sign(angles)
+        self.assertTrue(
+            np.all(signs == signs[0]),
+            "Hinge chain contains inconsistent dihedral signs"
+        )
 if __name__ == '__main__':
     unittest.main()
