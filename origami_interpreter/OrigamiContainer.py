@@ -23,7 +23,7 @@ import svgelements as svg
 import numpy as np
 
 class OrigamiContainer:
-    def __init__(self, origami_filepath=None, coords=None, panels=None, name=None):
+    def __init__(self, origami_filepath=None, coords=None, panels=None, name=None, verbose=False):
         self._origami_filepath = None
         self._origami_coords_orig = None
         self._origami_panels_orig = None
@@ -36,11 +36,11 @@ class OrigamiContainer:
         if origami_filepath is not None and (coords is not None or panels is not None):
             raise ValueError("OrigamiContainer cannot be instantiated using both a filepath and a native python representation.")
         if origami_filepath is not None:
-            self._extract_file(origami_filepath, name)
+            self._extract_file(origami_filepath, name, verbose)
         else:
             self._extract_pyrepr(coords, panels, name)
 
-    def _extract_file(self, origami_filepath, name):
+    def _extract_file(self, origami_filepath, name, verbose):
         """
         Read the filepath for a given origami representation file and interpret it as an OrigamiContainer object.
         
@@ -67,7 +67,7 @@ class OrigamiContainer:
         elif file_extension == ".fold":
             self._interpret_fold()
         elif file_extension == ".svg":
-            self._interpret_svg()
+            self._interpret_svg(verbose)
         elif file_extension == ".json":
             self._interpret_json()
         else:
@@ -192,19 +192,21 @@ class OrigamiContainer:
         raise NotImplementedError
         return
     
-    def _interpret_svg(self):
+    def _interpret_svg(self, verbose):
         svg_document = svg.SVG.parse(self._origami_filepath)
 
         point_count = 0
         coord_list = []
-        panel_list = []
+        edge_list = []
         for element in svg_document.elements():
             # Path elements include some of the following
             #   Guide, Path
+            print(type(element), element)
             if isinstance(element, svg.Path):
                 # Path sub-elements are considered PathSegments and can be the following:
                 #   Line, Arc, CubicBezier, QuadraticBezier, Move, Close
                 for sub_element in element:
+                    print(type(sub_element), sub_element)
                     if isinstance(sub_element, svg.Line):
                         # Each PathSegment object has a .point(pos) method, where pos=0 produces the start point and pos=1 produces the end point
                         point_start = sub_element.point(0)
@@ -214,12 +216,17 @@ class OrigamiContainer:
                         coord_list.append(start)
                         coord_list.append(end)
 
-                        panel_pair = (point_count, point_count + 1)
-                        panel_list.append(panel_pair)
+                        edge_pair = (point_count, point_count + 1)
+                        edge_list.append(edge_pair)
                         point_count += 2
 
+        if verbose:
+            print(f"\nExtracted {len(coord_list)} unique coordinates and {len(edge_list)} edges from SVG file.")
+            print(coord_list)
+            print(edge_list)
+
         coord_array = np.stack(coord_list)
-        panel_array = np.stack(panel_list)
+        edge_array = np.stack(edge_list)
 
         dist_array = np.zeros((len(coord_array), len(coord_array)))
         for i in range(len(coord_array)):
@@ -227,18 +234,43 @@ class OrigamiContainer:
                 dist_array[i, j] = np.linalg.norm(coord_array[i] - coord_array[j])
         close_tolerance = np.max(dist_array) / 10000
         close_array = np.isclose(dist_array, 0, atol=close_tolerance)
-        
+
+        if verbose:
+            print(f"\nFound pairwise distances between all coordinates and identified {(np.sum(close_array) - len(coord_array))/2} coordinates that were within a tolerance of {close_tolerance}.")
+            print(close_array)
+            print(dist_array)
+
+        keep_map = np.full(len(coord_array), True, dtype=np.bool_)
         for i, close_row in enumerate(close_array):
             for j, close_val in enumerate(close_row[i:]):
-                if i != j and close_val:
-                    panel_array[panel_array == j] = i
-        
+                if i != j+i and close_val:
+                    if verbose:
+                        print(f"\nCoordinates {i} and {j+i} are within the close tolerance of {close_tolerance} and will be merged.")
+                        print(f"\tCoordinate {i}: {coord_array[i]}")
+                        print(f"\tCoordinate {j+i}: {coord_array[j+i]}")
+                    edge_array[edge_array == j+i] = i
+                    keep_map[j+i] = False
 
-        print(coord_array)
-        print(panel_array)
+        if verbose:
+            print(f"\nMerged {np.sum(~keep_map)} coordinates that were within a tolerance of {close_tolerance} and updated panel point references accordingly.")
+            print(edge_array)
+            print(keep_map)
 
         coords = []
-        panels = []
+        for i, keep_point in enumerate(keep_map):
+            if keep_point:
+                coords.append(coord_array[i].tolist()+[0])
+            else:
+                edge_array[edge_array > i] -= 1
+        edges = edge_array.tolist()
+
+        if verbose:
+            print(f"\nRemoved duplicate coordinates and updated panel point references accordingly. Final count of unique coordinates is {len(coords)}.")
+            print(coords)
+            print(edges)
+
+        # TODO: Generate a graph representation of the points, linked by edges, and identify panels as cycles in the graph.
+        panels = edges
         
         self._origami_coords_orig = coords
         self._origami_panels_orig = panels
