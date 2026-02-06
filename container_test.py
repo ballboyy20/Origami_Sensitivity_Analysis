@@ -1,4 +1,4 @@
-from origami_interpreter.OrigamiContainer import OrigamiContainer as oi
+from origami_interpreter.OrigamiContainer import OrigamiContainer as oc
 
 def main():
     # =========================
@@ -45,11 +45,19 @@ def main():
         [6, 12, 7, 1],
     ]
 
-    origamiContainer = oi(coords=coords, panels=indices)
+    oc1 = oc(coords=coords, panels=indices, name="myPatternName")
 
     print("OrigamiContainer successfully created from native python representation.")
-    print("Object: ", origamiContainer)
-    print("Python Representation: ", origamiContainer.get_pyrepr())
+    print("Object: ", oc1)
+    print("Python Representation: ", oc1.get_pyrepr())
+    print("Name: ", oc1._origami_name)
+
+    oc2 = oc(origami_filepath="C:\\Users\\thetk\\Documents\\BYU\\CMR Labs\\Origami_Sensitivity_Analysis\\Origami_Sensitivity_Analysis\\pattern_files\\sample-color-svgrepo-com.svg")
+
+    print("\nOrigamiContainer successfully created from native python representation.")
+    print("Object: ", oc2)
+    print("Python Representation: ", oc2.get_pyrepr())
+    print("Name: ", oc2._origami_name)
 
 if __name__ == "__main__":
     main()
