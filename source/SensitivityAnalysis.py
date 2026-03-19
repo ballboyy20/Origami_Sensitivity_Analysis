@@ -34,7 +34,7 @@ class SensitivityModel:
         self.bars = self.generate_bars()
         self.hinges = self.generate_hinges()
         
-    def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None):
+    def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=True):
         """
         Identifies the physical folding mechanism via SVD. Auto-calibrates 
         hinges to align with target M/V assignments from the .fold file.
@@ -77,11 +77,12 @@ class SensitivityModel:
         self.report_alignment(best_sensitivity, target_fold_vector)
         self.mountain_valley_check(best_sensitivity)
         
-        self.print_system_matrices(
-            dihedral_jacobian, constraint_matrix, singular_values, Vh, best_sensitivity,
-            mechanism_indices=mechanism_indices, Q=Q, A=A, U_sv=U_sv, S_sv=S_sv, Vt_sv=Vt_sv,
-            v_dominant=v_dominant, t=target_fold_vector, chosen_mode_idx=best_r
-        )
+        if silent:
+            self.print_system_matrices(
+                dihedral_jacobian, constraint_matrix, singular_values, Vh, best_sensitivity,
+                mechanism_indices=mechanism_indices, Q=Q, A=A, U_sv=U_sv, S_sv=S_sv, Vt_sv=Vt_sv,
+                v_dominant=v_dominant, t=target_fold_vector, chosen_mode_idx=best_r
+            )
 
 
         
@@ -112,7 +113,6 @@ class SensitivityModel:
         # The Dead Hinge metric
         min_fold = np.min(s_normalized_to_max_sensitivity)
         print(f"Dead Hinge Metric (min of normalized sensitivity): {min_fold:.6f} (higher is better, 0 means at least one completely dead hinge)")
-
 
         return best_sensitivity
     
