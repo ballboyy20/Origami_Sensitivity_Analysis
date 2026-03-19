@@ -461,8 +461,8 @@ def generate_miura_fold(filename = "miura.fold", cols=5, rows=5, dx=10.0, dy=10.
         return j * (cols + 1) + i
 
     # 2. Generate Horizontal Edges
-    for j in range(rows + 1):
-        for i in range(cols):
+    for j in range(rows):
+        for i in range(cols + 1):
             v1 = get_v_idx(i, j)
             v2 = get_v_idx(i + 1, j)
             fold_data["edges_vertices"].append([v1, v2])
@@ -477,8 +477,8 @@ def generate_miura_fold(filename = "miura.fold", cols=5, rows=5, dx=10.0, dy=10.
                 fold_data["edges_assignment"].append("V")
 
     # 3. Generate Vertical (Zigzag) Edges
-    for j in range(rows):
-        for i in range(cols + 1):
+    for j in range(rows +1):
+        for i in range(cols):
             v1 = get_v_idx(i, j)
             v2 = get_v_idx(i, j + 1)
             fold_data["edges_vertices"].append([v1, v2])

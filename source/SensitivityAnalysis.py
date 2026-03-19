@@ -87,6 +87,7 @@ class SensitivityModel:
         
         if show_plot is 'yes':
             self.plot_pattern_vector(best_sensitivity,
+                                    show_magnitudes=False,
                                     title=plot_title,
                                     normalize=True,
                                     show_colorbar=show_colorbar,
@@ -957,7 +958,8 @@ class SensitivityModel:
         
         return hinges
     
-    def plot_pattern_vector(self, sensitivity_vector=None, nodal_vectors=None, vector_scale=1.0, vector_color='green', show_node_labels=False, show_hinge_labels=False, title="Pattern", show_colorbar=True, normalize=True, save_path=None):
+    
+    def plot_pattern_vector(self, sensitivity_vector=None, nodal_vectors=None, vector_scale=1.0, vector_color='green', show_node_labels=False, show_hinge_labels=False, show_magnitudes=False, title="Pattern", show_colorbar=True, normalize=True, save_path=None):   
         """
         Plot the origami pattern with:
           - Pattern boundary edges drawn in light grey (internal cross-bars hidden).
@@ -1065,12 +1067,26 @@ class SensitivityModel:
             ax.plot([p_j[0], p_k[0]], [p_j[1], p_k[1]], [p_j[2], p_k[2]],
                     color=color, linestyle=l_style, linewidth=5.5, alpha=0.95)
 
-            if show_hinge_labels:
+            # --- Optional Text Labels ---
+            if show_hinge_labels or show_magnitudes:
                 mid = (p_j + p_k) / 2
-                label_text = f"H{h_id}"
+                label_text = ""
+                
+                # Add Hinge ID if requested
+                if show_hinge_labels:
+                    label_text += f"H{h_id}"
+                    
+                # Add Magnitude if requested (rounded to 2 decimal places)
+                if show_magnitudes:
+                    if label_text: 
+                        label_text += ": "
+                    label_text += f"{mag_val:.2f}" 
+
+                # Print the text with a heavy white outline so it stands out against the lines
                 ax.text(mid[0], mid[1], mid[2], label_text,
                         color='black', fontsize=10, fontweight='bold',
-                        path_effects=[PathEffects.withStroke(linewidth=2, foreground='white')])
+                        zorder=10, # Forces text to draw on top of the lines
+                        path_effects=[PathEffects.withStroke(linewidth=3, foreground='white')])
 
         # --- Axis limits & Top-Down Publication View ---
         all_coords = np.array([xs, ys, zs])
