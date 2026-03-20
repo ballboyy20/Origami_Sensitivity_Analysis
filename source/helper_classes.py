@@ -58,70 +58,72 @@ class HingeElement:
         wing_nodes_1 : list of Node objects — all non-hinge nodes in panel 1
         wing_nodes_2 : list of Node objects — all non-hinge nodes in panel 2
         node_j, node_k : the two nodes that define the shared hinge axis
-
-        The Jacobian is computed via the centroid of each panel's non-hinge nodes.
-        This makes the formula independent of which specific wing node is chosen,
-        works correctly for triangles (m=1), quads (m=2), and any polygon.
         """
-        # Compute centroids of each panel's non-hinge nodes
-        c1 = np.mean([n.coordinates for n in wing_nodes_1], axis=0)
-        c2 = np.mean([n.coordinates for n in wing_nodes_2], axis=0)
+        # Note: We temporarily use the simple average just for the topological winding check. 
+        # The true Kinematic Weighted Centroid is built dynamically in calculate_vectors()
+        c1_temp = np.mean([n.coordinates for n in wing_nodes_1], axis=0)
+        c2_temp = np.mean([n.coordinates for n in wing_nodes_2], axis=0)
 
         e      = node_k.coordinates - node_j.coordinates
-        r_jc1  = c1 - node_j.coordinates
-        r_jc2  = c2 - node_j.coordinates
+        r_jc1  = c1_temp - node_j.coordinates
+        r_jc2  = c2_temp - node_j.coordinates
 
         triple = np.dot(np.cross(e, r_jc1), r_jc2)
 
         if abs(triple) < 1e-10:
-            # Degenerate case: all nodes coplanar (e.g. flat/unfolded pattern).
-            # Fall back to global +z reference: enforce n1 = cross(r_jc1, e) points in +z.
             n1 = np.cross(r_jc1, e)
             if np.dot(n1, np.array([0.0, 0.0, 1.0])) < 0:
                 wing_nodes_1, wing_nodes_2 = wing_nodes_2, wing_nodes_1
         elif triple < 0:
             wing_nodes_1, wing_nodes_2 = wing_nodes_2, wing_nodes_1
 
-        self.wing_nodes_1 = wing_nodes_1   # list of non-hinge nodes in panel 1
-        self.wing_nodes_2 = wing_nodes_2   # list of non-hinge nodes in panel 2
+        self.wing_nodes_1 = wing_nodes_1   
+        self.wing_nodes_2 = wing_nodes_2   
         self.node_j = node_j
         self.node_k = node_k
         self.fold_assignment = fold_assignment
 
-        # Keep node_i / node_l as the first element of each list for any code
-        # that still references them (e.g. tests, dihedral angle calculation).
         self.node_i = wing_nodes_1[0]
         self.node_l = wing_nodes_2[0]
 
     def calculate_vectors(self):
         """
-        Computes the hinge geometry using the centroid of each panel's
-        non-hinge nodes.  Called by both get_jacobian_row and
-        calculate_dihedral_angle.
+        Computes the hinge geometry using the KINEMATICALLY WEIGHTED centroid 
+        of each panel's non-hinge nodes.
         """
         self.hinge_line_vector   = self.node_k.coordinates - self.node_j.coordinates
         self.length_of_hinge_line = np.linalg.norm(self.hinge_line_vector)
 
         if self.length_of_hinge_line < 1e-12:
             raise ValueError("Degenerate hinge: coincident nodes")
+            
+        e_hat = self.hinge_line_vector / self.length_of_hinge_line
 
-        # Centroid of each panel's non-hinge nodes
-        self.c1 = np.mean([n.coordinates for n in self.wing_nodes_1], axis=0)
-        self.c2 = np.mean([n.coordinates for n in self.wing_nodes_2], axis=0)
+        ### NEW: Helper function to find the orthogonal distance from the hinge to a node
+        def get_ortho_dist(coords):
+            r_jn = coords - self.node_j.coordinates
+            dist = np.linalg.norm(np.cross(r_jn, e_hat))
+            return max(dist, 1e-12) # Prevent division by zero if a node is on the line
 
-        # Vectors from j to each centroid
+        ### NEW: Panel 1 Weighted Centroid
+        dists_1 = np.array([get_ortho_dist(w.coordinates) for w in self.wing_nodes_1])
+        self.weights_1 = (1.0 / dists_1) / np.sum(1.0 / dists_1)
+        self.c1 = np.sum([w.coordinates * self.weights_1[i] for i, w in enumerate(self.wing_nodes_1)], axis=0)
+
+        ### NEW: Panel 2 Weighted Centroid
+        dists_2 = np.array([get_ortho_dist(w.coordinates) for w in self.wing_nodes_2])
+        self.weights_2 = (1.0 / dists_2) / np.sum(1.0 / dists_2)
+        self.c2 = np.sum([w.coordinates * self.weights_2[i] for i, w in enumerate(self.wing_nodes_2)], axis=0)
+
+        # Vectors from j to each weighted centroid
         self.r_jc1 = self.c1 - self.node_j.coordinates
         self.r_jc2 = self.c2 - self.node_j.coordinates
 
-        # Panel normals computed from the centroids — same direction as the
-        # true panel normal for any flat polygon, scale proportional to the
-        # "average triangle" area.
+        # Panel normals computed from the weighted centroids
         self.panel_1_normal_vector = np.cross(self.r_jc1, self.hinge_line_vector)
         self.panel_2_normal_vector = np.cross(self.hinge_line_vector, self.r_jc2)
 
     def calculate_dihedral_angle(self):
-        """The dihedral angle is the angle between the two panel planes.
-        Uses centroid normals — correct for any flat polygon."""
         self.calculate_vectors()
 
         n1    = self.panel_1_normal_vector / np.linalg.norm(self.panel_1_normal_vector)
@@ -134,63 +136,42 @@ class HingeElement:
         return np.arctan2(y, x)
 
     def get_jacobian_row(self, total_DOFs):
-        """
-        Computes ∂θ/∂(every node DOF) using the centroid-based Schenk & Guest formula.
-
-        Key idea
-        --------
-        Instead of one wing node per panel, we use the centroid of ALL non-hinge
-        nodes in that panel as a virtual wing point.  The Schenk-Guest formula is
-        applied exactly as written, but using that centroid.  Because the centroid
-        moves as the average of its constituent nodes, the resulting gradient is
-        then distributed equally back to each actual non-hinge node:
-
-            gradient_wi  =  gradient_centroid / m        (m = number of non-hinge nodes)
-
-        For triangular panels (m = 1) this reduces exactly to the original formula.
-        For quad or higher-order panels the result is independent of which node
-        is arbitrarily labeled the "wing node", making it symmetric by construction.
-        """
         self.calculate_vectors()
 
         n1_sq = np.dot(self.panel_1_normal_vector, self.panel_1_normal_vector)
         n2_sq = np.dot(self.panel_2_normal_vector, self.panel_2_normal_vector)
 
-        # Safety check for degenerate (zero-area) panels
         if n1_sq < 1e-12 or n2_sq < 1e-12:
             return np.zeros(total_DOFs)
 
         L = self.length_of_hinge_line
+        L_sq = L * L
 
-        # --- Schenk & Guest (2011) gradients at the virtual centroid wing points ---
+        # Schenk & Guest gradients at the weighted virtual centroids
         gradient_c1 = (L / n1_sq) * self.panel_1_normal_vector
         gradient_c2 = (L / n2_sq) * self.panel_2_normal_vector
 
-        # Projection of each centroid along the hinge axis (alpha factors)
-        L_sq     = L * L
+        # Projection of each weighted centroid along the hinge axis
         alpha_c1 = np.dot(self.r_jc1, self.hinge_line_vector) / L_sq
         alpha_c2 = np.dot(self.r_jc2, self.hinge_line_vector) / L_sq
 
-        # Gradients at the hinge-axis nodes (unchanged from original formula)
+        # Gradients at the hinge-axis nodes
         gradient_j = (alpha_c1 - 1) * gradient_c1 + (alpha_c2 - 1) * gradient_c2
         gradient_k = (-alpha_c1)    * gradient_c1 + (-alpha_c2)    * gradient_c2
 
-        # --- Assemble the Jacobian row ---
         row = np.zeros(total_DOFs)
 
         def stamp(node_id, vector):
             idx = node_id * 3
-            row[idx : idx+3] += vector   # += so multiple stamps to same node accumulate
+            row[idx : idx+3] += vector   
 
-        # Distribute panel-1 centroid gradient equally among all panel-1 wing nodes
-        m1 = len(self.wing_nodes_1)
-        for w in self.wing_nodes_1:
-            stamp(w.id, gradient_c1 / m1)
+        ### NEW: Distribute Panel 1 gradient using your inverse-distance kinematic weights
+        for i, w in enumerate(self.wing_nodes_1):
+            stamp(w.id, gradient_c1 * self.weights_1[i])
 
-        # Distribute panel-2 centroid gradient equally among all panel-2 wing nodes
-        m2 = len(self.wing_nodes_2)
-        for w in self.wing_nodes_2:
-            stamp(w.id, gradient_c2 / m2)
+        ### NEW: Distribute Panel 2 gradient using your inverse-distance kinematic weights
+        for i, w in enumerate(self.wing_nodes_2):
+            stamp(w.id, gradient_c2 * self.weights_2[i])
 
         # Hinge-axis nodes get their gradient directly
         stamp(self.node_j.id, gradient_j)
