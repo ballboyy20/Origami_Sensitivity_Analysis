@@ -34,7 +34,7 @@ class SensitivityModel:
         self.bars = self.generate_bars()
         self.hinges = self.generate_hinges()
         
-    def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=True):
+    def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=False):
         """
         Identifies the physical folding mechanism via SVD. Auto-calibrates 
         hinges to align with target M/V assignments from the .fold file.
@@ -70,14 +70,16 @@ class SensitivityModel:
         characteristic_length = self.get_characteristic_length()
         best_sensitivity = best_sensitivity * characteristic_length
         
-        print(f"\nNon-dimensionalized sensitivity using characteristic length: {characteristic_length:.4f} units")
+        if not silent:
+            print(f"\nNon-dimensionalized sensitivity using characteristic length: {characteristic_length:.4f} units")
 
         # 9. Report & Validate
-        self.report_singular_values(S_sv, best_r)
-        self.report_alignment(best_sensitivity, target_fold_vector)
-        self.mountain_valley_check(best_sensitivity)
+        if not silent:
+            self.report_singular_values(S_sv, best_r)
+            self.report_alignment(best_sensitivity, target_fold_vector)
+            self.mountain_valley_check(best_sensitivity)
         
-        if silent:
+        
             self.print_system_matrices(
                 dihedral_jacobian, constraint_matrix, singular_values, Vh, best_sensitivity,
                 mechanism_indices=mechanism_indices, Q=Q, A=A, U_sv=U_sv, S_sv=S_sv, Vt_sv=Vt_sv,
@@ -85,22 +87,21 @@ class SensitivityModel:
             )
 
 
-        
-        if show_plot is 'yes':
-            self.plot_pattern_vector(best_sensitivity,
-                                    show_magnitudes=False,
-                                    title=plot_title,
-                                    normalize=True,
-                                    show_colorbar=show_colorbar,
-                                    save_path=save_path)
+            if show_plot is 'yes':
+                self.plot_pattern_vector(best_sensitivity,
+                                        show_magnitudes=False,
+                                        title=plot_title,
+                                        normalize=True,
+                                        show_colorbar=show_colorbar,
+                                        save_path=save_path)
 
         self.best_sensitivity = best_sensitivity
         self.v_dominant = v_dominant
 
         # The Kinematic Efficiency
         max_sensitivity = np.max(np.abs(best_sensitivity))
-
-        print(f"\nKinematic Efficiency: max |sensitivity| = {max_sensitivity:.6f} radians per nothing (non-dimensionalized)")
+        if not silent:
+            print(f"\nKinematic Efficiency: max |sensitivity| = {max_sensitivity:.6f} radians per nothing (non-dimensionalized)")
 
         # The Normalized Vector (0 to 1)
         s_normalized_to_max_sensitivity = np.abs(best_sensitivity) / max_sensitivity
@@ -108,11 +109,14 @@ class SensitivityModel:
         # Coefficient of Variation (CV = std / mean)
         cv = np.std(s_normalized_to_max_sensitivity) / np.mean(s_normalized_to_max_sensitivity)
         cv_percentage = cv * 100
-        print(f"Coefficient of Variation (CV) of normalized sensitivity: {cv:.4f} ({cv_percentage:.2f}%) - lower means more uniform sensitivity across hinges")
+        if not silent:
+            print(f"Coefficient of Variation (CV) of normalized sensitivity: {cv:.4f} ({cv_percentage:.2f}%) - lower means more uniform sensitivity across hinges")
 
         # The Dead Hinge metric
         min_fold = np.min(s_normalized_to_max_sensitivity)
-        print(f"Dead Hinge Metric (min of normalized sensitivity): {min_fold:.6f} (higher is better, 0 means at least one completely dead hinge)")
+
+        if not silent:
+            print(f"Dead Hinge Metric (min of normalized sensitivity): {min_fold:.6f} (higher is better, 0 means at least one completely dead hinge)")
 
         return best_sensitivity
     
@@ -265,6 +269,81 @@ class SensitivityModel:
         ani = animation.FuncAnimation(fig, update, frames=len(trajectory)*2, interval=interval, blit=False)
         plt.show()
 
+    def plot_sensitivity_over_deployment(self, num_steps=100, step_size=0.01):
+        """
+        Integrates the folding path by re-evaluating the SVD at every frame using
+        the core analyze_sensitivity() method. Tracks and plots the ABSOLUTE, 
+        non-normalized hinge sensitivities as they deploy.
+        """
+        print(f"\n--- Tracking Absolute Hinge Sensitivities over Deployment ({num_steps} steps) ---")
+
+        # 1. Store original coordinates so we don't permanently deform the model
+        original_coords = [n.coordinates.copy() for n in self.nodes]
+
+        # Initialize data tracking dictionary
+        hinge_sensitivities = {i: [] for i in range(len(self.hinges))}
+        deployment_steps = []
+
+        # 2. Integration Loop
+        for step in range(num_steps):
+            deployment_steps.append(step * step_size)
+
+            # Call analyze_sensitivity silently
+            current_sens = self.analyze_sensitivity(show_plot=None, silent=True)
+
+            # Track the ABSOLUTE value for each hinge (no normalization)
+            for i in range(len(self.hinges)):
+                hinge_sensitivities[i].append(abs(current_sens[i]))
+
+            if not hasattr(self, 'v_dominant') or self.v_dominant is None:
+                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                break
+
+            # Step the physical nodes forward along the nonlinear arc
+            v_reshaped = self.v_dominant.reshape(-1, 3)
+            for i, node in enumerate(self.nodes):
+                node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
+
+        # 3. Reset model back to the pristine flat state
+        for i, node in enumerate(self.nodes):
+            node.coordinates = original_coords[i]
+
+        print("Integration complete. Generating absolute sensitivity drift plot...")
+
+        # 4. Plot the tracked sensitivities
+        plt.figure(figsize=(12, 7))
+        cmap = plt.cm.viridis
+        colors = cmap(np.linspace(0.1, 0.9, len(self.hinges)))
+
+        for i, h in enumerate(self.hinges):
+            assignment = h.fold_assignment
+            # Mountain (+) = Solid, Valley (-) = Dashed, Unassigned = Dotted
+            # Retained for visual clarity even though all values are absolute
+            l_style = '-' if assignment == 'M' else ('--' if assignment == 'V' else ':')
+
+            plt.plot(deployment_steps, hinge_sensitivities[i], 
+                     label=f'H{i} ({assignment})', 
+                     color=colors[i], 
+                     linestyle=l_style, 
+                     linewidth=2, 
+                     alpha=0.8)
+
+        plt.title("Absolute Hinge Sensitivities During Deployment", fontsize=14, fontweight='bold')
+        plt.xlabel("Deployment Pseudo-Time (Steps × Step Size)", fontsize=12)
+        plt.ylabel("Absolute Sensitivity (rad/unit)", fontsize=12)
+        
+        # Draw baseline for reference
+        plt.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.5)
+
+        plt.grid(True, which="both", linestyle="--", alpha=0.5)
+        
+        # Push legend outside
+        plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', ncol=2 if len(self.hinges) > 15 else 1, fontsize=9)
+        plt.tight_layout()
+        plt.show()
+
+        return hinge_sensitivities
+    
     def get_instantaneous_mechanism(self, target_fold_vector):
         """
         A silent, streamlined version of analyze_sensitivity used purely for 
@@ -448,7 +527,7 @@ class SensitivityModel:
     def build_target_fold_vector(self):
         """Creates the +1 (Mountain) and -1 (Valley) target vector from hinge assignments."""
         target_fold_vector = np.zeros(len(self.hinges))
-        print("\nTarget fold vector (t):")
+        # print("\nTarget fold vector (t):")
         
         for i, h in enumerate(self.hinges):
             if h.fold_assignment == 'M':
@@ -456,7 +535,7 @@ class SensitivityModel:
             elif h.fold_assignment == 'V':
                 target_fold_vector[i] = -1.0
                 
-            print(f"  Hinge {i:>4} ({h.fold_assignment}): t = {target_fold_vector[i]:+.1f}")
+            # print(f"  Hinge {i:>4} ({h.fold_assignment}): t = {target_fold_vector[i]:+.1f}")
             
         return target_fold_vector
     
