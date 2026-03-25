@@ -59,19 +59,19 @@ class HingeElement:
         wing_nodes_2 : list of Node objects — all non-hinge nodes in panel 2
         node_j, node_k : the two nodes that define the shared hinge axis
 
-        The Jacobian is computed via the centroid of each panel's non-hinge nodes.
+        The Jacobian is computed via the centroid of each panel's m non-hinge nodes.
         This makes the formula independent of which specific wing node is chosen,
-        works correctly for triangles (m=1), quads (m=2), and any polygon.
+        works for triangles (m=1), quads (m=2), and any polygon.
         """
         # Compute centroids of each panel's non-hinge nodes
-        c1 = np.mean([n.coordinates for n in wing_nodes_1], axis=0)
+        c1 = np.mean([n.coordinates for n in wing_nodes_1], axis=0) # TODO do we need to calculate centroid a different way?
         c2 = np.mean([n.coordinates for n in wing_nodes_2], axis=0)
 
-        e      = node_k.coordinates - node_j.coordinates
+        e      = node_k.coordinates - node_j.coordinates # TODO this seems like dead or repeated code...
         r_jc1  = c1 - node_j.coordinates
         r_jc2  = c2 - node_j.coordinates
 
-        triple = np.dot(np.cross(e, r_jc1), r_jc2)
+        triple = np.dot(np.cross(e, r_jc1), r_jc2) # TODO What is happening here?? are we still using the triple??
 
         if abs(triple) < 1e-10:
             # Degenerate case: all nodes coplanar (e.g. flat/unfolded pattern).
@@ -99,7 +99,7 @@ class HingeElement:
         non-hinge nodes.  Called by both get_jacobian_row and
         calculate_dihedral_angle.
         """
-        self.hinge_line_vector   = self.node_k.coordinates - self.node_j.coordinates
+        self.hinge_line_vector = self.node_k.coordinates - self.node_j.coordinates # TODO pretty sure we are already making this with e above
         self.length_of_hinge_line = np.linalg.norm(self.hinge_line_vector)
 
         if self.length_of_hinge_line < 1e-12:
