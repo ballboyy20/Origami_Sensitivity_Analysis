@@ -485,7 +485,7 @@ class SensitivityModel:
     
     def auto_calibrate_hinges(self, best_sensitivity, target_fold_vector, Q):
         """Checks for flipped hinge signs and re-runs the Jacobian math if any are swapped."""
-        print("\nChecking for scrambled hinge orientations based on M/V assignments...")
+        # print("\nChecking for scrambled hinge orientations based on M/V assignments...")
         mismatches_found = False
         
         for i, h in enumerate(self.hinges):
@@ -504,17 +504,17 @@ class SensitivityModel:
                 mismatches_found = True
 
         if mismatches_found:
-            print("Mismatches found! Swapping internal panel definitions and rerunning Dihedral Jacobian...")
+            # print("Mismatches found! Swapping internal panel definitions and rerunning Dihedral Jacobian...")
             dihedral_jacobian = self.build_dihedral_jacobian()
             A = dihedral_jacobian @ Q.T
             
             # Re-extract with the newly corrected matrices
             best_sens, v_dom, U_sv, S_sv, Vt_sv, best_r = self.extract_dominant_mode(A, Q, target_fold_vector)
-            print("Rerun complete. Hinges are now permanently aligned to the .fold file.")
+            # print("Rerun complete. Hinges are now permanently aligned to the .fold file.")
             
             return best_sens, v_dom, U_sv, S_sv, Vt_sv, best_r, dihedral_jacobian, A
             
-        print("No scrambled orientations found. Initial pass is perfectly aligned.")
+        # print("No scrambled orientations found. Initial pass is perfectly aligned.")
         return None
     
     def report_singular_values(self, S_sv, best_r):
