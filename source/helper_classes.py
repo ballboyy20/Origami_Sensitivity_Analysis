@@ -185,12 +185,12 @@ class HingeElement:
         # Distribute panel-1 centroid gradient equally among all panel-1 wing nodes
         m1 = len(self.wing_nodes_1)
         for w in self.wing_nodes_1:
-            stamp(w.id, gradient_c1 / m1)
+            stamp(w.id, gradient_c1 / m1) 
 
         # Distribute panel-2 centroid gradient equally among all panel-2 wing nodes
         m2 = len(self.wing_nodes_2)
         for w in self.wing_nodes_2:
-            stamp(w.id, gradient_c2 / m2)
+            stamp(w.id, gradient_c2 / m2) # TODO replace this tne ratio
 
         # Hinge-axis nodes get their gradient directly
         stamp(self.node_j.id, gradient_j)
