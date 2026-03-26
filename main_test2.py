@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from source.SensitivityAnalysis import SensitivityModel
 from source.Bloom_Yoshimura import Bloom_Yoshimura
-from source.visualization import plot_sensitivity_violin, plot_fold_pattern
+from source.visualization import plot_fold_pattern
 from source.Bloom_Yoshimura import generate_miura_fold
 
 # --- Pattern Generation Setup ---

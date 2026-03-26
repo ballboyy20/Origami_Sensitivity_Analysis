@@ -4,15 +4,12 @@ import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as PathEffects
 from matplotlib import animation
+from typing import Union, Dict
 
 """
 visualization.py
-Plotting utilities for comparing Bloom pattern sensitivity results.
+methods for plotting and printing silly little details.
 """
-
-
-
-from typing import Union, Dict
 
 def calculate_stats(data: Union[np.ndarray, list], use_sample: bool = True) -> Dict[str, float]:
     """Calculates mean, median, standard deviation, and CV."""
@@ -33,8 +30,6 @@ def calculate_stats(data: Union[np.ndarray, list], use_sample: bool = True) -> D
         "std_dev": std_dev,
         "cv": cv
     }
-
-import matplotlib.pyplot as plt
 
 def plot_fold_pattern(fold_data, title="Crease Pattern"):
     """
@@ -98,7 +93,6 @@ def plot_fold_pattern(fold_data, title="Crease Pattern"):
     plt.tight_layout()
     plt.show()
 
-
 class SensitivityVisualizationMixin:
     """
     Mixin class containing all plotting, animation, and print/report methods
@@ -110,7 +104,7 @@ class SensitivityVisualizationMixin:
         if getattr(self, 'verbose', True):
             print(*args, **kwargs)
 
-    def check_integration_rigidity(self, num_steps=50, step_size=0.02):
+    def plot_euler_drift(self, num_steps=500, step_size=0.01):
         """
         Integrates the folding path and tracks the change in hinge lengths
         (stretching error) for every individual hinge at each iteration,
@@ -265,7 +259,7 @@ class SensitivityVisualizationMixin:
         the core analyze_sensitivity() method. Tracks and plots the ABSOLUTE,
         non-normalized hinge sensitivities as they deploy.
         """
-        self._print(f"\n--- Tracking Absolute Hinge Sensitivities over Deployment ({num_steps} steps) ---")
+        print(f"\n--- Tracking Absolute Hinge Sensitivities over Deployment ({num_steps} steps) ---")
 
         # 1. Store original coordinates so we don't permanently deform the model
         original_coords = [n.coordinates.copy() for n in self.nodes]
@@ -286,7 +280,7 @@ class SensitivityVisualizationMixin:
                 hinge_sensitivities[i].append(abs(current_sens[i]))
 
             if not hasattr(self, 'v_dominant') or self.v_dominant is None:
-                self._print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
                 break
 
             # Step the physical nodes forward along the nonlinear arc
@@ -298,7 +292,7 @@ class SensitivityVisualizationMixin:
         for i, node in enumerate(self.nodes):
             node.coordinates = original_coords[i]
 
-        self._print("Integration complete. Generating absolute sensitivity drift plot...")
+        print("Integration complete. Generating absolute sensitivity drift plot...")
 
         # 4. Plot the tracked sensitivities
         plt.figure(figsize=(12, 7))
@@ -336,8 +330,7 @@ class SensitivityVisualizationMixin:
 
     def report_singular_values(self, S_sv, best_r):
         """Prints the mechanism subspace singular values, highlighting the chosen mode."""
-        if not getattr(self, 'verbose', True):
-            return
+        
         print(f"\nMechanism subspace singular values (fold efficiency per unit displacement):")
         for r, sv in enumerate(S_sv):
             marker = f"  ← selected (best M/V alignment, rank {r})" if r == best_r else ""
@@ -345,8 +338,7 @@ class SensitivityVisualizationMixin:
 
     def report_alignment(self, best_sensitivity, target_fold_vector):
         """Compares the computed sensitivity vector to the target fold vector derived from M/V assignments, and reports the quality of alignment."""
-        if not getattr(self, 'verbose', True):
-            return
+
         # Report alignment quality
         norm_s = np.linalg.norm(best_sensitivity)
         norm_t = np.linalg.norm(target_fold_vector)
@@ -596,30 +588,6 @@ class SensitivityVisualizationMixin:
 
         print("\n" + "═" * W + "\n")
 
-    def mountain_valley_check(self, sensitivity_vector):
-        # 5. Validate: every hinge's sensitivity sign should match its .fold assignment.
-        #    Mountain (M) → positive,  Valley (V) → negative.
-        if not getattr(self, 'verbose', True):
-            return
-        print("\n--- FOLD ASSIGNMENT VALIDATION ---")
-        all_match = True
-        for i, h in enumerate(self.hinges):
-            s_val = sensitivity_vector[i]
-            if h.fold_assignment == 'M':
-                match = s_val >= 0
-            elif h.fold_assignment == 'V':
-                match = s_val <= 0
-            else:
-                continue  # skip unassigned hinges
-            status = "✓" if match else "✗ MISMATCH"
-            if not match:
-                all_match = False
-            print(f"  H{i} ({h.fold_assignment}): s = {s_val:+.6f}  {status}")
-        if all_match:
-            print("  All folds are consistent with .fold assignments.")
-        else:
-            print("  WARNING: Some folds are inconsistent with .fold assignments!")
-        print("-" * 40)
 
     def plot_pattern_vector(self, sensitivity_vector=None, nodal_vectors=None, vector_scale=1.0, vector_color='green', show_node_labels=False, show_hinge_labels=False, show_magnitudes=False, title="Pattern", show_colorbar=True, normalize=True, save_path=None):
         """
@@ -782,6 +750,6 @@ class SensitivityVisualizationMixin:
             # bbox_inches='tight' crops out all the extra white space
             # transparent=True removes the white background so it blends perfectly into the document
             fig.savefig(save_path, format='pdf', bbox_inches='tight', transparent=True)
-            self._print(f"Saved high-res figure to: {save_path}")
+            print(f"Saved high-res figure to: {save_path}")
 
         plt.show()

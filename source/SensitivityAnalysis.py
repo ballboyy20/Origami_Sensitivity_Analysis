@@ -21,11 +21,11 @@ Jake Sutton
 """
 
 class SensitivityModel(SensitivityVisualizationMixin):
-    def __init__(self, fold_file_path, verbose=True):
+    def __init__(self, fold_file_path):
         """ Upon initializing this class makes the origami pattern, then adds the bars between
         nodes in a panel to make it rigid, and also slaps on some hinges. Telling it where the hignes
         are is helpful for calculatring the dihedral angle jacobian. """
-        self.verbose = verbose
+
         self.coordinates, self.panel_indices, self.crease_info = self.extract_pattern_data_from_fold_file(fold_file_path)
 
         self.nodes, self.panels = self.generate_geometry(self.coordinates, self.panel_indices)
@@ -38,8 +38,6 @@ class SensitivityModel(SensitivityVisualizationMixin):
         Identifies the physical folding mechanism via SVD. Auto-calibrates
         hinges to align with target M/V assignments from the .fold file.
         """
-        if silent is None:
-            silent = not self.verbose
 
         # 1. Build Matrices
         dihedral_jacobian = self.build_dihedral_jacobian()
@@ -72,53 +70,44 @@ class SensitivityModel(SensitivityVisualizationMixin):
         characteristic_length = self.get_characteristic_length()
         best_sensitivity = best_sensitivity * characteristic_length
         
-        if not silent:
-            print(f"\nNon-dimensionalized sensitivity using characteristic length: {characteristic_length:.4f} units")
-
         # 9. Report & Validate
         if not silent:
             self.report_singular_values(S_sv, best_r)
-            self.report_alignment(best_sensitivity, target_fold_vector)
-            self.mountain_valley_check(best_sensitivity)
-        
-        
+            self.report_alignment(best_sensitivity, target_fold_vector)        
             self.print_system_matrices(
                 dihedral_jacobian, constraint_matrix, singular_values, Vh, best_sensitivity,
                 mechanism_indices=mechanism_indices, Q=Q, A=A, U_sv=U_sv, S_sv=S_sv, Vt_sv=Vt_sv,
                 v_dominant=v_dominant, t=target_fold_vector, chosen_mode_idx=best_r
             )
 
-
-            if show_plot is 'yes':
-                self.plot_pattern_vector(best_sensitivity,
-                                        show_magnitudes=False,
-                                        title=plot_title,
-                                        normalize=True,
-                                        show_colorbar=show_colorbar,
-                                        save_path=save_path)
-
         self.best_sensitivity = best_sensitivity
         self.v_dominant = v_dominant
 
         # The Kinematic Efficiency
         max_sensitivity = np.max(np.abs(best_sensitivity))
-        if not silent:
-            print(f"\nKinematic Efficiency: max |sensitivity| = {max_sensitivity:.6f} radians per nothing (non-dimensionalized)")
-
+            
         # The Normalized Vector (0 to 1)
         s_normalized_to_max_sensitivity = np.abs(best_sensitivity) / max_sensitivity
 
         # Coefficient of Variation (CV = std / mean)
         cv = np.std(s_normalized_to_max_sensitivity) / np.mean(s_normalized_to_max_sensitivity)
         cv_percentage = cv * 100
-        if not silent:
-            print(f"Coefficient of Variation (CV) of normalized sensitivity: {cv:.4f} ({cv_percentage:.2f}%) - lower means more uniform sensitivity across hinges")
 
         # The Dead Hinge metric
         min_fold = np.min(s_normalized_to_max_sensitivity)
-
+        
         if not silent:
+            print(f"\nKinematic Efficiency: max |sensitivity| = {max_sensitivity:.6f} radians per nothing (non-dimensionalized)")
+            print(f"Coefficient of Variation (CV) of normalized sensitivity: {cv:.4f} ({cv_percentage:.2f}%) - lower means more uniform sensitivity across hinges")
             print(f"Dead Hinge Metric (min of normalized sensitivity): {min_fold:.6f} (higher is better, 0 means at least one completely dead hinge)")
+
+        if show_plot == 'yes':
+            self.plot_pattern_vector(best_sensitivity,
+                                    show_magnitudes=False,
+                                    title=plot_title,
+                                    normalize=True,
+                                    show_colorbar=show_colorbar,
+                                    save_path=save_path)
 
         return best_sensitivity
     
