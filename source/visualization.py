@@ -105,13 +105,18 @@ class SensitivityVisualizationMixin:
     for SensitivityModel. Kept separate to avoid crowding SensitivityAnalysis.py.
     """
 
+    def _print(self, *args, **kwargs):
+        """Respects self.verbose — set model.verbose = False to silence all output."""
+        if getattr(self, 'verbose', True):
+            print(*args, **kwargs)
+
     def check_integration_rigidity(self, num_steps=50, step_size=0.02):
         """
         Integrates the folding path and tracks the change in hinge lengths
         (stretching error) for every individual hinge at each iteration,
         then plots the accumulated error to verify rigid kinematics.
         """
-        print(f"\n--- Verifying Rigid Kinematics ({num_steps} steps) ---")
+        self._print(f"\n--- Verifying Rigid Kinematics ({num_steps} steps) ---")
         target_fold_vector = self.build_target_fold_vector()
 
         # 1. Store initial coordinates and exact initial hinge lengths
@@ -131,7 +136,7 @@ class SensitivityVisualizationMixin:
             v_dom = self.get_instantaneous_mechanism(target_fold_vector)
 
             if v_dom is None:
-                print(f"Something went wrong... maybe kinematic lock-up reached at step {step}.")
+                self._print(f"Something went wrong... maybe kinematic lock-up reached at step {step}.")
                 break
 
             steps_taken.append(step + 1)
@@ -152,7 +157,7 @@ class SensitivityVisualizationMixin:
         for i, node in enumerate(self.nodes):
             node.coordinates = original_coords[i]
 
-        print("Rigidity check complete. Generating error plot...")
+        self._print("Rigidity check complete. Generating error plot...")
 
         # 4. Plot the tracked errors
         plt.figure(figsize=(10, 6))
@@ -177,7 +182,7 @@ class SensitivityVisualizationMixin:
         Integrates the folding path by re-evaluating the SVD at every frame.
         Nodes follow true nonlinear arcs. No panel stretching occurs.
         """
-        print(f"\nIntegrating folding path ({num_steps} steps)...")
+        self._print(f"\nIntegrating folding path ({num_steps} steps)...")
 
         target_fold_vector = self.build_target_fold_vector()
 
@@ -192,7 +197,7 @@ class SensitivityVisualizationMixin:
             v_dom = self.get_instantaneous_mechanism(target_fold_vector)
 
             if v_dom is None:
-                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                self._print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
                 break
 
             v_reshaped = v_dom.reshape(-1, 3)
@@ -208,7 +213,7 @@ class SensitivityVisualizationMixin:
         for i, node in enumerate(self.nodes):
             node.coordinates = original_coords[i]
 
-        print("Integration complete. Rendering animation...")
+        self._print("Integration complete. Rendering animation...")
 
         # --- Setup Animation ---
         fig = plt.figure(figsize=(10, 8))
@@ -260,7 +265,7 @@ class SensitivityVisualizationMixin:
         the core analyze_sensitivity() method. Tracks and plots the ABSOLUTE,
         non-normalized hinge sensitivities as they deploy.
         """
-        print(f"\n--- Tracking Absolute Hinge Sensitivities over Deployment ({num_steps} steps) ---")
+        self._print(f"\n--- Tracking Absolute Hinge Sensitivities over Deployment ({num_steps} steps) ---")
 
         # 1. Store original coordinates so we don't permanently deform the model
         original_coords = [n.coordinates.copy() for n in self.nodes]
@@ -281,7 +286,7 @@ class SensitivityVisualizationMixin:
                 hinge_sensitivities[i].append(abs(current_sens[i]))
 
             if not hasattr(self, 'v_dominant') or self.v_dominant is None:
-                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                self._print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
                 break
 
             # Step the physical nodes forward along the nonlinear arc
@@ -293,7 +298,7 @@ class SensitivityVisualizationMixin:
         for i, node in enumerate(self.nodes):
             node.coordinates = original_coords[i]
 
-        print("Integration complete. Generating absolute sensitivity drift plot...")
+        self._print("Integration complete. Generating absolute sensitivity drift plot...")
 
         # 4. Plot the tracked sensitivities
         plt.figure(figsize=(12, 7))
@@ -331,6 +336,8 @@ class SensitivityVisualizationMixin:
 
     def report_singular_values(self, S_sv, best_r):
         """Prints the mechanism subspace singular values, highlighting the chosen mode."""
+        if not getattr(self, 'verbose', True):
+            return
         print(f"\nMechanism subspace singular values (fold efficiency per unit displacement):")
         for r, sv in enumerate(S_sv):
             marker = f"  ← selected (best M/V alignment, rank {r})" if r == best_r else ""
@@ -338,6 +345,8 @@ class SensitivityVisualizationMixin:
 
     def report_alignment(self, best_sensitivity, target_fold_vector):
         """Compares the computed sensitivity vector to the target fold vector derived from M/V assignments, and reports the quality of alignment."""
+        if not getattr(self, 'verbose', True):
+            return
         # Report alignment quality
         norm_s = np.linalg.norm(best_sensitivity)
         norm_t = np.linalg.norm(target_fold_vector)
@@ -369,6 +378,8 @@ class SensitivityVisualizationMixin:
         [8] Dominant nodal displacement  v*
         [9] Final sensitivity vector + M/V validation
         """
+        if not getattr(self, 'verbose', True):
+            return
         W = 110   # report width
 
         # ── Label setup ───────────────────────────────────────────────────────
@@ -588,6 +599,8 @@ class SensitivityVisualizationMixin:
     def mountain_valley_check(self, sensitivity_vector):
         # 5. Validate: every hinge's sensitivity sign should match its .fold assignment.
         #    Mountain (M) → positive,  Valley (V) → negative.
+        if not getattr(self, 'verbose', True):
+            return
         print("\n--- FOLD ASSIGNMENT VALIDATION ---")
         all_match = True
         for i, h in enumerate(self.hinges):
@@ -769,6 +782,6 @@ class SensitivityVisualizationMixin:
             # bbox_inches='tight' crops out all the extra white space
             # transparent=True removes the white background so it blends perfectly into the document
             fig.savefig(save_path, format='pdf', bbox_inches='tight', transparent=True)
-            print(f"Saved high-res figure to: {save_path}")
+            self._print(f"Saved high-res figure to: {save_path}")
 
         plt.show()

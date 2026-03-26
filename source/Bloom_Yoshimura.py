@@ -4,9 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Bloom_Yoshimura:
-    def __init__(self, M, H, S):
+    def __init__(self, M, H, S, verbose=True):
         """ input variables """
         self.M = M ; self.H = H ; self.S = S
+        self.verbose = verbose
         """ variables for computation: """
         self.point_set = set()
         self.point_map = dict()
@@ -132,7 +133,7 @@ class Bloom_Yoshimura:
             elif abs(i+j-i2-j2)==1 and abs(i-i2)==.5 and abs(j-j2)==.5: # if |i+j-i"-j"|=1, |i-i"|=.5 and |j-j"|=.5 , the two points are DIAGONAL and only half taxi-block-unit apart.
                 diagonal_crease_set.add(crease)
             else:
-                print("ERROR: misclassified crease")
+                if self.verbose: print("ERROR: misclassified crease")
         self.edge_set = edge_set
         self.orthogonal_crease_set = orthogonal_crease_set
         self.diagonal_crease_set = diagonal_crease_set
@@ -416,7 +417,7 @@ class Bloom_Yoshimura:
         with open(filename, 'w') as f:
             json.dump(fold_dict, f, indent=2)
             
-        print(f"Successfully exported {len(vertices_coords)} unique vertices and {len(edges_vertices)} edges to {filename}")
+        if self.verbose: print(f"Successfully exported {len(vertices_coords)} unique vertices and {len(edges_vertices)} edges to {filename}")
 
 
 
