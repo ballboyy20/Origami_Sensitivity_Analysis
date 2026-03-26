@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from source.SensitivityAnalysis import SensitivityModel
 from source.Bloom_Yoshimura import Bloom_Yoshimura
-from source.visualization import plot_sensitivity_violin, plot_fold_pattern
+from source.visualization import plot_fold_pattern
 from source.Bloom_Yoshimura import generate_miura_fold
 
 # --- Pattern Generation Setup ---
@@ -56,12 +56,12 @@ def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot=None, Show_Origin=1, Show
 # miura_ori.plot_sensitivity_over_deployment(num_steps=6000, step_size=0.01)
 
 filename_Y6_2 = "Y6_2.fold"
-set_up_bloom(m=6,h=2,s=1,file_name=filename_Y6_2) 
-Y6_2 = SensitivityModel(filename_Y6_2)
+set_up_bloom(m=5,h=2,s=1,file_name=filename_Y6_2) 
+Y6_2 = SensitivityModel(filename_Y6_2, verbose=True)
 Y6_2.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y6_2_sensitivity.pdf")
 # Y6_2.check_integration_rigidity(num_steps=500, step_size= 0.01)
 # Y6_2.animate_nonlinear_folding(num_steps=500, step_size=0.001, interval=2)
-Y6_2.plot_sensitivity_over_deployment(num_steps=5000, step_size=0.001)
+# Y6_2.plot_sensitivity_over_deployment(num_steps=5000, step_size=0.001)
 plt.close('all') 
 
 # 4.1, 4.2, 5.1, 5.2, 6.1 all show flatlined sensitivity values

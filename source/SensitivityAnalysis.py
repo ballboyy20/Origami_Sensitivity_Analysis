@@ -166,6 +166,21 @@ class SensitivityModel(SensitivityVisualizationMixin):
 
         return v_dominant
     
+    def build_target_fold_vector(self):
+        """Creates the +1 (Mountain) and -1 (Valley) target vector from hinge assignments."""
+        target_fold_vector = np.zeros(len(self.hinges))
+        # print("\nTarget fold vector (t):")
+        
+        for i, h in enumerate(self.hinges):
+            if h.fold_assignment == 'M':
+                target_fold_vector[i] = +1.0
+            elif h.fold_assignment == 'V':
+                target_fold_vector[i] = -1.0
+                
+            # print(f"  Hinge {i:>4} ({h.fold_assignment}): t = {target_fold_vector[i]:+.1f}")
+            
+        return target_fold_vector
+
     def step_and_reanalyze(self, step_scale=0.03, show_plot=False):
         """
         Pushes the flat pattern slightly into the 3D deployed state using the 
