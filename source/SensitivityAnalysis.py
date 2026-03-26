@@ -49,6 +49,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
         # 3. Isolate mechanism subspace
         mechanism_indices = self.isolate_mechanism_subspace(singular_values, Vh, dihedral_jacobian)
         if not mechanism_indices:
+            self.v_dominant = None
             return np.zeros(len(self.hinges))
 
         # 4. Build mechanism subspace matrix Q and Fold matrix A
@@ -68,7 +69,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
 
         # 8. Non-dimensionalize sensitivity by characteristic length to get units of radians per model-length-unit
         characteristic_length = self.get_characteristic_length()
-        best_sensitivity = best_sensitivity * characteristic_length
+        # best_sensitivity = best_sensitivity * characteristic_length
         
         # 9. Report & Validate
         if not silent:
@@ -110,54 +111,6 @@ class SensitivityModel(SensitivityVisualizationMixin):
                                     save_path=save_path)
 
         return best_sensitivity
-    
-    def get_instantaneous_mechanism(self, target_fold_vector):
-        """
-        A silent, streamlined version of analyze_sensitivity used purely for 
-        iterative path integration. Returns the normalized displacement vector.
-        """
-        J = self.build_dihedral_jacobian()
-        C = self.build_constraint_matrix()
-
-        _, sv, Vh = np.linalg.svd(C)
-        
-        # Isolate mechanisms (thresholds might need tuning once out of flat state)
-        mechanism_indices = []
-        for i in range(Vh.shape[0]):
-            s_val = sv[i] if i < len(sv) else 0.0
-            if s_val < 1e-6: # Relaxed slightly for numerical drift during integration
-                v = Vh[i, :]
-                fold_changes = J @ v
-                if np.sum(np.abs(fold_changes)) >= 1e-5:
-                    mechanism_indices.append(i)
-
-        if not mechanism_indices:
-            return None # Pattern has locked up (kinematic singularity)
-
-        Q = Vh[mechanism_indices, :]
-        A = J @ Q.T
-
-        U_sv, S_sv, Vt_sv = np.linalg.svd(A, full_matrices=False)
-
-        # Find best match to target fold vector
-        best_r = 0
-        best_cos = -1.0
-        if np.linalg.norm(target_fold_vector) > 1e-12:
-            for r in range(len(S_sv)):
-                if S_sv[r] < 1e-3 * S_sv[0]: continue
-                cos = np.dot(U_sv[:, r], target_fold_vector) / (np.linalg.norm(U_sv[:, r]) * np.linalg.norm(target_fold_vector))
-                if abs(cos) > best_cos:
-                    best_cos = abs(cos)
-                    best_r = r
-
-        v_dominant = Q.T @ Vt_sv[best_r, :]
-        best_sens = U_sv[:, best_r] * S_sv[best_r]
-
-        # Keep the global sign consistent with the target
-        if np.dot(best_sens, target_fold_vector) < 0:
-            v_dominant = -v_dominant
-
-        return v_dominant, best_sens
     
     def build_target_fold_vector(self):
         """Creates the +1 (Mountain) and -1 (Valley) target vector from hinge assignments."""

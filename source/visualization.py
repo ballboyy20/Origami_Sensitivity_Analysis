@@ -102,14 +102,13 @@ class SensitivityVisualizationMixin:
 
         # 2. Integration Loop
         for step in range(num_steps):
-            v_dom, _ = self.get_instantaneous_mechanism(target_fold_vector)
-
-            if v_dom is None:
-                print(f"Something went wrong... maybe kinematic lock-up reached at step {step}.")
+            self.analyze_sensitivity(show_plot=None, silent=True)  # Update v_dominant for current state
+            if self.v_dominant is None:
+                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
                 break
 
             steps_taken.append(step + 1)
-            v_reshaped = v_dom.reshape(-1, 3)
+            v_reshaped = self.v_dominant.reshape(-1, 3)
 
             # Step the physical nodes forward
             for i, node in enumerate(self.nodes):
@@ -163,7 +162,8 @@ class SensitivityVisualizationMixin:
 
         # --- Integration Loop ---
         for step in range(num_steps):
-            v_dom, _ = self.get_instantaneous_mechanism(target_fold_vector)
+            self.analyze_sensitivity(show_plot=None, silent=True)  # Update v_dominant for current state
+            v_dom = self.v_dominant
 
             if v_dom is None:
                 print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
@@ -249,7 +249,6 @@ class SensitivityVisualizationMixin:
 
             # Call analyze_sensitivity silently
             current_sens = self.analyze_sensitivity(show_plot=None, silent=True)
-            # _, current_sens = self.get_instantaneous_mechanism(self.build_target_fold_vector())
 
             # Track the ABSOLUTE value for each hinge (no normalization)
             for i in range(len(self.hinges)):
