@@ -21,22 +21,26 @@ Jake Sutton
 """
 
 class SensitivityModel(SensitivityVisualizationMixin):
-    def __init__(self, fold_file_path):
+    def __init__(self, fold_file_path, verbose=True):
         """ Upon initializing this class makes the origami pattern, then adds the bars between
         nodes in a panel to make it rigid, and also slaps on some hinges. Telling it where the hignes
         are is helpful for calculatring the dihedral angle jacobian. """
+        self.verbose = verbose
         self.coordinates, self.panel_indices, self.crease_info = self.extract_pattern_data_from_fold_file(fold_file_path)
 
         self.nodes, self.panels = self.generate_geometry(self.coordinates, self.panel_indices)
 
         self.bars = self.generate_bars()
         self.hinges = self.generate_hinges()
-        
-    def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=False):
+
+    def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=None):
         """
-        Identifies the physical folding mechanism via SVD. Auto-calibrates 
+        Identifies the physical folding mechanism via SVD. Auto-calibrates
         hinges to align with target M/V assignments from the .fold file.
         """
+        if silent is None:
+            silent = not self.verbose
+
         # 1. Build Matrices
         dihedral_jacobian = self.build_dihedral_jacobian()
         constraint_matrix = self.build_constraint_matrix()
@@ -172,13 +176,13 @@ class SensitivityModel(SensitivityVisualizationMixin):
         linear tangent vector (v_dominant), and re-runs the sensitivity analysis.
         This breaks the flat-state singularity.
         """
-        print(f"\n{'='*60}")
-        print(f" STEPPING OUT OF FLAT STATE (Step Scale: {step_scale})")
-        print(f"{'='*60}")
+        self._print(f"\n{'='*60}")
+        self._print(f" STEPPING OUT OF FLAT STATE (Step Scale: {step_scale})")
+        self._print(f"{'='*60}")
 
         # 1. Ensure we have a dominant mode to follow from the flat state
         if not hasattr(self, 'v_dominant') or self.v_dominant is None:
-            print("Running initial flat-state analysis to find deployment path...")
+            self._print("Running initial flat-state analysis to find deployment path...")
             self.analyze_sensitivity(show_plot=False)
             
         # 2. Reshape the 1D displacement vector into (N, 3) for the nodes
@@ -188,7 +192,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
         for i, node in enumerate(self.nodes):
             node.coordinates = node.coordinates + (v_reshaped[i] * step_scale)
 
-        print(f"Nodes perturbed by {step_scale} * v_dominant. Re-running analysis on 3D geometry...\n")
+        self._print(f"Nodes perturbed by {step_scale} * v_dominant. Re-running analysis on 3D geometry...\n")
         
         # 4. Re-run the analysis on the now-3D geometry
         new_sensitivity = self.analyze_sensitivity(show_plot=show_plot)
@@ -225,7 +229,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
                     mechanism_indices.append(i)
 
         if not mechanism_indices:
-            print("WARNING: No mechanism detected in the Null Space.")
+            self._print("WARNING: No mechanism detected in the Null Space.")
             
         return mechanism_indices
     
