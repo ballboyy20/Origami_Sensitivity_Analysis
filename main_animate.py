@@ -49,15 +49,16 @@ with open(filename, "w") as f:
 
 miura_ori = SensitivityModel(filename)
 miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf", silent=True)
-miura_ori.plot_euler_drift(num_steps=100, step_size=0.01)
-miura_ori.animate_nonlinear_folding(num_steps=60, step_size=0.01, interval=2)
-miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot='yes')
+# miura_ori.plot_euler_drift(num_steps=100, step_size=0.01)
+# miura_ori.animate_nonlinear_folding(num_steps=60, step_size=0.01, interval=2)
+# miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot='yes',silent=True)
 
-miura_ori.plot_sensitivity_over_deployment(num_steps=60, step_size=0.01)
+
+miura_ori.plot_sensitivity_over_deployment(num_steps=600, step_size=0.01)
 
 # filename_Y6_2 = "Y6_2.fold"
 # set_up_bloom(m=5,h=2,s=1,file_name=filename_Y6_2) 
-# Y6_2 = SensitivityModel(filename_Y6_2, verbose=True)
+# Y6_2 = SensitivityModel(filename_Y6_2)
 # Y6_2.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y6_2_sensitivity.pdf")
 # # Y6_2.check_integration_rigidity(num_steps=500, step_size= 0.01)
 # # Y6_2.animate_nonlinear_folding(num_steps=500, step_size=0.001, interval=2)

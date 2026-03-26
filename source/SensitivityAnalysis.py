@@ -157,7 +157,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
         if np.dot(best_sens, target_fold_vector) < 0:
             v_dominant = -v_dominant
 
-        return v_dominant
+        return v_dominant, best_sens
     
     def build_target_fold_vector(self):
         """Creates the +1 (Mountain) and -1 (Valley) target vector from hinge assignments."""
@@ -174,20 +174,21 @@ class SensitivityModel(SensitivityVisualizationMixin):
             
         return target_fold_vector
 
-    def step_and_reanalyze(self, step_scale=0.03, show_plot=False):
+    def step_and_reanalyze(self, step_scale=0.03, show_plot=False, silent=None):
         """
-        Pushes the flat pattern slightly into the 3D deployed state using the 
+        Steps the pattern slightly using the 
         linear tangent vector (v_dominant), and re-runs the sensitivity analysis.
         This breaks the flat-state singularity.
         """
-        self._print(f"\n{'='*60}")
-        self._print(f" STEPPING OUT OF FLAT STATE (Step Scale: {step_scale})")
-        self._print(f"{'='*60}")
+        if not silent:
+            print(f"\n{'='*60}")
+            print(f" STEPPING OUT OF FLAT STATE (Step Scale: {step_scale})")
+            print(f"{'='*60}")
 
         # 1. Ensure we have a dominant mode to follow from the flat state
         if not hasattr(self, 'v_dominant') or self.v_dominant is None:
-            self._print("Running initial flat-state analysis to find deployment path...")
-            self.analyze_sensitivity(show_plot=False)
+            print("Running initial flat-state analysis to find deployment path...")
+            self.analyze_sensitivity(show_plot=False, silent=silent)
             
         # 2. Reshape the 1D displacement vector into (N, 3) for the nodes
         v_reshaped = self.v_dominant.reshape(-1, 3)
@@ -196,10 +197,11 @@ class SensitivityModel(SensitivityVisualizationMixin):
         for i, node in enumerate(self.nodes):
             node.coordinates = node.coordinates + (v_reshaped[i] * step_scale)
 
-        self._print(f"Nodes perturbed by {step_scale} * v_dominant. Re-running analysis on 3D geometry...\n")
+        if not silent:
+            print(f"Nodes perturbed by {step_scale} * v_dominant. Re-running analysis on 3D geometry...\n")
         
         # 4. Re-run the analysis on the now-3D geometry
-        new_sensitivity = self.analyze_sensitivity(show_plot=show_plot)
+        new_sensitivity = self.analyze_sensitivity(show_plot=show_plot, silent=silent)
         
         return new_sensitivity
 

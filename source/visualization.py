@@ -11,26 +11,6 @@ visualization.py
 methods for plotting and printing silly little details.
 """
 
-def calculate_stats(data: Union[np.ndarray, list], use_sample: bool = True) -> Dict[str, float]:
-    """Calculates mean, median, standard deviation, and CV."""
-    arr = np.asarray(data, dtype=float)
-    if arr.size == 0:
-        raise ValueError("Cannot calculate statistics on an empty array.")
-        
-    ddof = 1 if use_sample else 0
-    mean_val = np.mean(arr)
-    median_val = np.median(arr)
-    std_dev = np.std(arr, ddof=ddof)
-    
-    cv = np.nan if mean_val == 0 else std_dev / mean_val
-        
-    return {
-        "mean": mean_val,
-        "median": median_val,
-        "std_dev": std_dev,
-        "cv": cv
-    }
-
 def plot_fold_pattern(fold_data, title="Crease Pattern"):
     """
     Plots a .fold dictionary using Matplotlib.
@@ -99,18 +79,13 @@ class SensitivityVisualizationMixin:
     for SensitivityModel. Kept separate to avoid crowding SensitivityAnalysis.py.
     """
 
-    def _print(self, *args, **kwargs):
-        """Respects self.verbose — set model.verbose = False to silence all output."""
-        if getattr(self, 'verbose', True):
-            print(*args, **kwargs)
-
     def plot_euler_drift(self, num_steps=500, step_size=0.01):
         """
         Integrates the folding path and tracks the change in hinge lengths
         (stretching error) for every individual hinge at each iteration,
         then plots the accumulated error to verify rigid kinematics.
         """
-        self._print(f"\n--- Verifying Rigid Kinematics ({num_steps} steps) ---")
+        print(f"\n--- Verifying Rigid Kinematics ({num_steps} steps) ---")
         target_fold_vector = self.build_target_fold_vector()
 
         # 1. Store initial coordinates and exact initial hinge lengths
@@ -127,10 +102,10 @@ class SensitivityVisualizationMixin:
 
         # 2. Integration Loop
         for step in range(num_steps):
-            v_dom = self.get_instantaneous_mechanism(target_fold_vector)
+            v_dom, _ = self.get_instantaneous_mechanism(target_fold_vector)
 
             if v_dom is None:
-                self._print(f"Something went wrong... maybe kinematic lock-up reached at step {step}.")
+                print(f"Something went wrong... maybe kinematic lock-up reached at step {step}.")
                 break
 
             steps_taken.append(step + 1)
@@ -151,7 +126,7 @@ class SensitivityVisualizationMixin:
         for i, node in enumerate(self.nodes):
             node.coordinates = original_coords[i]
 
-        self._print("Rigidity check complete. Generating error plot...")
+        print("Rigidity check complete. Generating error plot...")
 
         # 4. Plot the tracked errors
         plt.figure(figsize=(10, 6))
@@ -176,7 +151,7 @@ class SensitivityVisualizationMixin:
         Integrates the folding path by re-evaluating the SVD at every frame.
         Nodes follow true nonlinear arcs. No panel stretching occurs.
         """
-        self._print(f"\nIntegrating folding path ({num_steps} steps)...")
+        print(f"\nIntegrating folding path ({num_steps} steps)...")
 
         target_fold_vector = self.build_target_fold_vector()
 
@@ -188,10 +163,10 @@ class SensitivityVisualizationMixin:
 
         # --- Integration Loop ---
         for step in range(num_steps):
-            v_dom = self.get_instantaneous_mechanism(target_fold_vector)
+            v_dom, _ = self.get_instantaneous_mechanism(target_fold_vector)
 
             if v_dom is None:
-                self._print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
                 break
 
             v_reshaped = v_dom.reshape(-1, 3)
@@ -207,7 +182,7 @@ class SensitivityVisualizationMixin:
         for i, node in enumerate(self.nodes):
             node.coordinates = original_coords[i]
 
-        self._print("Integration complete. Rendering animation...")
+        print("Integration complete. Rendering animation...")
 
         # --- Setup Animation ---
         fig = plt.figure(figsize=(10, 8))
@@ -274,6 +249,7 @@ class SensitivityVisualizationMixin:
 
             # Call analyze_sensitivity silently
             current_sens = self.analyze_sensitivity(show_plot=None, silent=True)
+            # _, current_sens = self.get_instantaneous_mechanism(self.build_target_fold_vector())
 
             # Track the ABSOLUTE value for each hinge (no normalization)
             for i in range(len(self.hinges)):
@@ -587,7 +563,6 @@ class SensitivityVisualizationMixin:
         print(verdict)
 
         print("\n" + "═" * W + "\n")
-
 
     def plot_pattern_vector(self, sensitivity_vector=None, nodal_vectors=None, vector_scale=1.0, vector_color='green', show_node_labels=False, show_hinge_labels=False, show_magnitudes=False, title="Pattern", show_colorbar=True, normalize=True, save_path=None):
         """
