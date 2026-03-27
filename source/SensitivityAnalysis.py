@@ -29,7 +29,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
         self.coordinates, self.panel_indices, self.crease_info = self.extract_pattern_data_from_fold_file(fold_file_path)
 
         self.nodes, self.panels = self.generate_geometry(self.coordinates, self.panel_indices)
-
+        self.zero_tolerance = 1e-6
         self.bars = self.generate_bars()
         self.hinges = self.generate_hinges()
 
@@ -179,7 +179,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
 
         for i in range(n_dof):
             s_val = singular_values[i] if i < len(singular_values) else 0.0 
-            if s_val < 1e-9:
+            if s_val < self.zero_tolerance:
                 v = Vh[i, :]
                 fold_changes = dihedral_jacobian @ v
                 total_folding = np.sum(np.abs(fold_changes))
