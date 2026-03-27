@@ -104,7 +104,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
 
         if show_plot == 'yes':
             self.plot_pattern_vector(best_sensitivity,
-                                    show_magnitudes=False,
+                                    show_magnitudes=True,
                                     title=plot_title,
                                     normalize=True,
                                     show_colorbar=show_colorbar,

@@ -119,6 +119,43 @@ class HingeElement:
         self.panel_1_normal_vector = np.cross(self.r_jc1, self.hinge_line_vector)
         self.panel_2_normal_vector = np.cross(self.hinge_line_vector, self.r_jc2)
 
+        #distance from hinge line to centroid
+        self.distance_from_hinge_to_centroid_1 = np.linalg.norm(np.cross(self.r_jc1, self.hinge_line_vector)) / self.length_of_hinge_line
+        self.distance_from_hinge_to_centroid_2 = np.linalg.norm(np.cross(self.r_jc2, self.hinge_line_vector)) / self.length_of_hinge_line
+
+
+        self.distances_from_hinge_line_1 = []
+        for w in self.wing_nodes_1:
+            # 1. Find vector from anchor to this specific node
+            r_w = w.coordinates - self.node_j.coordinates
+            
+            # 2. Check for colinearity
+            cross__product = np.cross(r_w, self.hinge_line_vector)
+            cross_norm = np.linalg.norm(cross__product)
+            
+            if cross_norm < 1e-12:
+                raise ValueError("Degenerate hinge: wing node {} is colinear with hinge axis".format(w.id))
+            
+            # 3. Calculate and append distance
+            distance_from_hinge_line = cross_norm / self.length_of_hinge_line
+            self.distances_from_hinge_line_1.append(distance_from_hinge_line)
+            
+        self.distances_from_hinge_line_2 = []
+        for w in self.wing_nodes_2:
+            # 1. Find vector from anchor to this specific node
+            r_w = w.coordinates - self.node_j.coordinates
+            
+            # 2. Check for colinearity
+            cross__product = np.cross(r_w, self.hinge_line_vector)
+            cross_norm = np.linalg.norm(cross__product)
+            
+            if cross_norm < 1e-12:
+                raise ValueError("Degenerate hinge: wing node {} is colinear with hinge axis".format(w.id))
+            
+            # 3. Calculate and append distance
+            distance_from_hinge_line = cross_norm / self.length_of_hinge_line
+            self.distances_from_hinge_line_2.append(distance_from_hinge_line)
+
     def calculate_dihedral_angle(self):
         """The dihedral angle is the angle between the two panel planes.
         Uses centroid normals — correct for any flat polygon."""
@@ -182,15 +219,17 @@ class HingeElement:
             idx = node_id * 3
             row[idx : idx+3] += vector   # += so multiple stamps to same node accumulate
 
-        # Distribute panel-1 centroid gradient equally among all panel-1 wing nodes
-        m1 = len(self.wing_nodes_1)
-        for w in self.wing_nodes_1:
-            stamp(w.id, gradient_c1 / m1) 
+        # Distribute panel-1 centroid gradient proportionally
+        for i, w in enumerate(self.wing_nodes_1):
+            node_distance = self.distances_from_hinge_line_1[i]
+            scale_factor = node_distance / self.distance_from_hinge_to_centroid_1
+            stamp(w.id, gradient_c1 * scale_factor)
 
-        # Distribute panel-2 centroid gradient equally among all panel-2 wing nodes
-        m2 = len(self.wing_nodes_2)
-        for w in self.wing_nodes_2:
-            stamp(w.id, gradient_c2 / m2) # TODO replace this tne ratio
+        # Distribute panel-2 centroid gradient proportionally
+        for i, w in enumerate(self.wing_nodes_2):
+            node_distance = self.distances_from_hinge_line_2[i]
+            scale_factor = node_distance/ self.distance_from_hinge_to_centroid_2
+            stamp(w.id, gradient_c2 * scale_factor)
 
         # Hinge-axis nodes get their gradient directly
         stamp(self.node_j.id, gradient_j)

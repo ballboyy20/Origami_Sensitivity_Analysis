@@ -42,29 +42,27 @@ def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot=None, Show_Origin=1, Show
 # birdsfoot_model.animate_nonlinear_folding(num_steps=200, step_size=0.01, interval=100)
 
 
-# filename = "miura_ori.fold"
-# fold_data = generate_miura_fold(cols=3, rows=2, dx=20.0, dy=20.0, tilt=15.0)
-# with open(filename, "w") as f:   
-#     json.dump(fold_data, f, indent=2)
+filename = "miura_ori.fold"
+fold_data = generate_miura_fold(cols=5, rows=5, dx=20.0, dy=20.0, tilt=15.0)
+with open(filename, "w") as f:   
+    json.dump(fold_data, f, indent=2)
 
-# miura_ori = SensitivityModel(filename)
-# miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf", silent=True)
+miura_ori = SensitivityModel(filename)
+miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf", silent=False)
 # # miura_ori.plot_euler_drift(num_steps=100, step_size=0.01)
 # # miura_ori.animate_nonlinear_folding(num_steps=60, step_size=0.01, interval=2)
-# # miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot='yes',silent=True)
-
-
+# miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot='yes',silent=True)
 # miura_ori.plot_sensitivity_over_deployment(num_steps=600, step_size=0.01)
 
-filename_Y6_2 = "Y6_2.fold"
-set_up_bloom(m=5,h=2,s=1,file_name=filename_Y6_2) 
-Y6_2 = SensitivityModel(filename_Y6_2)
+# filename_Y6_2 = "Y6_2.fold"
+# set_up_bloom(m=5,h=2,s=1,file_name=filename_Y6_2) 
+# Y6_2 = SensitivityModel(filename_Y6_2)
 # Y6_2.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y6_2_sensitivity.pdf")
 # Y6_2.plot_euler_drift(num_steps=500, step_size= 0.01)
 # Y6_2.animate_nonlinear_folding(num_steps=500, step_size=0.001, interval=2)
 # Y6_2.plot_sensitivity_over_deployment(num_steps=1000, step_size=0.001)
-Y6_2.plot_cosine_quality_over_deployment(num_steps=5000, step_size=0.001)
-plt.close('all')
+# Y6_2.plot_cosine_quality_over_deployment(num_steps=5000, step_size=0.001)
+# plt.close('all')
 
 # 4.1, 4.2, 5.1, 5.2, 6.1 all show flatlined sensitivity values
 
