@@ -72,3 +72,4 @@ plt.close('all')
 # also lets change consine similarity to atan2 function
 # factor out logic from plot_sensitivity_over_deployment to a new function that can be used to plot the similarity between the dominant mode and the target fold vector over the course of deployment, and then call that function from plot_sensitivity_over_deployment and save those plots as well.
 # uncomment characterisc length normalization.
+# consider running a maxwell counting rull null([C]) - null([C; J]) to see if a pattern is 1 DOF once pulled out of the flat state
