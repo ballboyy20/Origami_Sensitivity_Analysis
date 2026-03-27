@@ -29,7 +29,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
         self.coordinates, self.panel_indices, self.crease_info = self.extract_pattern_data_from_fold_file(fold_file_path)
 
         self.nodes, self.panels = self.generate_geometry(self.coordinates, self.panel_indices)
-        self.zero_tolerance = 1e-6
+        self.zero_tolerance = 1e-9
         self.bars = self.generate_bars()
         self.hinges = self.generate_hinges()
 
@@ -199,7 +199,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
         if np.linalg.norm(target_fold_vector) > 1e-12:
             best_r = 0
             best_cos = -1.0
-            rel_threshold = 1e-3 * S_sv[0]   
+            rel_threshold = 1e-3 * S_sv[0]
             for r in range(len(S_sv)):
                 if S_sv[r] < rel_threshold:  
                     continue
@@ -208,7 +208,19 @@ class SensitivityModel(SensitivityVisualizationMixin):
                     best_cos = abs(cos)
                     best_r = r
         else:
-            best_r = 0                       
+            best_r = 0      
+
+############
+        cos_vals = sorted([
+            abs(np.dot(U_sv[:, r], target_fold_vector) /
+                (np.linalg.norm(U_sv[:, r]) * np.linalg.norm(target_fold_vector)))
+            for r in range(len(S_sv)) if S_sv[r] >= 1e-3 * S_sv[0]
+        ], reverse=True)
+
+        self.cosine_quality = cos_vals[0] if len(cos_vals) > 0 else 0.0
+        self.cosine_quality_runner_up = cos_vals[1] if len(cos_vals) > 1 else 0.0
+     ###############   
+
 
         best_sensitivity = U_sv[:, best_r] * S_sv[best_r]
         v_dominant = Q.T @ Vt_sv[best_r, :]

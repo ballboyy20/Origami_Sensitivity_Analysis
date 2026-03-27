@@ -302,6 +302,59 @@ class SensitivityVisualizationMixin:
         plt.show()
 
         return hinge_sensitivities
+    
+    def plot_cosine_quality_over_deployment(self, num_steps=100, step_size=0.01):
+        """Tracks and plots cosine similarity quality of SVD mode selection throughout deployment."""
+        print(f"\n--- Tracking Cosine Quality over Deployment ({num_steps} steps) ---")
+
+        original_coords = [n.coordinates.copy() for n in self.nodes]
+        quality_scores = []
+        runner_up_scores = []
+        deployment_steps = []
+
+        for step in range(num_steps):
+            deployment_steps.append(step * step_size)
+            self.analyze_sensitivity(show_plot=None, silent=True)
+
+            quality_scores.append(getattr(self, 'cosine_quality', 0.0))
+            runner_up_scores.append(getattr(self, 'cosine_quality_runner_up', 0.0))
+
+            if not hasattr(self, 'v_dominant') or self.v_dominant is None:
+                print(f"Kinematic lock-up at step {step}. Stopping.")
+                break
+
+            v_reshaped = self.v_dominant.reshape(-1, 3)
+            for i, node in enumerate(self.nodes):
+                node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
+
+        for i, node in enumerate(self.nodes):
+            node.coordinates = original_coords[i]
+
+        # Plot
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
+
+        ax1.plot(deployment_steps, quality_scores, color='steelblue', linewidth=2, label='Best |cos θ|')
+        ax1.plot(deployment_steps, runner_up_scores, color='tomato', linewidth=2, linestyle='--', label='Runner-up |cos θ|')
+        ax1.axhline(1.0, color='gray', linewidth=1, linestyle=':')
+        ax1.set_ylabel("Cosine Similarity", fontsize=12)
+        ax1.set_ylim(0, 1.05)
+        ax1.legend()
+        ax1.set_title("SVD Mode Selection Quality Over Deployment", fontsize=14, fontweight='bold')
+        ax1.grid(True, linestyle='--', alpha=0.5)
+
+        gap = [b - r for b, r in zip(quality_scores, runner_up_scores)]
+        ax2.fill_between(deployment_steps, gap, color='steelblue', alpha=0.4, label='Gap (best − runner-up)')
+        ax2.axhline(0, color='black', linewidth=1)
+        ax2.set_xlabel("Deployment Pseudo-Time (Steps × Step Size)", fontsize=12)
+        ax2.set_ylabel("Mode Separation", fontsize=12)
+        ax2.legend()
+        ax2.grid(True, linestyle='--', alpha=0.5)
+
+        plt.tight_layout()
+        plt.show()
+
+        return deployment_steps, quality_scores, runner_up_scores
+
 
     def report_singular_values(self, S_sv, best_r):
         """Prints the mechanism subspace singular values, highlighting the chosen mode."""

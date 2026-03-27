@@ -62,10 +62,13 @@ Y6_2 = SensitivityModel(filename_Y6_2)
 # Y6_2.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y6_2_sensitivity.pdf")
 # Y6_2.plot_euler_drift(num_steps=500, step_size= 0.01)
 # Y6_2.animate_nonlinear_folding(num_steps=500, step_size=0.001, interval=2)
-Y6_2.plot_sensitivity_over_deployment(num_steps=1000, step_size=0.001)
+# Y6_2.plot_sensitivity_over_deployment(num_steps=1000, step_size=0.001)
+Y6_2.plot_cosine_quality_over_deployment(num_steps=5000, step_size=0.001)
 plt.close('all')
 
 # 4.1, 4.2, 5.1, 5.2, 6.1 all show flatlined sensitivity values
 
 # lets plot the quality if the similary between the dominant mode and the target fold vector over the course of the deployment, to see if it tracks with the sensitivity values.
 # also lets change consine similarity to atan2 function
+# factor out logic from plot_sensitivity_over_deployment to a new function that can be used to plot the similarity between the dominant mode and the target fold vector over the course of deployment, and then call that function from plot_sensitivity_over_deployment and save those plots as well.
+# uncomment characterisc length normalization.
