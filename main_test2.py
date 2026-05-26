@@ -89,7 +89,7 @@ plt.close('all')
 filename = "birdsfoot4.fold"
 birdsfoot_model = SensitivityModel(filename)
 birdsfoot_model.analyze_sensitivity(show_plot='yes')
-birdsfoot_model.step_and_reanalyze(step_scale=0.0005, show_plot='yes')
+birdsfoot_model.step_and_reanalyze(step_scale=0.0005, show_plot=True)
 # birdsfoot_model.check_integration_rigidity(num_steps=200, step_size=0.01)
 # birdsfoot_model.animate_nonlinear_folding(num_steps=200, step_size=0.01, interval=100)
 
@@ -101,9 +101,6 @@ with open(filename, "w") as f:
 
 miura_ori = SensitivityModel(filename)
 miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf")
-miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot='yes')
-
-
-
+miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot=True)
 
 # %%
