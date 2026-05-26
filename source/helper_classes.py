@@ -52,7 +52,6 @@ class BarElement:
         # Return the row for the compatibility matrix
         return row_vector
 
-
 class HingeElement:
     def __init__(self, wing_nodes_1, node_j, node_k, wing_nodes_2, fold_assignment="U"):
         """
@@ -60,19 +59,19 @@ class HingeElement:
         wing_nodes_2 : list of Node objects — all non-hinge nodes in panel 2
         node_j, node_k : the two nodes that define the shared hinge axis
 
-        The Jacobian is computed via the centroid of each panel's non-hinge nodes.
+        The Jacobian is computed via the centroid of each panel's m non-hinge nodes.
         This makes the formula independent of which specific wing node is chosen,
-        works correctly for triangles (m=1), quads (m=2), and any polygon.
+        works for triangles (m=1), quads (m=2), and any polygon.
         """
         # Compute centroids of each panel's non-hinge nodes
-        c1 = np.mean([n.coordinates for n in wing_nodes_1], axis=0)
+        c1 = np.mean([n.coordinates for n in wing_nodes_1], axis=0) # TODO do we need to calculate centroid a different way?
         c2 = np.mean([n.coordinates for n in wing_nodes_2], axis=0)
 
-        e      = node_k.coordinates - node_j.coordinates
+        e      = node_k.coordinates - node_j.coordinates # TODO this seems like dead or repeated code...
         r_jc1  = c1 - node_j.coordinates
         r_jc2  = c2 - node_j.coordinates
 
-        triple = np.dot(np.cross(e, r_jc1), r_jc2)
+        triple = np.dot(np.cross(e, r_jc1), r_jc2) # TODO What is happening here?? are we still using the triple??
 
         if abs(triple) < 1e-10:
             # Degenerate case: all nodes coplanar (e.g. flat/unfolded pattern).
@@ -100,7 +99,7 @@ class HingeElement:
         non-hinge nodes.  Called by both get_jacobian_row and
         calculate_dihedral_angle.
         """
-        self.hinge_line_vector   = self.node_k.coordinates - self.node_j.coordinates
+        self.hinge_line_vector = self.node_k.coordinates - self.node_j.coordinates # TODO pretty sure we are already making this with e above
         self.length_of_hinge_line = np.linalg.norm(self.hinge_line_vector)
 
         if self.length_of_hinge_line < 1e-12:
@@ -186,12 +185,12 @@ class HingeElement:
         # Distribute panel-1 centroid gradient equally among all panel-1 wing nodes
         m1 = len(self.wing_nodes_1)
         for w in self.wing_nodes_1:
-            stamp(w.id, gradient_c1 / m1)
+            stamp(w.id, gradient_c1 / m1) 
 
         # Distribute panel-2 centroid gradient equally among all panel-2 wing nodes
         m2 = len(self.wing_nodes_2)
         for w in self.wing_nodes_2:
-            stamp(w.id, gradient_c2 / m2)
+            stamp(w.id, gradient_c2 / m2) # TODO replace this tne ratio
 
         # Hinge-axis nodes get their gradient directly
         stamp(self.node_j.id, gradient_j)
@@ -200,66 +199,84 @@ class HingeElement:
         return row
 
 # class HingeElement:
-#     def __init__(self,node_i, node_j, node_k, node_l,fold_assignment="U"):
-#         """By convention: j and k are the SHARED nodes (the hinge line)
-#              and l are the unique nodes on either side"""
-        
-#        # Ensure consistent hinge orientation (geometry-based)
+#     def __init__(self, wing_nodes_1, node_j, node_k, wing_nodes_2, fold_assignment="U"):
+#         """
+#         Selects a single wing node for each panel (node_i and node_l) by finding 
+#         the node with the maximum perpendicular distance from the hinge line.
+#         """
+#         self.node_j = node_j
+#         self.node_k = node_k
+#         self.fold_assignment = fold_assignment
+
+#         # Hinge line vector
 #         e = node_k.coordinates - node_j.coordinates
+
+#         # Helper function to find the furthest node from the hinge line
+#         def get_furthest_node(candidate_nodes):
+#             max_cross_norm = -1.0
+#             best_node = candidate_nodes[0]
+#             for n in candidate_nodes:
+#                 r_jn = n.coordinates - node_j.coordinates
+#                 # The magnitude of the cross product is proportional to the perpendicular distance
+#                 cross_norm = np.linalg.norm(np.cross(r_jn, e))
+#                 if cross_norm > max_cross_norm:
+#                     max_cross_norm = cross_norm
+#                     best_node = n
+#             return best_node
+
+#         # Select the optimal wing nodes
+#         node_i = get_furthest_node(wing_nodes_1)
+#         node_l = get_furthest_node(wing_nodes_2)
+
+#         # Ensure consistent hinge orientation (topological winding)
 #         r_ji = node_i.coordinates - node_j.coordinates
 #         r_jl = node_l.coordinates - node_j.coordinates
 
 #         triple = np.dot(np.cross(e, r_ji), r_jl)
 
 #         if abs(triple) < 1e-10:
-#             # Degenerate case: all nodes are coplanar (e.g. flat/unfolded pattern).
-#             # The triple product is identically zero, so the standard check cannot
-#             # determine orientation.  Fall back to a global reference: enforce that
-#             # n1 = cross(r_ji, e) points in the +z direction.
+#             # Degenerate case: flat state. Fall back to global +z reference.
 #             n1 = np.cross(r_ji, e)
 #             if np.dot(n1, np.array([0.0, 0.0, 1.0])) < 0:
 #                 node_i, node_l = node_l, node_i
+#                 wing_nodes_1, wing_nodes_2 = wing_nodes_2, wing_nodes_1
 #         elif triple < 0:
 #             node_i, node_l = node_l, node_i
+#             wing_nodes_1, wing_nodes_2 = wing_nodes_2, wing_nodes_1
 
+#         # Store the optimally selected single wing nodes
 #         self.node_i = node_i
-#         self.node_j = node_j
-#         self.node_k = node_k
 #         self.node_l = node_l
-
-#         self.fold_assignment = fold_assignment # a hinge will be assigned Mountian or Valley
         
-#     def calculate_vectors(self):
-#         """ 
-#         calculates/intializes several vectors used in this class to reduce duplicate code
-#         just helper fucntion
-#         """
+#         # Keep lists just in case they are needed for plotting or debugging
+#         self.wing_nodes_1 = wing_nodes_1
+#         self.wing_nodes_2 = wing_nodes_2
 
-#         # Vector for the hinge line (intersection between the panels)
+#     def calculate_vectors(self):
+#         """
+#         Computes the hinge geometry using only the selected wing nodes.
+#         """
 #         self.hinge_line_vector = self.node_k.coordinates - self.node_j.coordinates
 #         self.length_of_hinge_line = np.linalg.norm(self.hinge_line_vector)
 
 #         if self.length_of_hinge_line < 1e-12:
 #             raise ValueError("Degenerate hinge: coincident nodes")
 
-#         # Vectors from the hinge to the outer nodes 
-#         self.r_ji = self.node_i.coordinates - self.node_j.coordinates # (j -> i)
-#         self.r_jl = self.node_l.coordinates - self.node_j.coordinates # (j -> l)
+#         # Vectors from j to the selected wing nodes
+#         self.r_ji = self.node_i.coordinates - self.node_j.coordinates
+#         self.r_jl = self.node_l.coordinates - self.node_j.coordinates
 
-#         # Get vectors normal to each panel
+#         # Panel normals
 #         self.panel_1_normal_vector = np.cross(self.r_ji, self.hinge_line_vector)
 #         self.panel_2_normal_vector = np.cross(self.hinge_line_vector, self.r_jl)
 
-#     def calculate_dihedral_angle(self): # used this to help me numerically validate the Jacobian calculations, not used in the final code
-#         """The dihedral angle is the angle between two planes, 
-#             we find this by finding the angle between the vectors normal to each plane"""
-        
+#     def calculate_dihedral_angle(self):
+#         """Calculates the dihedral angle between the two panels."""
 #         self.calculate_vectors()
 
 #         n1 = self.panel_1_normal_vector / np.linalg.norm(self.panel_1_normal_vector)
 #         n2 = self.panel_2_normal_vector / np.linalg.norm(self.panel_2_normal_vector)
-
-#         e_hat = self.hinge_line_vector / np.linalg.norm(self.hinge_line_vector)
+#         e_hat = self.hinge_line_vector / self.length_of_hinge_line
 
 #         y = np.dot(np.cross(n1, n2), e_hat)
 #         x = np.dot(n1, n2)
@@ -267,41 +284,42 @@ class HingeElement:
 #         return np.arctan2(y, x)
 
 #     def get_jacobian_row(self, total_DOFs):
-#         """Mathematically, the Jacobian (J) answers:
-#         "If I wiggle Node i in some direction, exactly how much does the fold angle θ change?"""
-        
+#         """
+#         Computes ∂θ/∂(node DOFs) using the standard 4-node Schenk & Guest formula.
+#         Because the panels are fully cross-braced, moving node_i mathematically 
+#         rotates the entire rigid panel.
+#         """
 #         self.calculate_vectors()
 
-#         # Calculate squared magnitudes (needed for the denominator)
-#         panel_1_normal_vector_squared = np.dot(self.panel_1_normal_vector, self.panel_1_normal_vector)
-#         panel_2_normal_vector_squared = np.dot(self.panel_2_normal_vector, self.panel_2_normal_vector)
+#         n1_sq = np.dot(self.panel_1_normal_vector, self.panel_1_normal_vector)
+#         n2_sq = np.dot(self.panel_2_normal_vector, self.panel_2_normal_vector)
 
-#         # Safety check for zero-area triangles (collinear nodes)
-#         if panel_1_normal_vector_squared < 1e-12 or panel_2_normal_vector_squared < 1e-12:
+#         # Safety check for degenerate (zero-area) panels
+#         if n1_sq < 1e-12 or n2_sq < 1e-12:
 #             return np.zeros(total_DOFs)
-        
-#         # Calculate gradients (The "sensitivity" vectors)
-#         # [cite_start]Formulas derived from Schenk & Guest (2011)
 
-#         # Gradient for nodes i & l
-#         gradient_i = (self.length_of_hinge_line / panel_1_normal_vector_squared) * self.panel_1_normal_vector
-#         gradient_l = (self.length_of_hinge_line / panel_2_normal_vector_squared) * self.panel_2_normal_vector
+#         L = self.length_of_hinge_line
+#         L_sq = L * L
 
-#         # Projection factors: How far along the hinge are node i and l?
-#         alpha_i = np.dot(self.r_ji, self.hinge_line_vector) / (self.length_of_hinge_line * self.length_of_hinge_line)
-#         alpha_l = np.dot(self.r_jl, self.hinge_line_vector) / (self.length_of_hinge_line * self.length_of_hinge_line)
+#         # --- Schenk & Guest (2011) gradients for the wing points ---
+#         gradient_i = (L / n1_sq) * self.panel_1_normal_vector
+#         gradient_l = (L / n2_sq) * self.panel_2_normal_vector
 
-#         # gradient for j & k
+#         # Projection of each wing node along the hinge axis (alpha factors)
+#         alpha_i = np.dot(self.r_ji, self.hinge_line_vector) / L_sq
+#         alpha_l = np.dot(self.r_jl, self.hinge_line_vector) / L_sq
+
+#         # Gradients at the hinge-axis nodes
 #         gradient_j = (alpha_i - 1) * gradient_i + (alpha_l - 1) * gradient_l
-#         gradient_k = (-alpha_i) * gradient_i - alpha_l * gradient_l
+#         gradient_k = (-alpha_i)    * gradient_i - alpha_l * gradient_l
 
-#         # intialize empty row vector to populate with gradients
+#         # --- Assemble the Jacobian row ---
 #         row = np.zeros(total_DOFs)
 
-#         # Helper function  to stamp 3 values at a time into the correct slots
 #         def stamp(node_id, vector):
 #             idx = node_id * 3
-#             row[idx : idx+3] = vector
+#             # We use += in case some weird geometry shares nodes, though rare
+#             row[idx : idx+3] += vector   
 
 #         stamp(self.node_i.id, gradient_i)
 #         stamp(self.node_j.id, gradient_j)

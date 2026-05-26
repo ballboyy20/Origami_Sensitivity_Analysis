@@ -1,25 +1,15 @@
+#%%
+from flask import json
+import numpy as np
 import matplotlib.pyplot as plt
 
 from source.SensitivityAnalysis import SensitivityModel
 from source.Bloom_Yoshimura import Bloom_Yoshimura
-from source.visualization import plot_sensitivity_violin
+from source.visualization import plot_fold_pattern
+from source.Bloom_Yoshimura import generate_miura_fold
 
-def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot = None,Show_Origin=1, Show_Points=1, Show_facets=0, Show_Lines=1, Line_Width=1, Line_Style=1, Invert_Creases=0):
-    ''' ENTER YOUR PREFERENCES HERE: '''
-    # m = ["     7     "] # example values: 5, 6, 8, 12 #
-    # h = ["     1     "] # example values: 1, 2, 3 #
-    # s = ["     1     "] # example values: 1, 4, 50, 27.5, 1001 #
-    # Show_Origin = ["     1     "] # enter 1 to show origin or 0 to hide origin.
-    # Show_Points = ["     1     "] # enter 1 to show points or 0 to hide points.
-    # Show_facets = ["     0     "] # enter 1 to show facets or 0 to hide facets.
-    # Show_Lines = ["     1     "] # enter 1 to show lines or 0 to hide lines.
-    # Line_Width = ["     1     "]  # example values: 0.7, 2.5, 0.625, 5 #
-    # Line_Style = ["     1     "]  # enter 1 for colored lines and 0 for black lines.
-    # Invert_Creases = ["      0      "]  # enter 1 to invert creases or 0 for no change.
-    ''' END OF PREFERENCES '''
-    # m = int(m[0])
-    # h = int(h[0])
-    # s = float(s[0])
+# --- Pattern Generation Setup ---
+def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot=None, Show_Origin=1, Show_Points=1, Show_facets=0, Show_Lines=1, Line_Width=1, Line_Style=1, Invert_Creases=0):
     Show_Origin = bool(Show_Origin)
     Show_Points = bool(Show_Points)
     Show_facets = bool(Show_facets)
@@ -32,57 +22,88 @@ def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot = None,Show_Origin=1, Sho
     bloom.plot_origin = Show_Origin
     bloom.plot_points = Show_Points
     bloom.plot_facets = Show_facets
+
     bloom.plot_lines = Show_Lines
     bloom.line_width = Line_Width
     bloom.line_style = Line_Style
     bloom.crease_is_invert = Invert_Creases
     
+
     bloom.graph()
     if show_plot is not None:
         plt.close('all')
 
     bloom.export_to_fold(filename=file_name)
 
-if __name__ == "__main__":
-    # 1. Define the path to your .fold file
-    # Make sure this file is in the same folder, or provide the full path
-    # filename = "BirdsFoot3.fold" 
-    # model = SensitivityModel(filename)
-    # model.plot_pattern_vector(model.best_sensitivity, nodal_vectors=model.v_dominant,
-    #                              title="Dominant Folding Mechanism (Sensitivity Vector)",
-    #                              normalize=True)
-    try:
 
-        filename = "clean4_brooklyn_cut.fold"
-        model_t_flasher = SensitivityModel(filename)
-        model_t_flasher.analyze_sensitivity(show_plot=1)
-        
 
-        # filename = "bloom_yoshimura.fold"
-        # set_up_bloom(m=5,h=1,s=1,file_name=filename) # Generates bloom_yoshimura.fold in the current directory
-        
-        # filename1 = "bloom_yoshimura1.fold"
-        # set_up_bloom(m=5,h=1,s=1,file_name=filename1) # Generates bloom_yoshimura1.fold in the current directory
+### --- Flashers --- ###
+#%% Flashers - Model T
+filename_r1_h2_m5_flasher = "r1_h2_m5_flasher.fold"
+r1_h2_m5_flasher = SensitivityModel(filename_r1_h2_m5_flasher)
+r1_h2_m5_flasher.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/r1_h2_m5_flasher_sensitivity.pdf")
+# r1_h2_m5_flasher.step_and_reanalyze(step_scale=0.00000005, show_plot='yes')
+plt.close('all')
 
-        # bloom = SensitivityModel(filename)
-        # bloom.analyze_sensitivity()
-        # plt.close('all')  # close the 3D pattern plot from analyze_sensitivity
+#%%
+filename_r1_h1_m6_flasher = "r1_h1_m6_flasher.fold"
+r1_h1_m6_flasher = SensitivityModel(filename_r1_h1_m6_flasher)
+r1_h1_m6_flasher.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/r1_h1_m6_flasher_sensitivity.pdf")
+plt.close('all') 
 
-        # bloom1 = SensitivityModel(filename1)
-        # bloom1.analyze_sensitivity()
-        # plt.close('all')  # close the 3D pattern plot from analyze_sensitivity
+#%%
+filename_r1_h2_m6_flasher = "r1_h2_m6_flasher.fold"
+r1_h2_m6_flasher = SensitivityModel(filename_r1_h2_m6_flasher)
+r1_h2_m6_flasher.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/r1_h2_m6_flasher_sensitivity.pdf")
+plt.close('all') 
 
-        # sensitivities = {
-        #     "bloom_yoshimura" : bloom.best_sensitivity,
-        #     "flasher" : model_t_flasher.best_sensitivity,
-        # }
+### --- Blooms --- ###
+#%% Bloom Yoshimura Y6_1
+filename_Y6_1 = "Y6_1.fold"
+set_up_bloom(m=6,h=1,s=1,file_name=filename_Y6_1) 
+Y6_1 = SensitivityModel(filename_Y6_1)
+Y6_1.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y6_1_sensitivity.pdf")
+# Y6_1.check_integration_rigidity(num_steps=500, step_size= 0.01)
+# Y6_1.animate_nonlinear_folding(num_steps=1000, step_size=0.01,interval=10)
+plt.close('all')
 
-        # fig, ax = plot_sensitivity_violin(sensitivities)
-        # fig.savefig("sensitivity_violin.pdf", bbox_inches="tight")
-        # plt.show()  # display the violin plot
-        
+#%% Bloom Yoshimura Y5_1 & Y6_2
+filename_Y5_1 = "Y5_1.fold"
+set_up_bloom(m=5,h=1,s=1,file_name=filename_Y5_1) 
+Y5_1 = SensitivityModel(filename_Y5_1)
+Y5_1.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y5_1_sensitivity.pdf")
+plt.close('all')
 
-    except FileNotFoundError:
-        print(f"ERROR: Could not find file '{filename}'. Check your path.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+#%%
+filename_Y6_2 = "Y6_2.fold"
+set_up_bloom(m=6,h=2,s=1,file_name=filename_Y6_2) 
+Y6_2 = SensitivityModel(filename_Y6_2)
+Y6_2.analyze_sensitivity(show_plot='yes', show_colorbar=True, save_path="figures/Y6_2_sensitivity.pdf")
+# Y6_2.check_integration_rigidity(num_steps=500, step_size= 0.01)
+Y6_2.animate_nonlinear_folding(num_steps=500, step_size=0.01)
+plt.close('all') 
+
+#%%
+### --- Validation --- ###
+#%% Birdsfoot
+filename = "birdsfoot4.fold"
+birdsfoot_model = SensitivityModel(filename)
+birdsfoot_model.analyze_sensitivity(show_plot='yes')
+birdsfoot_model.step_and_reanalyze(step_scale=0.0005, show_plot='yes')
+# birdsfoot_model.check_integration_rigidity(num_steps=200, step_size=0.01)
+# birdsfoot_model.animate_nonlinear_folding(num_steps=200, step_size=0.01, interval=100)
+
+#%% Miura-ori
+filename = "miura_ori.fold"
+fold_data = generate_miura_fold(cols=5, rows=5, dx=20.0, dy=20.0, tilt=10.0)
+with open(filename, "w") as f:   
+    json.dump(fold_data, f, indent=2)
+
+miura_ori = SensitivityModel(filename)
+miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf")
+miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot='yes')
+
+
+
+
+# %%
