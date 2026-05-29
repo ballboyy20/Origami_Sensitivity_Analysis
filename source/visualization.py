@@ -5,6 +5,8 @@ import matplotlib.colors as mcolors
 import matplotlib.patheffects as PathEffects
 from matplotlib import animation
 from typing import Union, Dict
+import matplotlib.cm as cm
+from matplotlib.colors import Normalize
 
 """
 visualization.py
@@ -78,6 +80,13 @@ class SensitivityVisualizationMixin:
     Mixin class containing all plotting, animation, and print/report methods
     for SensitivityModel. Kept separate to avoid crowding SensitivityAnalysis.py.
     """
+    nodes: list
+    hinges: list
+    bars: list
+    panels: list
+    v_dominant: np.ndarray
+    cosine_quality: float
+    cosine_quality_runner_up: float
 
     def plot_euler_drift(self, num_steps=500, step_size=0.01):
         """
