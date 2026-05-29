@@ -188,7 +188,7 @@ class SensitivityModel(SensitivityVisualizationMixin):
                     mechanism_indices.append(i)
 
         if not mechanism_indices:
-            self._print("WARNING: No mechanism detected in the Null Space.")
+            print("WARNING: No mechanism detected in the Null Space.")
             
         return mechanism_indices
     
