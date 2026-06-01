@@ -4,6 +4,7 @@ import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as PathEffects
 from matplotlib import animation
+from scipy.integrate import solve_ivp
 from typing import Union, Dict
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
@@ -88,7 +89,53 @@ class SensitivityVisualizationMixin:
     cosine_quality: float
     cosine_quality_runner_up: float
 
-    def plot_euler_drift(self, num_steps=500, step_size=0.01):
+    def _state_vector(self):
+        """Pack node coordinates into a single 1D state vector."""
+        return np.concatenate([n.coordinates for n in self.nodes])
+
+    def _set_state_vector(self, y):
+        """Unpack a 1D state vector back into node coordinates."""
+        for i, node in enumerate(self.nodes):
+            node.coordinates = y[3 * i:3 * i + 3]
+
+    def _rk45_derivative(self, t, y):
+        """Return the instantaneous dominant displacement vector for the current state."""
+        self._set_state_vector(y)
+        self.analyze_sensitivity(show_plot=None, silent=True)
+        if self.v_dominant is None:
+            return np.zeros_like(y)
+        return self.v_dominant
+
+    def _integrate_rk45(self, num_steps, step_size):
+        """Integrate the deployment path using RK45 and return a trajectory."""
+        original_state = self._state_vector()
+        t_span = (0.0, num_steps * step_size)
+        t_eval = np.linspace(0.0, t_span[1], num_steps + 1)
+
+        def lockup_event(t, y):
+            self._set_state_vector(y)
+            self.analyze_sensitivity(show_plot=None, silent=True)
+            return np.linalg.norm(self.v_dominant) if self.v_dominant is not None else 0.0
+        lockup_event.terminal = True
+        lockup_event.direction = 0
+
+        sol = solve_ivp(
+            fun=lambda t, y: self._rk45_derivative(t, y),
+            t_span=t_span,
+            y0=original_state,
+            method='RK45',
+            t_eval=t_eval,
+            max_step=step_size,
+            events=lockup_event
+        )
+
+        trajectory = [sol.y[:, i].copy() for i in range(sol.y.shape[1])]
+        terminated_early = sol.t[-1] < t_span[1]
+
+        self._set_state_vector(original_state)
+        return sol.t.tolist(), trajectory, terminated_early
+
+    def plot_euler_drift(self, num_steps=500, step_size=0.01, integrator='RK45'):
         """
         Integrates the folding path and tracks the change in hinge lengths
         (stretching error) for every individual hinge at each iteration,
@@ -109,30 +156,48 @@ class SensitivityVisualizationMixin:
         hinge_errors = {i: [] for i in range(len(self.hinges))}
         steps_taken = []
 
-        # 2. Integration Loop
-        for step in range(num_steps):
-            self.analyze_sensitivity(show_plot=None, silent=True)  # Update v_dominant for current state
-            if self.v_dominant is None:
-                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
-                break
+        if integrator == 'RK45':
+            original_state = self._state_vector()
+            _, trajectory, terminated_early = self._integrate_rk45(num_steps, step_size)
 
-            steps_taken.append(step + 1)
-            v_reshaped = self.v_dominant.reshape(-1, 3)
+            for step_idx, state in enumerate(trajectory[1:], start=1):
+                steps_taken.append(step_idx)
+                self._set_state_vector(state)
+                for i, h in enumerate(self.hinges):
+                    vec = h.node_k.coordinates - h.node_j.coordinates
+                    current_length = np.linalg.norm(vec)
+                    error = abs(current_length - initial_hinge_lengths[i]) / initial_hinge_lengths[i]
+                    hinge_errors[i].append(error)
 
-            # Step the physical nodes forward
+            if terminated_early:
+                print(f"Kinematic lock-up reached before the final RK45 step. Stopping integration.")
+
+            self._set_state_vector(original_state)
+        else:
+            # 2. Integration Loop
+            for step in range(num_steps):
+                self.analyze_sensitivity(show_plot=None, silent=True)  # Update v_dominant for current state
+                if self.v_dominant is None:
+                    print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                    break
+
+                steps_taken.append(step + 1)
+                v_reshaped = self.v_dominant.reshape(-1, 3)
+
+                # Step the physical nodes forward
+                for i, node in enumerate(self.nodes):
+                    node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
+
+                # --- Track Hinge Stretching for EVERY Hinge ---
+                for i, h in enumerate(self.hinges):
+                    vec = h.node_k.coordinates - h.node_j.coordinates
+                    current_length = np.linalg.norm(vec)
+                    error = abs(current_length - initial_hinge_lengths[i]) / initial_hinge_lengths[i]
+                    hinge_errors[i].append(error)
+
+            # 3. Reset model back to pristine flat state
             for i, node in enumerate(self.nodes):
-                node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
-
-            # --- Track Hinge Stretching for EVERY Hinge ---
-            for i, h in enumerate(self.hinges):
-                vec = h.node_k.coordinates - h.node_j.coordinates
-                current_length = np.linalg.norm(vec)
-                error = abs(current_length - initial_hinge_lengths[i])/initial_hinge_lengths[i]
-                hinge_errors[i].append(error)
-
-        # 3. Reset model back to pristine flat state
-        for i, node in enumerate(self.nodes):
-            node.coordinates = original_coords[i]
+                node.coordinates = original_coords[i]
 
         print("Rigidity check complete. Generating error plot...")
 
@@ -142,7 +207,7 @@ class SensitivityVisualizationMixin:
             assignment = self.hinges[i].fold_assignment
             plt.plot(steps_taken, hinge_errors[i], label=f'Hinge {i} ({assignment})', marker='.', linewidth=1.5)
 
-        plt.title(f"Euler Integration Drift: Hinge Line Stretching (Step Size: {step_size})")
+        plt.title(f"{integrator} Integration Drift: Hinge Line Stretching (Step Size: {step_size})")
         plt.xlabel("Integration Step")
         plt.ylabel("Absolute Length Error (units)")
 
@@ -154,7 +219,7 @@ class SensitivityVisualizationMixin:
         plt.tight_layout()
         plt.show()
 
-    def animate_nonlinear_folding(self, num_steps=1000, step_size=0.01, interval=50):
+    def animate_nonlinear_folding(self, num_steps=1000, step_size=0.01, interval=50, integrator='RK45'):
         """
         Integrates the folding path by re-evaluating the SVD at every frame.
         Nodes follow true nonlinear arcs. No panel stretching occurs.
@@ -166,26 +231,32 @@ class SensitivityVisualizationMixin:
         # Store original coordinates so we don't permanently ruin the model
         original_coords = [n.coordinates.copy() for n in self.nodes]
 
-        trajectory = []
-        trajectory.append(np.array(original_coords))
+        if integrator == 'RK45':
+            _, trajectory, terminated_early = self._integrate_rk45(num_steps, step_size)
+            trajectory = [state.reshape(-1, 3) for state in trajectory]
+            if terminated_early:
+                print("Kinematic lock-up reached before the final RK45 step. Stopping integration.")
+        else:
+            trajectory = []
+            trajectory.append(np.array(original_coords))
 
-        # --- Integration Loop ---
-        for step in range(num_steps):
-            self.analyze_sensitivity(show_plot=None, silent=True)  # Update v_dominant for current state
-            v_dom = self.v_dominant
+            # --- Integration Loop ---
+            for step in range(num_steps):
+                self.analyze_sensitivity(show_plot=None, silent=True)  # Update v_dominant for current state
+                v_dom = self.v_dominant
 
-            if v_dom is None:
-                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
-                break
+                if v_dom is None:
+                    print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                    break
 
-            v_reshaped = v_dom.reshape(-1, 3)
+                v_reshaped = v_dom.reshape(-1, 3)
 
-            # Update the physical nodes
-            for i, node in enumerate(self.nodes):
-                node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
+                # Update the physical nodes
+                for i, node in enumerate(self.nodes):
+                    node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
 
-            # Save the new state
-            trajectory.append(np.array([n.coordinates.copy() for n in self.nodes]))
+                # Save the new state
+                trajectory.append(np.array([n.coordinates.copy() for n in self.nodes]))
 
         # Reset model to original state
         for i, node in enumerate(self.nodes):
@@ -237,7 +308,7 @@ class SensitivityVisualizationMixin:
         ani = animation.FuncAnimation(fig, update, frames=len(trajectory)*2, interval=interval, blit=False)
         plt.show()
 
-    def plot_sensitivity_over_deployment(self, num_steps=100, step_size=0.01):
+    def plot_sensitivity_over_deployment(self, num_steps=100, step_size=0.01, integrator='RK45'):
         """
         Integrates the folding path by re-evaluating the SVD at every frame using
         the core analyze_sensitivity() method. Tracks and plots the ABSOLUTE,
@@ -246,35 +317,52 @@ class SensitivityVisualizationMixin:
         print(f"\n--- Tracking Absolute Hinge Sensitivities over Deployment ({num_steps} steps) ---")
 
         # 1. Store original coordinates so we don't permanently deform the model
-        original_coords = [n.coordinates.copy() for n in self.nodes]
+        original_state = self._state_vector()
 
         # Initialize data tracking dictionary
         hinge_sensitivities = {i: [] for i in range(len(self.hinges))}
         deployment_steps = []
 
-        # 2. Integration Loop
-        for step in range(num_steps):
-            deployment_steps.append(step * step_size)
+        if integrator == 'RK45':
+            _, trajectory, terminated_early = self._integrate_rk45(num_steps, step_size)
+            for step_idx, state in enumerate(trajectory):
+                deployment_steps.append(step_idx * step_size)
+                self._set_state_vector(state)
 
-            # Call analyze_sensitivity silently
-            current_sens = self.analyze_sensitivity(show_plot=None, silent=True)
+                current_sens = self.analyze_sensitivity(show_plot=None, silent=True)
+                for i in range(len(self.hinges)):
+                    hinge_sensitivities[i].append(abs(current_sens[i]))
 
-            # Track the ABSOLUTE value for each hinge (no normalization)
-            for i in range(len(self.hinges)):
-                hinge_sensitivities[i].append(abs(current_sens[i]))
+            if terminated_early:
+                print(f"Kinematic lock-up reached before the final RK45 step. Stopping integration.")
 
-            if not hasattr(self, 'v_dominant') or self.v_dominant is None:
-                print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
-                break
+            self._set_state_vector(original_state)
+        else:
+            original_coords = [n.coordinates.copy() for n in self.nodes]
 
-            # Step the physical nodes forward along the nonlinear arc
-            v_reshaped = self.v_dominant.reshape(-1, 3)
+            # 2. Integration Loop
+            for step in range(num_steps):
+                deployment_steps.append(step * step_size)
+
+                # Call analyze_sensitivity silently
+                current_sens = self.analyze_sensitivity(show_plot=None, silent=True)
+
+                # Track the ABSOLUTE value for each hinge (no normalization)
+                for i in range(len(self.hinges)):
+                    hinge_sensitivities[i].append(abs(current_sens[i]))
+
+                if not hasattr(self, 'v_dominant') or self.v_dominant is None:
+                    print(f"Kinematic lock-up reached at step {step}. Stopping integration.")
+                    break
+
+                # Step the physical nodes forward along the nonlinear arc
+                v_reshaped = self.v_dominant.reshape(-1, 3)
+                for i, node in enumerate(self.nodes):
+                    node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
+
+            # 3. Reset model back to the pristine flat state
             for i, node in enumerate(self.nodes):
-                node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
-
-        # 3. Reset model back to the pristine flat state
-        for i, node in enumerate(self.nodes):
-            node.coordinates = original_coords[i]
+                node.coordinates = original_coords[i]
 
         print("Integration complete. Generating absolute sensitivity drift plot...")
 
@@ -312,32 +400,48 @@ class SensitivityVisualizationMixin:
 
         return hinge_sensitivities
     
-    def plot_cosine_quality_over_deployment(self, num_steps=100, step_size=0.01):
+    def plot_cosine_quality_over_deployment(self, num_steps=100, step_size=0.01, integrator='RK45'):
         """Tracks and plots cosine similarity quality of SVD mode selection throughout deployment."""
         print(f"\n--- Tracking Cosine Quality over Deployment ({num_steps} steps) ---")
 
-        original_coords = [n.coordinates.copy() for n in self.nodes]
+        original_state = self._state_vector()
         quality_scores = []
         runner_up_scores = []
         deployment_steps = []
 
-        for step in range(num_steps):
-            deployment_steps.append(step * step_size)
-            self.analyze_sensitivity(show_plot=None, silent=True)
+        if integrator == 'RK45':
+            _, trajectory, terminated_early = self._integrate_rk45(num_steps, step_size)
+            for step_idx, state in enumerate(trajectory):
+                deployment_steps.append(step_idx * step_size)
+                self._set_state_vector(state)
+                self.analyze_sensitivity(show_plot=None, silent=True)
 
-            quality_scores.append(getattr(self, 'cosine_quality', 0.0))
-            runner_up_scores.append(getattr(self, 'cosine_quality_runner_up', 0.0))
+                quality_scores.append(getattr(self, 'cosine_quality', 0.0))
+                runner_up_scores.append(getattr(self, 'cosine_quality_runner_up', 0.0))
 
-            if not hasattr(self, 'v_dominant') or self.v_dominant is None:
-                print(f"Kinematic lock-up at step {step}. Stopping.")
-                break
+            if terminated_early:
+                print(f"Kinematic lock-up reached before the final RK45 step. Stopping.")
 
-            v_reshaped = self.v_dominant.reshape(-1, 3)
+            self._set_state_vector(original_state)
+        else:
+            original_coords = [n.coordinates.copy() for n in self.nodes]
+            for step in range(num_steps):
+                deployment_steps.append(step * step_size)
+                self.analyze_sensitivity(show_plot=None, silent=True)
+
+                quality_scores.append(getattr(self, 'cosine_quality', 0.0))
+                runner_up_scores.append(getattr(self, 'cosine_quality_runner_up', 0.0))
+
+                if not hasattr(self, 'v_dominant') or self.v_dominant is None:
+                    print(f"Kinematic lock-up at step {step}. Stopping.")
+                    break
+
+                v_reshaped = self.v_dominant.reshape(-1, 3)
+                for i, node in enumerate(self.nodes):
+                    node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
+
             for i, node in enumerate(self.nodes):
-                node.coordinates = node.coordinates + (v_reshaped[i] * step_size)
-
-        for i, node in enumerate(self.nodes):
-            node.coordinates = original_coords[i]
+                node.coordinates = original_coords[i]
 
         # Plot
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
