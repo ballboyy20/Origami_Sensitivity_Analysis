@@ -43,7 +43,7 @@ def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot=None, Show_Origin=1, Show
 
 
 filename = "miura_ori.fold"
-fold_data = generate_miura_fold(cols=5, rows=5, dx=20.0, dy=20.0, tilt=15.0)
+fold_data = generate_miura_fold(cols=3, rows=3, dx=20.0, dy=20.0, tilt=15.0)
 with open(filename, "w") as f:   
     json.dump(fold_data, f, indent=2)
 
