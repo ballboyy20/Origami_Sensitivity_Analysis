@@ -288,6 +288,9 @@ class SensitivityVisualizationMixin:
         # Initialize lines
         bar_lines = [ax.plot([], [], [], color='black', alpha=0.3, linewidth=1)[0] for _ in self.bars]
         hinge_lines = [ax.plot([], [], [], color='blue' if h.fold_assignment == 'M' else 'red', linewidth=3)[0] for h in self.hinges]
+        
+        # Initialize step counter text
+        step_text = ax.text2D(0.05, 0.95, '', transform=ax.transAxes, fontsize=14, fontweight='bold', color='black')
 
         def update(frame):
             if loop:
@@ -313,7 +316,10 @@ class SensitivityVisualizationMixin:
                 hinge_lines[i].set_data([p1[0], p2[0]], [p1[1], p2[1]])
                 hinge_lines[i].set_3d_properties([p1[2], p2[2]])
 
-            return bar_lines + hinge_lines
+            # Update step counter
+            step_text.set_text(f'Step: {current_frame} / {len(trajectory) - 1}')
+
+            return bar_lines + hinge_lines + [step_text]
 
         num_frames = len(trajectory) * 2 if loop else len(trajectory)
         ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=interval, blit=False)
