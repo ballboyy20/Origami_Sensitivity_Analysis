@@ -34,25 +34,26 @@ def set_up_bloom(m=5,h=1,s=1,file_name=None, show_plot=None, Show_Origin=1, Show
 
     bloom.export_to_fold(filename=file_name)
 
-# filename = "birdsfoot4.fold"
-# birdsfoot_model = SensitivityModel(filename)
-# birdsfoot_model.analyze_sensitivity(show_plot='yes')
-# birdsfoot_model.step_and_reanalyze(step_scale=0.0005, show_plot='yes')
-# birdsfoot_model.check_integration_rigidity(num_steps=200, step_size=0.01)
-# birdsfoot_model.animate_nonlinear_folding(num_steps=200, step_size=0.01, interval=100)
+filename = "birdsfoot4.fold"
+birdsfoot_model = SensitivityModel(filename)
+birdsfoot_model.analyze_sensitivity(show_plot='yes')
+birdsfoot_model.step_and_reanalyze(step_scale=0.0005, show_plot=True)
+birdsfoot_model.plot_euler_drift(num_steps=300, step_size=0.01)
+birdsfoot_model.animate_nonlinear_folding(num_steps=300, step_size=0.01, interval=2)
+birdsfoot_model.plot_sensitivity_over_deployment(num_steps=300, step_size=0.01)
 
 
-filename = "miura_ori.fold"
-fold_data = generate_miura_fold(cols=3, rows=3, dx=20.0, dy=20.0, tilt=15.0)
-with open(filename, "w") as f:   
-    json.dump(fold_data, f, indent=2)
+# filename = "miura_ori.fold"
+# fold_data = generate_miura_fold(cols=3, rows=3, dx=20.0, dy=20.0, tilt=15.0)
+# with open(filename, "w") as f:   
+#     json.dump(fold_data, f, indent=2)
 
-miura_ori = SensitivityModel(filename)
-miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf", silent=True)
-miura_ori.plot_euler_drift(num_steps=500, step_size=0.0001)
-miura_ori.animate_nonlinear_folding(num_steps=60, step_size=0.01, interval=2)
-miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot=True, silent=True)
-miura_ori.plot_sensitivity_over_deployment(num_steps=600, step_size=0.01)
+# miura_ori = SensitivityModel(filename)
+# miura_ori.analyze_sensitivity(show_plot='yes', save_path="figures/miura_ori_sensitivity.pdf", silent=True)
+# miura_ori.plot_euler_drift(num_steps=500, step_size=0.0001)
+# miura_ori.animate_nonlinear_folding(num_steps=60, step_size=0.01, interval=2)
+# miura_ori.step_and_reanalyze(step_scale=0.0005, show_plot=True, silent=True)
+# miura_ori.plot_sensitivity_over_deployment(num_steps=600, step_size=0.01)
 
 # filename_Y6_2 = "Y6_2.fold"
 # set_up_bloom(m=5,h=2,s=1,file_name=filename_Y6_2) 

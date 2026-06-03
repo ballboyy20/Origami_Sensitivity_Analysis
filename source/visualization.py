@@ -219,10 +219,16 @@ class SensitivityVisualizationMixin:
         plt.tight_layout()
         plt.show()
 
-    def animate_nonlinear_folding(self, num_steps=1000, step_size=0.01, interval=50, integrator='RK45'):
+    def animate_nonlinear_folding(self, num_steps=1000, step_size=0.01, interval=50, integrator='RK45', loop=False):
         """
         Integrates the folding path by re-evaluating the SVD at every frame.
         Nodes follow true nonlinear arcs. No panel stretching occurs.
+        
+        Parameters
+        ----------
+        loop : bool, optional (default: False)
+            If True, animation ping-pongs forward and backward.
+            If False, animation plays once from start to finish.
         """
         print(f"\nIntegrating folding path ({num_steps} steps)...")
 
@@ -284,12 +290,16 @@ class SensitivityVisualizationMixin:
         hinge_lines = [ax.plot([], [], [], color='blue' if h.fold_assignment == 'M' else 'red', linewidth=3)[0] for h in self.hinges]
 
         def update(frame):
-            # Ping-pong loop calculation
-            max_frame = len(trajectory) - 1
-            cycle_length = max_frame * 2
-            current_frame = frame % cycle_length
-            if current_frame > max_frame:
-                current_frame = cycle_length - current_frame # reverse direction
+            if loop:
+                # Ping-pong loop calculation
+                max_frame = len(trajectory) - 1
+                cycle_length = max_frame * 2
+                current_frame = frame % cycle_length
+                if current_frame > max_frame:
+                    current_frame = cycle_length - current_frame # reverse direction
+            else:
+                # Single pass
+                current_frame = frame
 
             current_coords = trajectory[current_frame]
 
@@ -305,7 +315,8 @@ class SensitivityVisualizationMixin:
 
             return bar_lines + hinge_lines
 
-        ani = animation.FuncAnimation(fig, update, frames=len(trajectory)*2, interval=interval, blit=False)
+        num_frames = len(trajectory) * 2 if loop else len(trajectory)
+        ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=interval, blit=False)
         plt.show()
 
     def plot_sensitivity_over_deployment(self, num_steps=100, step_size=0.01, integrator='RK45'):
