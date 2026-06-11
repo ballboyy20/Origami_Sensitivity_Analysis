@@ -1,7 +1,5 @@
 import numpy as np
 import sympy as sp
-import itertools
-import json
 from scipy.linalg import eigh
 
 #  IMPORT BLOCK
@@ -9,10 +7,14 @@ try:
     # This works when running from the ROOT directory (e.g., main.py)
     from source.helper_classes import *
     from source.visualization import SensitivityVisualizationMixin
+    from source.OrigamiModel import OrigamiModel
+    from source.ConstraintModel import ConstraintModel
 except ModuleNotFoundError:
     # This works when running from INSIDE the source directory (e.g., test files)
     from helper_classes import *
     from visualization import SensitivityVisualizationMixin
+    from OrigamiModel import OrigamiModel
+    from ConstraintModel import ConstraintModel
 
 """
 This is the meat of this script
@@ -26,12 +28,40 @@ class SensitivityModel(SensitivityVisualizationMixin):
         nodes in a panel to make it rigid, and also slaps on some hinges. Telling it where the hignes
         are is helpful for calculatring the dihedral angle jacobian. """
 
-        self.coordinates, self.panel_indices, self.crease_info = self.extract_pattern_data_from_fold_file(fold_file_path)
-
-        self.nodes, self.panels = self.generate_geometry(self.coordinates, self.panel_indices)
+        self.geometry = OrigamiModel(fold_file_path)
         self.zero_tolerance = 1e-9
-        self.bars = self.generate_bars()
+        self.constraints = ConstraintModel(self.geometry)
         self.hinges = self.generate_hinges()
+
+    @property
+    def nodes(self):
+        return self.geometry.nodes
+
+    @property
+    def panels(self):
+        return self.geometry.panels
+
+    @property
+    def coordinates(self):
+        return self.geometry.coordinates
+
+    @property
+    def panel_indices(self):
+        return self.geometry.panel_indices
+
+    @property
+    def crease_info(self):
+        return self.geometry.crease_info
+
+    def get_characteristic_length(self):
+        return self.geometry.get_characteristic_length()
+
+    @property
+    def bars(self):
+        return self.constraints.bars
+
+    def build_constraint_matrix(self):
+        return self.constraints.build_constraint_matrix()
 
     def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=None):
         """
@@ -158,20 +188,6 @@ class SensitivityModel(SensitivityVisualizationMixin):
         
         return new_sensitivity
 
-    def get_characteristic_length(self):
-        """
-        Calculates the bounding radius of the array from its geometric center
-        using the raw .fold file coordinates.
-        """
-        coords = np.array(self.coordinates)
-        center = np.mean(coords, axis=0) # Find the geometric center (X,Y,Z)
-        
-        # Calculate the distance from the center to every single vertex
-        distances = np.linalg.norm(coords - center, axis=1)
-        
-        # The characteristic length is the distance to the furthest vertex
-        return np.max(distances)
-    
     def isolate_mechanism_subspace(self, singular_values, Vh, dihedral_jacobian):
         """Filters the null space to remove pure rigid body motions and zero-energy noise."""
         n_dof = Vh.shape[0]
@@ -278,155 +294,6 @@ class SensitivityModel(SensitivityVisualizationMixin):
 
         return dihedral_jacobian
     
-    def build_constraint_matrix(self):
-        """
-        Builds the constraint matrix (from the bars)
-        """
-        number_of_bars = len(self.bars)
-        number_of_nodes = len(self.nodes)
-        total_DOFs = 3 * number_of_nodes
-
-        constraint_matrix = np.zeros((number_of_bars, total_DOFs))
-
-        for i, bar in enumerate(self.bars):
-            constraint_matrix[i, :] = bar.get_compatibility_matrix_row(total_DOFs)
-
-        return constraint_matrix
-
-    def extract_pattern_data_from_fold_file(self, fold_file_path):
-        """
-        Parses a .fold file and yanks the data from it. 
-
-        Returns a type list of [x,y,z] coords
-        panel_indices type list
-        crease_lines (set)
-        """
-        with open(fold_file_path, 'r') as file:
-            data = json.load(file)
-
-        # extract coordinates
-        coordinates = data['vertices_coords']
-        #if z-coord is missing, add zero for z coord
-        if len(coordinates[0]) == 2:
-            coordinates = [[c[0], c[1], 0.0] for c in coordinates]
-
-        # extract panel indices
-        panel_indices = data['faces_vertices']
-
-        # extract crease lines
-        # M = mountian V = valley B = boundry U = unassigned
-        crease_info = {}
-        if 'edges_vertices' in data and 'edges_assignment' in data:
-            for edge, assignment in zip(data['edges_vertices'], data['edges_assignment']):
-                # Filter for Mountains and Valleys only
-                if assignment in ['M', 'V']: 
-                    # Sort indices so (1,2) is the same as (2,1)
-                    u, v = sorted(edge)
-                    crease_info[(u, v)] = assignment
-
-                    """
-                    crease_info is a dictionary that looks like this:
-                    {
-                    (13, 14): "M",  # From Index 1
-                    (3, 15): "M",   # From Index 2
-                    ...
-                    (11, 21): "V"   # From Index 50
-                    }
-                    """
-
-        return coordinates, panel_indices, crease_info
-
-    def generate_geometry(self,coordinates, panel_indices):
-        """ Generates the node objects and the panel obejects.
-        These are simple object. See helper_classes to look at them."""
-        
-        nodes = self.generate_nodes(coordinates)
-        panels = self.generate_panels(nodes,panel_indices)
-
-        return nodes, panels
-    
-    def generate_panels(self, nodes, panel_indices):
-        # This loop assigns nodes to different panels
-        panels = []
-        for i, idxs in enumerate(panel_indices):
-            """ We look up the Node objects using the indices provided.
-            If panel 1 uses node index 2, and panel 2 uses node index 2,
-            they both get the EXACT SAME Node object from memory. 
-            This makes sure that if Node 2 moves, it moves for both panels"""
-
-            p_nodes = [nodes[k] for k in idxs]
-            panels.append(Panel(i, p_nodes))
-
-            
-        return panels
-
-    def generate_nodes(self, coordinates):
-        """ Coordinates: List of [X,Y,Z] for every unique vertex (node)
-        panel_indices: List of lists, e.g., [[0,1,2], [0,2,3,4]]
-        This handles n-sides polygon panels"""
-
-        # This loop creates all the nodes with the provided coordinates
-        nodes = []
-        count = 0
-        for coordinate_list in coordinates:
-            x = coordinate_list[0]
-            y = coordinate_list[1]
-            z = coordinate_list[2]
-
-            new_node = Node(count, x ,y ,z)
-            nodes.append(new_node)
-            count += 1
-
-        return nodes
-
-    def generate_bars(self):
-        """ 
-        Creates a rigid "truss" for every panel, regardless of how many sides the panel has.
-        It makes a bar between a node and every other node. 4 nodes = 6 bars, 3 nodes = regular trianlge
-        
-        WARNING: This creates non-deterministic panels. If this program were to be scaled/edited to analyze 
-        panel bending/shearing, this function would need to be edited to generate deterministic panels. 
-
-        """
-
-        unique_edges = set()
-        bars = []
-
-        for panel in self.panels:
-            # Connect every node to every other node in this specific panel
-            for node_a, node_b in itertools.combinations(panel.nodes,2):
-
-                # Sort IDs to ensure Edge(1,2) = Edge (2,1)
-                edge_id = tuple(sorted((node_a.id, node_b.id)))
-
-                if edge_id not in unique_edges:
-                    unique_edges.add(edge_id)
-                    #Add the rigid bar
-                    bars.append(BarElement(node_a, node_b))
-
-        # for panel in self.panels:
-        #     nodes = panel.nodes
-        #     n = len(nodes)
-
-        #     # 1. All perimeter edges
-        #     for i in range(n):
-        #         a, b = nodes[i], nodes[(i + 1) % n]
-        #         edge_id = tuple(sorted((a.id, b.id)))
-        #         if edge_id not in unique_edges:
-        #             unique_edges.add(edge_id)
-        #             bars.append(BarElement(a, b))
-
-        #     # 2. Fan diagonals from node 0 to nodes 2, 3, ..., n-2
-        #     #    (node 0→1 and node 0→n-1 are already perimeter edges)
-        #     for i in range(2, n - 1):
-        #         a, b = nodes[0], nodes[i]
-        #         edge_id = tuple(sorted((a.id, b.id)))
-        #         if edge_id not in unique_edges:
-        #             unique_edges.add(edge_id)
-        #             bars.append(BarElement(a, b))
-
-        return bars
-
     def generate_hinges(self):
         """ Creates a hinge where the .fold file says there should be a hinge. If there is no .fold file,
           it creates a hinge between every edge that has 2 panels on it."""
