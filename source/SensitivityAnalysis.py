@@ -9,12 +9,16 @@ try:
     from source.visualization import SensitivityVisualizationMixin
     from source.OrigamiModel import OrigamiModel
     from source.ConstraintModel import ConstraintModel
+    from source.KinematicsModel import KinematicsModel
+    from source.FlatStateAnalysis import FlatStateAnalysis
 except ModuleNotFoundError:
     # This works when running from INSIDE the source directory (e.g., test files)
     from helper_classes import *
     from visualization import SensitivityVisualizationMixin
     from OrigamiModel import OrigamiModel
     from ConstraintModel import ConstraintModel
+    from KinematicsModel import KinematicsModel
+    from FlatStateAnalysis import FlatStateAnalysis
 
 """
 This is the meat of this script
@@ -29,9 +33,9 @@ class SensitivityModel(SensitivityVisualizationMixin):
         are is helpful for calculatring the dihedral angle jacobian. """
 
         self.geometry = OrigamiModel(fold_file_path)
-        self.zero_tolerance = 1e-9
         self.constraints = ConstraintModel(self.geometry)
-        self.hinges = self.generate_hinges()
+        self.kinematics = KinematicsModel(self.geometry)
+        self.analysis = FlatStateAnalysis(self.geometry, self.constraints, self.kinematics)
 
     @property
     def nodes(self):
@@ -62,6 +66,33 @@ class SensitivityModel(SensitivityVisualizationMixin):
 
     def build_constraint_matrix(self):
         return self.constraints.build_constraint_matrix()
+
+    @property
+    def hinges(self):
+        return self.kinematics.hinges
+
+    def build_dihedral_jacobian(self):
+        return self.kinematics.build_dihedral_jacobian()
+
+    def build_target_fold_vector(self):
+        return self.analysis.build_target_fold_vector()
+
+    def isolate_mechanism_subspace(self, singular_values, Vh, dihedral_jacobian):
+        return self.analysis.isolate_mechanism_subspace(singular_values, Vh, dihedral_jacobian)
+
+    def extract_dominant_mode(self, A, Q, target_fold_vector):
+        return self.analysis.extract_dominant_mode(A, Q, target_fold_vector)
+
+    def auto_calibrate_hinges(self, best_sensitivity, target_fold_vector, Q):
+        return self.analysis.auto_calibrate_hinges(best_sensitivity, target_fold_vector, Q)
+
+    @property
+    def cosine_quality(self):
+        return getattr(self.analysis, 'cosine_quality', 0.0)
+
+    @property
+    def cosine_quality_runner_up(self):
+        return getattr(self.analysis, 'cosine_quality_runner_up', 0.0)
 
     def analyze_sensitivity(self, show_plot=None, plot_title=None,show_colorbar=True, save_path=None, silent=None):
         """
@@ -141,21 +172,6 @@ class SensitivityModel(SensitivityVisualizationMixin):
                                     save_path=save_path)
 
         return best_sensitivity
-    
-    def build_target_fold_vector(self):
-        """Creates the +1 (Mountain) and -1 (Valley) target vector from hinge assignments."""
-        target_fold_vector = np.zeros(len(self.hinges))
-        # print("\nTarget fold vector (t):")
-        
-        for i, h in enumerate(self.hinges):
-            if h.fold_assignment == 'M':
-                target_fold_vector[i] = +1.0
-            elif h.fold_assignment == 'V':
-                target_fold_vector[i] = -1.0
-                
-            # print(f"  Hinge {i:>4} ({h.fold_assignment}): t = {target_fold_vector[i]:+.1f}")
-            
-        return target_fold_vector
 
     def step_and_reanalyze(self, step_scale=0.03, show_plot=False, silent=None):
         """
@@ -187,176 +203,3 @@ class SensitivityModel(SensitivityVisualizationMixin):
         new_sensitivity = self.analyze_sensitivity(show_plot=show_plot, silent=silent)
         
         return new_sensitivity
-
-    def isolate_mechanism_subspace(self, singular_values, Vh, dihedral_jacobian):
-        """Filters the null space to remove pure rigid body motions and zero-energy noise."""
-        n_dof = Vh.shape[0]
-        mechanism_indices = []   
-
-        for i in range(n_dof):
-            s_val = singular_values[i] if i < len(singular_values) else 0.0 
-            if s_val < self.zero_tolerance:
-                v = Vh[i, :]
-                fold_changes = dihedral_jacobian @ v
-                total_folding = np.sum(np.abs(fold_changes))
-
-                if total_folding >= 1e-5:
-                    mechanism_indices.append(i)
-
-        if not mechanism_indices:
-            print("WARNING: No mechanism detected in the Null Space.")
-            
-        return mechanism_indices
-    
-    def extract_dominant_mode(self, A, Q, target_fold_vector):
-        """Runs SVD on the fold matrix and finds the mode that best matches the target vector."""
-        U_sv, S_sv, Vt_sv = np.linalg.svd(A, full_matrices=False)
-
-        if np.linalg.norm(target_fold_vector) > 1e-12:
-            best_r = 0
-            best_cos = -1.0
-            rel_threshold = 1e-3 * S_sv[0]
-            for r in range(len(S_sv)):
-                if S_sv[r] < rel_threshold:  
-                    continue
-                cos = np.dot(U_sv[:, r], target_fold_vector) / (np.linalg.norm(U_sv[:, r]) * np.linalg.norm(target_fold_vector))
-                if abs(cos) > best_cos:      
-                    best_cos = abs(cos)
-                    best_r = r
-        else:
-            best_r = 0      
-
-############
-        cos_vals = sorted([
-            abs(np.dot(U_sv[:, r], target_fold_vector) /
-                (np.linalg.norm(U_sv[:, r]) * np.linalg.norm(target_fold_vector)))
-            for r in range(len(S_sv)) if S_sv[r] >= 1e-3 * S_sv[0]
-        ], reverse=True)
-
-        self.cosine_quality = cos_vals[0] if len(cos_vals) > 0 else 0.0
-        self.cosine_quality_runner_up = cos_vals[1] if len(cos_vals) > 1 else 0.0
-     ###############   
-
-
-        best_sensitivity = U_sv[:, best_r] * S_sv[best_r]
-        v_dominant = Q.T @ Vt_sv[best_r, :]
-
-        # Fix the global sign
-        if np.linalg.norm(target_fold_vector) > 1e-12 and np.dot(best_sensitivity, target_fold_vector) < 0:
-            best_sensitivity = -best_sensitivity
-            v_dominant = -v_dominant
-            
-        return best_sensitivity, v_dominant, U_sv, S_sv, Vt_sv, best_r
-    
-    def auto_calibrate_hinges(self, best_sensitivity, target_fold_vector, Q):
-        """Checks for flipped hinge signs and re-runs the Jacobian math if any are swapped."""
-        # print("\nChecking for scrambled hinge orientations based on M/V assignments...")
-        mismatches_found = False
-        
-        for i, h in enumerate(self.hinges):
-            s_val = best_sensitivity[i]
-            
-            # If math says negative, but assignment is Mountain (+)
-            if h.fold_assignment == 'M' and s_val < -1e-5:
-                h.wing_nodes_1, h.wing_nodes_2 = h.wing_nodes_2, h.wing_nodes_1
-                h.node_i, h.node_l = h.node_l, h.node_i
-                mismatches_found = True
-                
-            # If math says positive, but assignment is Valley (-)
-            elif h.fold_assignment == 'V' and s_val > 1e-5:
-                h.wing_nodes_1, h.wing_nodes_2 = h.wing_nodes_2, h.wing_nodes_1
-                h.node_i, h.node_l = h.node_l, h.node_i
-                mismatches_found = True
-
-        if mismatches_found:
-            # print("Mismatches found! Swapping internal panel definitions and rerunning Dihedral Jacobian...")
-            dihedral_jacobian = self.build_dihedral_jacobian()
-            A = dihedral_jacobian @ Q.T
-            
-            # Re-extract with the newly corrected matrices
-            best_sens, v_dom, U_sv, S_sv, Vt_sv, best_r = self.extract_dominant_mode(A, Q, target_fold_vector)
-            # print("Rerun complete. Hinges are now permanently aligned to the .fold file.")
-            
-            return best_sens, v_dom, U_sv, S_sv, Vt_sv, best_r, dihedral_jacobian, A
-            
-        # print("No scrambled orientations found. Initial pass is perfectly aligned.")
-        return None
-    
-    def build_dihedral_jacobian(self):
-        number_of_hinges = len(self.hinges)
-        number_of_nodes = len(self.nodes)
-        total_DOFs = 3 * number_of_nodes
-
-        dihedral_jacobian = np.zeros((number_of_hinges, total_DOFs))
-
-        for i, hinge in enumerate(self.hinges):
-            dihedral_jacobian[i,:] = hinge.get_jacobian_row(total_DOFs)
-
-        return dihedral_jacobian
-    
-    def generate_hinges(self):
-        """ Creates a hinge where the .fold file says there should be a hinge. If there is no .fold file,
-          it creates a hinge between every edge that has 2 panels on it."""
-
-        hinges = []
-
-        # map edges to panels
-        edge_to_panels = {}
-
-        # this loops checks to see if an edge has panels touching it already
-        for panel in self.panels:
-            number_nodes = len(panel.nodes)
-            for i in range(number_nodes):
-                node1 = panel.nodes[i]
-                node2 = panel.nodes[(i+1) % number_nodes] #wrap around
-
-                edge_key = tuple(sorted((node1.id, node2.id)))
-                if edge_key not in edge_to_panels:
-                    edge_to_panels[edge_key] = []
-                edge_to_panels[edge_key].append(panel)
-
-        for edge_key, panel_list in edge_to_panels.items():
-            count = len(panel_list)
-
-            if count > 2: # if there is more than 2 panels on an edge, something is wrong
-                panel_ids = [panel.id for panel in panel_list]
-                raise ValueError(f"TOPOLOGY ERROR: Edge between Nodes {edge_key} is shared by {count} panels "
-                    f"(Panels: {panel_ids}).\n"
-                    "Real origami edges can only connect 2 panels. "
-                    "Check your input indices for overlapping panels."
-                )
-            # if only 1 panel, its a free edge and no hinge is needed there
-            if count < 2:
-                continue
-
-            # Default assignment if no dictionary is provided
-            assignment = 'U' 
-
-            # If we have the dictionary from the .fold file...
-            if hasattr(self, 'crease_info') and self.crease_info is not None:
-                # Check if this edge exists in our "Valid Creases" list
-                if edge_key in self.crease_info:
-                    assignment = self.crease_info[edge_key] # assignment should be grabbing an "M" or a "V", and then assiging it to the hinge.
-                else:
-                    # If it's NOT in the dictionary, it's likely a Boundary ('B')
-                    # that we filtered out in the parser. Skip it!
-                    continue
-
-            # This logic below is if there are just 2 panels, we create a hinge
-            panel1 = panel_list[0]
-            panel2 = panel_list[1]
-
-            # Identify Axis Nodes (j, k)
-            # Find the actual Node objects in panel_1 matching the IDs in edge_key
-            node_j = next(n for n in panel1.nodes if n.id == edge_key[0])
-            node_k = next(n for n in panel1.nodes if n.id == edge_key[1])
-
-            # Collect ALL non-hinge nodes for each panel (centroid-based Jacobian)
-            wing_nodes_1 = [n for n in panel1.nodes if n.id not in edge_key]
-            wing_nodes_2 = [n for n in panel2.nodes if n.id not in edge_key]
-
-            hinges.append(HingeElement(wing_nodes_1, node_j, node_k, wing_nodes_2, assignment))
-        
-        return hinges
-    
-    
