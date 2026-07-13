@@ -33,20 +33,89 @@ class RigidPanel:
 
 
 class KinematicCoupling:
-    """One sphere-groove contact between two panels."""
-    def __init__(self, panel_A, panel_B, point, normal):
-        self.panel_A = panel_A
-        self.panel_B = panel_B
-        self.point = np.array(point)
-        self.normal = np.array(normal) / np.linalg.norm(normal)
+    """
+    One sphere-in-V-groove contact between two panels.
     
-    def get_constraint_row(self, total_dofs):
-        """One row of C."""
-        Phi_A = self.panel_A.get_interpolation_matrix(
-                    self.point, total_dofs)
-        Phi_B = self.panel_B.get_interpolation_matrix(
-                    self.point, total_dofs)
-        return self.normal @ (Phi_A - Phi_B)
+    The groove is cut into the mating face. Its orientation is defined
+    by theta: the angle of the groove bisector measured from the +Y axis,
+    rotating about the face normal (X-axis for a face at x=1).
+    
+    The V-angle is fixed at 90 degrees (each face is 45 deg from bisector).
+    This produces two orthogonal normals n1, n2 and two constraint rows.
+    """
+    
+    HALF_ANGLE = np.pi / 4  # 45 degrees — fixed 90 deg V-groove
+    
+    def __init__(self, panel_A, panel_B, point, face_normal, theta=0.0):
+        """
+        panel_A:     RigidPanel — panel carrying the sphere
+        panel_B:     RigidPanel — panel carrying the groove
+        point:       (3,) contact point on the mating face
+        face_normal: (3,) unit vector normal to the mating face
+                     (points from panel_B toward panel_A)
+        theta:       groove rotation angle (radians) about face_normal,
+                     measured from +Y at theta=0
+        """
+        self.panel_A    = panel_A
+        self.panel_B    = panel_B
+        self.point      = np.array(point,       dtype=float)
+        self.face_normal = np.array(face_normal, dtype=float)
+        self.face_normal /= np.linalg.norm(self.face_normal)
+        self.theta      = theta
+        
+        self._compute_groove_normals()
+    
+    def _compute_groove_normals(self):
+        """
+        Build n1 and n2 from theta.
+        
+        Since mating faces are always orthogonal to the XY plane,
+        face_normal always lies in XY. Z is therefore always perpendicular
+        to face_normal and is a stable reference for the in-plane frame.
+        
+        At theta=0, the groove bisector points in +Z (vertical, upward).
+        Rotating by theta rotates the bisector within the mating face plane.
+        """
+        # Z is always in the mating face plane (face_normal is horizontal)
+        in_plane_Z = np.array([0., 0., 1.])
+        
+        # The other in-plane axis: perpendicular to both face_normal and Z
+        in_plane_Y = np.cross(in_plane_Z, self.face_normal)
+        in_plane_Y /= np.linalg.norm(in_plane_Y)
+        
+        # Bisector rotated by theta in the face plane
+        # theta=0: bisector points in +Z (straight up)
+        bisector = (np.cos(self.theta) * in_plane_Z +
+                    np.sin(self.theta) * in_plane_Y)
+        
+        # Groove face normals at ±45 deg from bisector about face_normal
+        c = np.cos(self.HALF_ANGLE)
+        s = np.sin(self.HALF_ANGLE)
+        
+        self.n1 = c * bisector + s * in_plane_Y
+        self.n2 = c * bisector - s * in_plane_Y
+        
+        self.n1 /= np.linalg.norm(self.n1)
+        self.n2 /= np.linalg.norm(self.n2)
+    
+    def get_constraint_rows(self, total_dofs):
+        """
+        Returns two constraint rows — one per groove face.
+        Each row is shape (total_dofs,).
+        """
+        Phi_A = self.panel_A.get_interpolation_matrix(self.point, total_dofs)
+        Phi_B = self.panel_B.get_interpolation_matrix(self.point, total_dofs)
+        delta_Phi = Phi_A - Phi_B
+        
+        row1 = self.n1 @ delta_Phi
+        row2 = self.n2 @ delta_Phi
+        
+        return row1, row2
+    
+    def set_theta(self, theta):
+        """Update groove orientation and recompute normals."""
+        self.theta = theta
+        self._compute_groove_normals()
 
 
 class CouplingSystem:
@@ -62,8 +131,13 @@ class CouplingSystem:
     def build_constraint_matrix(self):
         if not self.couplings:
             return np.zeros((0, self.total_dofs))
-        rows = [c.get_constraint_row(self.total_dofs) 
-                for c in self.couplings]
+        
+        rows = []
+        for c in self.couplings:
+            r1, r2 = c.get_constraint_rows(self.total_dofs)
+            rows.append(r1)
+            rows.append(r2)
+        
         return np.array(rows)
     
     def get_rigidity_eigenvalue(self):
