@@ -147,12 +147,25 @@ assert len(nonzero) == 2 and n_zero == 10
 print(f"  Nonzero: {len(nonzero)}  Zero: {n_zero} ✓")
 system_3a = system                                       # ← capture for figure
 
-print("\nTest 3b: 3 grooves (non-collinear) → 6 nonzero, 6 zero (only global RBM)")
+print("\nTest 3b: 3 grooves → 5 nonzero, 7 zero")
+print("  (X-translation along face normal is free — constrained by magnets)")
 system = CouplingSystem([panel_A, panel_B])
 for p in [p1, p2, p3]:
-    system.add_coupling(KinematicCoupling(panel_A, panel_B, p, face_normal, theta=0.))
+    system.add_coupling(KinematicCoupling(
+        panel_A, panel_B, p, face_normal, theta=0.))
 nonzero, n_zero = count_eigenvalues(system)
-assert len(nonzero) == 6 and n_zero == 6
+assert len(nonzero) == 5 and n_zero == 7, \
+    f"Got {len(nonzero)} nonzero, {n_zero} zero"
+
+# Verify X-translation is the unconstrained inter-panel mode
+C = system.build_constraint_matrix()
+rel_x = np.zeros(12)
+rel_x[0]  =  1.   # ux_A
+rel_x[6]  = -1.   # ux_B
+residual = C @ rel_x
+print(f"  C @ (relative X-translation) = {np.round(residual, 10)}")
+print(f"  → all zeros: {np.allclose(residual, 0)}  (confirms X is unconstrained)")
+
 print(f"  Nonzero: {len(nonzero)}  Zero: {n_zero} ✓")
 print(f"  λ values: {[f'{e:.4f}' for e in nonzero]}")
 system_3b = system                                       # ← capture for figure
