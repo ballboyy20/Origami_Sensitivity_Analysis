@@ -76,25 +76,25 @@ class KinematicCoupling:
         At theta=0, the groove bisector points in +Z (vertical, upward).
         Rotating by theta rotates the bisector within the mating face plane.
         """
-        # Z is always in the mating face plane (face_normal is horizontal)
+
         in_plane_Z = np.array([0., 0., 1.])
-        
-        # The other in-plane axis: perpendicular to both face_normal and Z
         in_plane_Y = np.cross(in_plane_Z, self.face_normal)
         in_plane_Y /= np.linalg.norm(in_plane_Y)
-        
-        # Bisector rotated by theta in the face plane
-        # theta=0: bisector points in +Z (straight up)
+
         bisector = (np.cos(self.theta) * in_plane_Z +
                     np.sin(self.theta) * in_plane_Y)
-        
-        # Groove face normals at ±45 deg from bisector about face_normal
+        bisector /= np.linalg.norm(bisector)
+
+        # Rotate ±half_angle about face_normal using Rodrigues' formula
+        # perp is always orthogonal to bisector regardless of theta
+        perp = np.cross(self.face_normal, bisector)
+        perp /= np.linalg.norm(perp)
+
         c = np.cos(self.HALF_ANGLE)
         s = np.sin(self.HALF_ANGLE)
-        
-        self.n1 = c * bisector + s * in_plane_Y
-        self.n2 = c * bisector - s * in_plane_Y
-        
+
+        self.n1 = c * bisector + s * perp
+        self.n2 = c * bisector - s * perp
         self.n1 /= np.linalg.norm(self.n1)
         self.n2 /= np.linalg.norm(self.n2)
     
