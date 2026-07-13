@@ -16,6 +16,20 @@ class RigidPanel:
         self.centroid[2] = face_centroid[2] - thickness / 2.0
         
         self.dof_start = panel_id * 6
+    
+    def get_interpolation_matrix(self, p, total_dofs):
+        """3 x total_dofs matrix Phi(p)."""
+        r = p - self.centroid
+        skew_r = np.array([
+            [ 0,    -r[2],  r[1]],
+            [ r[2],  0,    -r[0]],
+            [-r[1],  r[0],  0   ]
+        ])
+        Phi = np.zeros((3, total_dofs))
+        i = self.dof_start
+        Phi[:, i:i+3] = np.eye(3)       # translation part
+        Phi[:, i+3:i+6] = -skew_r       # rotation part
+        return Phi
 
 
 class KinematicCoupling:
