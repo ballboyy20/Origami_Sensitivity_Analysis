@@ -1,7 +1,14 @@
 import numpy as np
 import sys, os
+import matplotlib.pyplot as plt                          # ← ADD
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from RigidBodyModel import RigidPanel, KinematicCoupling, CouplingSystem
+from visualization_rigid import (                        # ← ADD
+    figure_section1_groove_normals,
+    figure_section2_heatmaps,
+    figure_section3_eigenvalues,
+    figure_section4_robustness,
+)
 
 def count_eigenvalues(system, tol=1e-9):
     C = system.build_constraint_matrix()
@@ -24,12 +31,11 @@ panel_B = RigidPanel(1, vertices=np.array([
 
 face_normal = np.array([1., 0., 0.])
 
-# Three contact locations distributed in Y and Z on the mating face
 p1 = np.array([1., 0.2,  0.0])
 p2 = np.array([1., 0.8,  0.0])
 p3 = np.array([1., 0.5, -t  ])
 
-c45 = np.cos(np.pi / 4)  # 1/√2
+c45 = np.cos(np.pi / 4)
 
 # ══════════════════════════════════════════════════════════════════════
 # SECTION 1: GROOVE NORMAL VECTOR GEOMETRY
@@ -38,13 +44,6 @@ print("=" * 60)
 print("SECTION 1: Groove normal vector geometry")
 print("=" * 60)
 
-# ── Test 1a: Exact normal values at θ=0 ───────────────────────────────
-# At θ=0, face_normal=[1,0,0]:
-#   in_plane_Z = [0,0,1],  in_plane_Y = [0,1,0]
-#   bisector   = [0,0,1]
-#   perp = cross([1,0,0], [0,0,1]) = [0,-1,0]
-#   n1 = c45*[0,0,1] + c45*[0,-1,0] = [0, -0.707, 0.707]
-#   n2 = c45*[0,0,1] - c45*[0,-1,0] = [0,  0.707, 0.707]
 print("\nTest 1a: Exact normal values at θ=0, face_normal=[1,0,0]")
 g = KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0.0)
 assert np.allclose(g.n1, [0, -c45,  c45], atol=1e-10), f"n1 wrong: {g.n1}"
@@ -52,12 +51,6 @@ assert np.allclose(g.n2, [0,  c45,  c45], atol=1e-10), f"n2 wrong: {g.n2}"
 print(f"  n1 = {np.round(g.n1, 4)}  (expect [0, -0.7071,  0.7071]) ✓")
 print(f"  n2 = {np.round(g.n2, 4)}  (expect [0,  0.7071,  0.7071]) ✓")
 
-# ── Test 1b: Exact normal values at θ=π/2 ─────────────────────────────
-# At θ=π/2:
-#   bisector = [0,1,0]
-#   perp = cross([1,0,0], [0,1,0]) = [0,0,1]
-#   n1 = c45*[0,1,0] + c45*[0,0,1] = [0,  0.707,  0.707]
-#   n2 = c45*[0,1,0] - c45*[0,0,1] = [0,  0.707, -0.707]
 print("\nTest 1b: Exact normal values at θ=π/2  (would crash old code)")
 g = KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=np.pi/2)
 assert np.allclose(g.n1, [0,  c45,  c45], atol=1e-10), f"n1 wrong: {g.n1}"
@@ -65,7 +58,6 @@ assert np.allclose(g.n2, [0,  c45, -c45], atol=1e-10), f"n2 wrong: {g.n2}"
 print(f"  n1 = {np.round(g.n1, 4)}  (expect [0,  0.7071,  0.7071]) ✓")
 print(f"  n2 = {np.round(g.n2, 4)}  (expect [0,  0.7071, -0.7071]) ✓")
 
-# ── Test 1c: Properties hold for all theta ────────────────────────────
 print("\nTest 1c: n1 ⊥ n2, unit length, both ⊥ face_normal — for 50 random θ")
 for _ in range(50):
     theta = np.random.uniform(0, 2 * np.pi)
@@ -77,7 +69,6 @@ for _ in range(50):
     assert abs(np.dot(g.n2, face_normal))   < 1e-10, f"n2·fn ≠ 0 at θ={theta:.3f}"
 print("  All 50 passed ✓")
 
-# ── Test 1d: Properties hold for tilted face normals ──────────────────
 print("\nTest 1d: Same properties for 8 different face normal orientations")
 for angle_deg in range(0, 180, 22):
     a = np.radians(angle_deg)
@@ -91,7 +82,6 @@ for angle_deg in range(0, 180, 22):
         assert abs(np.dot(g.n2, fn))            < 1e-10
 print("  All passed for 8 face normals × 5 theta values ✓")
 
-# ── Test 1e: set_theta updates normals correctly ───────────────────────
 print("\nTest 1e: set_theta updates normals and is reversible")
 g = KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0.0)
 n1_original = g.n1.copy()
@@ -101,7 +91,6 @@ g.set_theta(0.0)
 assert np.allclose(g.n1, n1_original, atol=1e-10), "n1 didn't return to original"
 print("  ✓")
 
-# ── Test 1f: Two rows per groove are always independent ────────────────
 print("\nTest 1f: n1 and n2 constraint rows are independent for all theta")
 for theta in np.linspace(0, 2 * np.pi, 20, endpoint=False):
     g = KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=theta)
@@ -109,6 +98,11 @@ for theta in np.linspace(0, 2 * np.pi, 20, endpoint=False):
     rank = np.linalg.matrix_rank(np.vstack([r1, r2]), tol=1e-10)
     assert rank == 2, f"Rows not independent at θ={theta:.3f} (rank={rank})"
 print("  Independent at all 20 theta values ✓")
+
+# ── Section 1 figure ──────────────────────────────────────────────────
+figure_section1_groove_normals(
+    panel_A, panel_B, p1, face_normal, KinematicCoupling)
+plt.show()
 
 # ══════════════════════════════════════════════════════════════════════
 # SECTION 2: CONSTRAINT MATRIX STRUCTURE
@@ -123,6 +117,7 @@ system.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0
 C = system.build_constraint_matrix()
 assert C.shape == (2, 12), f"Expected (2,12), got {C.shape}"
 print(f"  {C.shape} ✓")
+C_2a = C.copy()                                          # ← capture for figure
 
 print("\nTest 2b: 3 grooves → C shape (6, 12)")
 system = CouplingSystem([panel_A, panel_B])
@@ -131,6 +126,11 @@ for p in [p1, p2, p3]:
 C = system.build_constraint_matrix()
 assert C.shape == (6, 12), f"Expected (6,12), got {C.shape}"
 print(f"  {C.shape} ✓")
+C_2b = C.copy()                                          # ← capture for figure
+
+# ── Section 2 figure ──────────────────────────────────────────────────
+figure_section2_heatmaps(C_2a, C_2b, n_panels=2)
+plt.show()
 
 # ══════════════════════════════════════════════════════════════════════
 # SECTION 3: EIGENVALUE COUNTS
@@ -145,6 +145,7 @@ system.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0
 nonzero, n_zero = count_eigenvalues(system)
 assert len(nonzero) == 2 and n_zero == 10
 print(f"  Nonzero: {len(nonzero)}  Zero: {n_zero} ✓")
+system_3a = system                                       # ← capture for figure
 
 print("\nTest 3b: 3 grooves (non-collinear) → 6 nonzero, 6 zero (only global RBM)")
 system = CouplingSystem([panel_A, panel_B])
@@ -154,6 +155,7 @@ nonzero, n_zero = count_eigenvalues(system)
 assert len(nonzero) == 6 and n_zero == 6
 print(f"  Nonzero: {len(nonzero)}  Zero: {n_zero} ✓")
 print(f"  λ values: {[f'{e:.4f}' for e in nonzero]}")
+system_3b = system                                       # ← capture for figure
 
 print("\nTest 3c: 3 grooves at same point → max rank 3 from Φ, so ≤ 3 nonzero")
 system = CouplingSystem([panel_A, panel_B])
@@ -163,6 +165,15 @@ for _ in range(3):
 nonzero, n_zero = count_eigenvalues(system)
 assert len(nonzero) <= 3, f"Expected ≤ 3, got {len(nonzero)}"
 print(f"  Nonzero: {len(nonzero)}  (expect ≤ 3) ✓")
+system_3c = system                                       # ← capture for figure
+
+# ── Section 3 figure ──────────────────────────────────────────────────
+figure_section3_eigenvalues([
+    (system_3a, 'Test 3a: 1 groove\n(expect 2 nonzero)'),
+    (system_3b, 'Test 3b: 3 grooves\n(expect 6 nonzero)'),
+    (system_3c, 'Test 3c: same point\n(expect ≤3 nonzero)'),
+])
+plt.show()
 
 # ══════════════════════════════════════════════════════════════════════
 # SECTION 4: PHYSICAL ROBUSTNESS
@@ -208,5 +219,12 @@ for angle_deg in [0, 30, 45, 60, 90, 120, 135, 150]:
     assert len(nonzero) == 6 and n_zero == 6, \
         f"Failed at face angle {angle_deg}°: {len(nonzero)} nonzero"
 print("  All 8 face orientations give 6 nonzero eigenvalues ✓")
+
+# ── Section 4 figure ──────────────────────────────────────────────────
+figure_section4_robustness(
+    panel_A, panel_B, p1, p2, p3,
+    face_normal, lambda_mins,
+    KinematicCoupling, CouplingSystem, count_eigenvalues)
+plt.show()
 
 print("\n✓ All tests passed.")

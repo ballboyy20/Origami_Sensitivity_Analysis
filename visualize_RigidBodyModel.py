@@ -7,23 +7,26 @@ from RigidBodyModel import RigidPanel, KinematicCoupling, CouplingSystem
 t = 0.1
 
 panel_A = RigidPanel(0, vertices=np.array([
-    [0.0, 0.0, 0.0], [1.0, 0.0, 0.0],
-    [1.0, 1.0, 0.0], [0.0, 1.0, 0.0],
-]), thickness=t)
+    [0., 0., 0.], [1., 0., 0.],
+    [1., 1., 0.], [0., 1., 0.]]), thickness=t)
 
 panel_B = RigidPanel(1, vertices=np.array([
-    [1.0, 0.0, 0.0], [2.0, 0.0, 0.0],
-    [2.0, 1.0, 0.0], [1.0, 1.0, 0.0],
-]), thickness=t)
+    [1., 0., 0.], [2., 0., 0.],
+    [2., 1., 0.], [1., 1., 0.]]), thickness=t)
+
+face_normal = np.array([1., 0., 0.])
+
+p1 = np.array([1., 0.2,  0.0])
+p2 = np.array([1., 0.8,  0.0])
+p3 = np.array([1., 0.5, -t  ])
 
 PANEL_COLORS    = ['steelblue', 'coral']
-COUPLING_COLORS = ['crimson', 'darkorange', 'purple', 'darkgreen']
-EV_TRANS_COLORS = ['gold', 'limegreen', 'deepskyblue', 'magenta']
-EV_ROT_COLORS   = ['goldenrod', 'seagreen', 'royalblue', 'darkmagenta']
+COUPLING_COLORS = ['crimson', 'darkorange', 'purple']
+EV_TRANS_COLORS = ['gold', 'limegreen', 'deepskyblue', 'magenta', 'orange', 'cyan']
+EV_ROT_COLORS   = ['goldenrod', 'seagreen', 'royalblue', 'darkmagenta', 'sienna', 'teal']
 
 
 def draw_panel(ax, panel, color, alpha=0.30):
-    """Draw a panel as a 3D box using top vertices + thickness."""
     top = panel.vertices
     bot = top.copy()
     bot[:, 2] -= panel.thickness
@@ -50,28 +53,44 @@ def draw_panel(ax, panel, color, alpha=0.30):
             fontsize=6, color='k', va='top')
 
 
+def draw_coupling(ax, coupling, idx, color='red'):
+    """Draw contact point, face normal, and both V-groove normals n1/n2."""
+    p = coupling.point
+    ax.scatter(*p, color=color, s=90, zorder=5, marker='o')
+
+    # Face normal — thin, semi-transparent
+    fn = coupling.face_normal * 0.18
+    ax.quiver(*p, *fn, color=color, arrow_length_ratio=0.3,
+              linewidth=1.2, alpha=0.45,
+              label=f'C{idx} face_normal' if idx == 0 else '_nolegend_')
+
+    # n1 — solid, full weight
+    n1 = coupling.n1 * 0.20
+    ax.quiver(*p, *n1, color=color, arrow_length_ratio=0.35, linewidth=2.2,
+              label=f'C{idx} n1' if idx == 0 else '_nolegend_')
+
+    # n2 — same color, slightly shorter so both are visible
+    n2 = coupling.n2 * 0.16
+    ax.quiver(*p, *n2, color=color, arrow_length_ratio=0.35, linewidth=2.2,
+              alpha=0.55,
+              label=f'C{idx} n2' if idx == 0 else '_nolegend_')
+
+
 def draw_p_vectors(ax, system):
-    """Draw arrows from each panel centroid to each coupling contact point."""
-    panel_colors = {p.id: PANEL_COLORS[i] for i, p in enumerate(system.panels)}
+    """Dashed arrows from each panel centroid to each coupling contact point."""
+    id_to_color = {p.id: PANEL_COLORS[i] for i, p in enumerate(system.panels)}
 
     for coupling in system.couplings:
         for panel in (coupling.panel_A, coupling.panel_B):
             c = panel.centroid
-            r = coupling.point - c          # the p-vector used in get_interpolation_matrix
-            color = panel_colors.get(panel.id, 'gray')
-            ax.quiver(*c, *r, color=color, arrow_length_ratio=0.12,
-                      linewidth=1.2, linestyle='dashed', alpha=0.8)
-
-
-def draw_coupling(ax, coupling, idx, color='red'):
-    p = coupling.point
-    n = coupling.normal * 0.22
-    ax.scatter(*p, color=color, s=90, zorder=5, marker='o')
-    ax.quiver(*p, *n, color=color, arrow_length_ratio=0.35, linewidth=2.5,
-              label=f'Coupling {idx} normal')
+            r = coupling.point - c
+            ax.quiver(*c, *r, color=id_to_color.get(panel.id, 'gray'),
+                      arrow_length_ratio=0.10, linewidth=1.2,
+                      linestyle='dashed', alpha=0.75)
 
 
 def draw_eigenvectors(ax, system, tol=1e-9, scale=0.28):
+    """Arrows for non-zero eigenvectors of K = C^T C at each panel centroid."""
     C = system.build_constraint_matrix()
     if C.shape[0] == 0:
         return
@@ -96,7 +115,7 @@ def draw_eigenvectors(ax, system, tol=1e-9, scale=0.28):
 
             t_norm = np.linalg.norm(trans)
             if t_norm > 1e-10:
-                tv = trans / t_norm * scale
+                tv  = trans / t_norm * scale
                 lbl = f'EV{i+1} trans (λ={lam:.3f})'
                 ax.quiver(*c, *tv, color=t_color, arrow_length_ratio=0.35,
                           linewidth=2,
@@ -105,9 +124,9 @@ def draw_eigenvectors(ax, system, tol=1e-9, scale=0.28):
 
             r_norm = np.linalg.norm(rot)
             if r_norm > 1e-10:
-                rv = rot / r_norm * scale
+                rv     = rot / r_norm * scale
                 origin = c + np.array([0.06, 0.06, 0.0])
-                lbl = f'EV{i+1} rot (λ={lam:.3f})'
+                lbl    = f'EV{i+1} rot (λ={lam:.3f})'
                 ax.quiver(*origin, *rv, color=r_color, arrow_length_ratio=0.35,
                           linewidth=2,
                           label=lbl if lbl not in legend_added else '_nolegend_')
@@ -125,40 +144,34 @@ def make_axes(ax, title):
     ax.legend(fontsize=7, loc='upper left', framealpha=0.7)
 
 
-# ── Build test systems (mirror test_RigidBodyModel.py) ────────────────
+# ── Build scenes (mirror key test cases) ──────────────────────────────
 
-# Test 2: One Z-contact
+# Scene 1 — Test 3a: 1 groove, θ=0 → 2 constraints
+sys1 = CouplingSystem([panel_A, panel_B])
+sys1.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0.))
+
+# Scene 2 — Test 3b: 3 grooves at p1/p2/p3, θ=0 → 6 constraints
 sys2 = CouplingSystem([panel_A, panel_B])
-sys2.add_coupling(KinematicCoupling(panel_A, panel_B,
-    point=np.array([1.0, 0.25, 0.0]), normal=np.array([0.0, 0.0, 1.0])))
+for p in [p1, p2, p3]:
+    sys2.add_coupling(KinematicCoupling(panel_A, panel_B, p, face_normal, theta=0.))
 
-# Test 3: Three Z-contacts in a triangle
+# Scene 3 — Test 3c: 3 grooves at same point p1, θ = 0, π/4, π/2 → ≤3 constraints
 sys3 = CouplingSystem([panel_A, panel_B])
-for pt in [[1.0, 0.2, 0.0], [1.0, 0.8, 0.0], [0.5, 0.5, 0.0]]:
-    sys3.add_coupling(KinematicCoupling(panel_A, panel_B,
-        point=np.array(pt), normal=np.array([0.0, 0.0, 1.0])))
+for k in range(3):
+    sys3.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal,
+                                        theta=k * np.pi / 4))
 
-# Test 4: Three COLLINEAR Z-contacts (rank 2)
+# Scene 4 — Test 4a: 3 grooves at p1/p2/p3, θ=π/4 — show groove rotation effect
 sys4 = CouplingSystem([panel_A, panel_B])
-for pt in [[1.0, 0.2, 0.0], [1.0, 0.5, 0.0], [1.0, 0.8, 0.0]]:
-    sys4.add_coupling(KinematicCoupling(panel_A, panel_B,
-        point=np.array(pt), normal=np.array([0.0, 0.0, 1.0])))
-
-# Bonus: realistic 3D mating-face contacts from test module-level geometry
-sys_3d = CouplingSystem([panel_A, panel_B])
-sys_3d.add_coupling(KinematicCoupling(panel_A, panel_B,
-    point=np.array([1.0, 0.2,  0.0]), normal=np.array([0., 0., 1.])))
-sys_3d.add_coupling(KinematicCoupling(panel_A, panel_B,
-    point=np.array([1.0, 0.8,  0.0]), normal=np.array([0., 0., 1.])))
-sys_3d.add_coupling(KinematicCoupling(panel_A, panel_B,
-    point=np.array([1.0, 0.5, -t  ]), normal=np.array([0., 0., 1.])))
+for p in [p1, p2, p3]:
+    sys4.add_coupling(KinematicCoupling(panel_A, panel_B, p, face_normal,
+                                        theta=np.pi / 4))
 
 scenes = [
-    (sys2,  'Test 2: One Z-contact\n(1 constraint)'),
-    (sys3,  'Test 3: Triangle Z-contacts\n(3 independent constraints)'),
-    (sys4,  'Test 4: Collinear Z-contacts\n(rank 2 — 2 constraints)'),
-    (sys_3d,'Mating face: 2 top + 1 bottom Z-contacts\n'
-            '(rank 2 — Z position irrelevant for Z-normal)'),
+    (sys1, 'Test 3a: 1 groove, θ=0\n(2 constraints)'),
+    (sys2, 'Test 3b: 3 grooves at p1/p2/p3, θ=0\n(6 constraints — full kinematic coupling)'),
+    (sys3, 'Test 3c: 3 grooves at p1, θ=0/π/4/π/2\n(≤3 constraints — same contact point)'),
+    (sys4, 'Test 4a: 3 grooves at p1/p2/p3, θ=π/4\n(6 constraints — rotated grooves)'),
 ]
 
 # ── Plot ──────────────────────────────────────────────────────────────
@@ -175,7 +188,7 @@ for ax, (system, title) in zip(axes, scenes):
     draw_eigenvectors(ax, system)
     make_axes(ax, title)
 
-fig.suptitle('Rigid Body Panels — Kinematic Couplings & Non-zero Eigenvectors',
+fig.suptitle('Rigid Body Panels — V-Groove Kinematic Couplings & Non-zero Eigenvectors',
              fontsize=13, fontweight='bold', y=1.01)
 plt.tight_layout()
 plt.show()
