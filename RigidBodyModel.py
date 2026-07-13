@@ -1,26 +1,21 @@
 import numpy as np
 
 class RigidPanel:
-    """One rigid panel. 6 DOFs. No nodal discretization."""
-    def __init__(self, panel_id, vertices):
+    def __init__(self, panel_id, vertices, thickness=0.0):
+        """
+        vertices: top-face corners (z = top of panel)
+        thickness: panel depth in Z
+        centroid: center of the 3D box, at z = top_z - t/2
+        """
         self.id = panel_id
         self.vertices = np.array(vertices)
-        self.centroid = self.vertices.mean(axis=0)
-        self.dof_start = panel_id * 6  # index into q vector
-    
-    def get_interpolation_matrix(self, p, total_dofs):
-        """3 x total_dofs matrix Phi(p)."""
-        r = p - self.centroid
-        skew_r = np.array([
-            [ 0,    -r[2],  r[1]],
-            [ r[2],  0,    -r[0]],
-            [-r[1],  r[0],  0   ]
-        ])
-        Phi = np.zeros((3, total_dofs))
-        i = self.dof_start
-        Phi[:, i:i+3] = np.eye(3)       # translation part
-        Phi[:, i+3:i+6] = -skew_r       # rotation part
-        return Phi
+        self.thickness = thickness
+        
+        face_centroid = self.vertices.mean(axis=0)
+        self.centroid = face_centroid.copy()
+        self.centroid[2] = face_centroid[2] - thickness / 2.0
+        
+        self.dof_start = panel_id * 6
 
 
 class KinematicCoupling:
