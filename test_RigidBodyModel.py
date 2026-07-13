@@ -17,24 +17,30 @@ def count_nonzero_eigenvalues(system, tol=1e-9):
     zero    = eigs[eigs <= tol]
     return sorted(nonzero), len(zero)
 
-# ── Geometry: two unit squares side by side in XY plane ──────────────
-#
-#   Panel A          Panel B
-#   (0,0)-(1,1)      (1,0)-(2,1)
-#
+# ── Shared geometry (defined once, used by all tests) ──────────────────
+t = 0.1  # panel thickness
+
 panel_A = RigidPanel(0, vertices=np.array([
     [0.0, 0.0, 0.0],
     [1.0, 0.0, 0.0],
     [1.0, 1.0, 0.0],
     [0.0, 1.0, 0.0],
-]))
+]), thickness=t)
 
 panel_B = RigidPanel(1, vertices=np.array([
     [1.0, 0.0, 0.0],
     [2.0, 0.0, 0.0],
     [2.0, 1.0, 0.0],
     [1.0, 1.0, 0.0],
-]))
+]), thickness=t)
+
+# Mating face contacts: distributed in Y and Z on the x=1 face
+c1 = KinematicCoupling(panel_A, panel_B,
+    point=np.array([1.0, 0.2,  0.0]), normal=np.array([0., 0., 1.]))
+c2 = KinematicCoupling(panel_A, panel_B,
+    point=np.array([1.0, 0.8,  0.0]), normal=np.array([0., 0., 1.]))
+c3 = KinematicCoupling(panel_A, panel_B,
+    point=np.array([1.0, 0.5, -t  ]), normal=np.array([0., 0., 1.]))
 
 # ── TEST 1: No couplings ──────────────────────────────────────────────
 print("=" * 55)
