@@ -156,6 +156,9 @@ for p in [p1, p2, p3]:
 nonzero, n_zero = count_eigenvalues(system)
 assert len(nonzero) == 5 and n_zero == 7, \
     f"Got {len(nonzero)} nonzero, {n_zero} zero"
+print(f"  Nonzero: {len(nonzero)}  Zero: {n_zero} ✓")
+print(f"  λ values: {[f'{e:.4f}' for e in nonzero]}")
+system_3b = system                                       # ← capture for figure
 
 # Verify X-translation is the unconstrained inter-panel mode
 C = system.build_constraint_matrix()
@@ -165,10 +168,6 @@ rel_x[6]  = -1.   # ux_B
 residual = C @ rel_x
 print(f"  C @ (relative X-translation) = {np.round(residual, 10)}")
 print(f"  → all zeros: {np.allclose(residual, 0)}  (confirms X is unconstrained)")
-
-print(f"  Nonzero: {len(nonzero)}  Zero: {n_zero} ✓")
-print(f"  λ values: {[f'{e:.4f}' for e in nonzero]}")
-system_3b = system                                       # ← capture for figure
 
 print("\nTest 3c: 3 grooves at same point → max rank 3 from Φ, so ≤ 3 nonzero")
 system = CouplingSystem([panel_A, panel_B])
