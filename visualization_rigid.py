@@ -435,6 +435,129 @@ def figure_optimization_heatmaps(system_before, system_after, result,
     return fig
 
 
+# ══════════════════════════════════════════════════════════════════════
+# Eigenmode report — which relative DOFs are free / constrained
+# ══════════════════════════════════════════════════════════════════════
+
+DOF_LABELS_6 = ['Δx', 'Δy', 'Δz', 'Δωx', 'Δωy', 'Δωz']
+
+
+def compute_eigenmode_table(system, tol=1e-9):
+    """
+    Decompose each eigenvalue of K = C^T C into the relative motion
+    (panel A's loading minus panel B's) it represents along
+    [x, y, z, ωx, ωy, ωz]. Only meaningful for exactly 2 panels.
+
+    Parameters
+    ----------
+    system : CouplingSystem  (must have exactly 2 panels)
+    tol    : float — eigenvalues <= tol are reported as free (0)
+
+    Returns
+    -------
+    eigs      : (12,) ndarray, sorted ascending
+    free_mask : (12,) bool ndarray, True where eigs <= tol
+    deltas    : (12, 6) ndarray — row i is mode i's relative-DOF loading
+    """
+    if len(system.panels) != 2:
+        raise ValueError(
+            "compute_eigenmode_table requires exactly 2 panels "
+            f"(got {len(system.panels)}) — the relative-DOF framing "
+            "(panel A minus panel B) is only defined for a single pair.")
+
+    C = system.build_constraint_matrix()
+    K = (C.T @ C if C.shape[0] > 0
+         else np.zeros((system.total_dofs, system.total_dofs)))
+
+    eigs, vecs = np.linalg.eigh(K)
+    free_mask  = eigs <= tol
+
+    panel_A, panel_B = system.panels
+    slice_A = slice(panel_A.dof_start, panel_A.dof_start + 6)
+    slice_B = slice(panel_B.dof_start, panel_B.dof_start + 6)
+    deltas  = (vecs[slice_A, :] - vecs[slice_B, :]).T   # (12, 6)
+
+    return eigs, free_mask, deltas
+
+
+def print_eigenmode_table(system, tol=1e-9, title=''):
+    """
+    Console table: one row per eigenmode (ascending eigenvalue), with
+    its FREE/CONSTRAINED status and relative-DOF loading.
+    """
+    eigs, free_mask, deltas = compute_eigenmode_table(system, tol=tol)
+
+    if title:
+        print(title)
+
+    header = (f"{'Mode':>4} {'lambda':>12} {'Status':>12}  " +
+              " ".join(f"{lbl:>8}" for lbl in DOF_LABELS_6))
+    print(header)
+    print('-' * len(header))
+
+    for i, (lam, free, row) in enumerate(zip(eigs, free_mask, deltas)):
+        status = 'FREE' if free else 'CONSTRAINED'
+        vals   = " ".join(f"{v:8.3f}" for v in row)
+        print(f"{i:>4} {lam:12.6f} {status:>12}  {vals}")
+
+
+def draw_eigenmode_heatmap(ax, system, tol=1e-9, title=''):
+    """
+    Heatmap version of compute_eigenmode_table: rows = modes (sorted
+    ascending, y-labels colored by FREE/CONSTRAINED status), columns =
+    the 6 relative DOFs, color = loading (sign + magnitude).
+    """
+    eigs, free_mask, deltas = compute_eigenmode_table(system, tol=tol)
+
+    vmax = np.abs(deltas).max() or 1.0
+    im   = ax.imshow(deltas, cmap='RdBu', aspect='auto',
+                     vmin=-vmax, vmax=vmax)
+
+    ax.set_xticks(range(len(DOF_LABELS_6)))
+    ax.set_xticklabels(DOF_LABELS_6, fontsize=8)
+    ax.set_yticks(range(len(eigs)))
+    ax.set_yticklabels([f'{i}: λ={lam:.4f}' for i, lam in enumerate(eigs)],
+                       fontsize=7)
+    for tick, free in zip(ax.get_yticklabels(), free_mask):
+        tick.set_color(FREE_MODE if free else CONSTRAINED)
+
+    ax.set_xlabel('Relative DOF (panel A − panel B)', fontsize=8)
+    ax.set_ylabel('Mode',                              fontsize=8)
+    ax.set_title(title, fontsize=9)
+
+    plt.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
+
+
+def figure_eigenmode_report(system, title='Eigenmode report', tol=1e-9):
+    """Single-system eigenmode heatmap. Returns the Figure."""
+    fig, ax = plt.subplots(figsize=(7, 8))
+    draw_eigenmode_heatmap(ax, system, tol=tol, title=title)
+    plt.tight_layout()
+    return fig
+
+
+def figure_optimization_eigenmodes(system_before, system_after, result,
+                                    tol=1e-9):
+    """
+    Side-by-side eigenmode heatmaps: before vs after optimisation.
+    Mirrors figure_optimization_heatmaps but for the relative-DOF
+    breakdown instead of the raw constraint matrix.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(13, 8))
+    fig.suptitle('Eigenmode report: before vs after optimisation',
+                 fontweight='bold')
+
+    draw_eigenmode_heatmap(
+        axes[0], system_before, tol=tol,
+        title=f'Before  (λ_min = {result.lambda_min_initial:.4f})')
+    draw_eigenmode_heatmap(
+        axes[1], system_after, tol=tol,
+        title=f'After   (λ_min = {result.lambda_min:.4f})')
+
+    plt.tight_layout()
+    return fig
+
+
 def figure_section4_robustness(panel_A, panel_B, p1, p2, p3,
                                 face_normal, lambda_mins_sampled,
                                 KinematicCoupling, CouplingSystem,

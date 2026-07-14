@@ -13,6 +13,8 @@ from coupling_optimizer import CouplingOptimizer
 from visualization_rigid import (
     figure_optimization_result,
     figure_optimization_heatmaps,
+    print_eigenmode_table,
+    figure_optimization_eigenmodes,
 )
 
 
@@ -241,6 +243,24 @@ figure_optimization_result(
 plt.show()
 
 figure_optimization_heatmaps(
+    system_before = system_before,
+    system_after  = system_after,
+    result        = result,
+)
+plt.show()
+
+# ══════════════════════════════════════════════════════════════════════
+# EIGENMODE REPORT — which relative DOFs are free / constrained
+# ══════════════════════════════════════════════════════════════════════
+print("\n" + "=" * 60)
+print("EIGENMODE REPORT")
+print("=" * 60)
+print()
+print_eigenmode_table(system_before, title='Before optimization')
+print()
+print_eigenmode_table(system_after, title='After optimization')
+
+figure_optimization_eigenmodes(
     system_before = system_before,
     system_after  = system_after,
     result        = result,
