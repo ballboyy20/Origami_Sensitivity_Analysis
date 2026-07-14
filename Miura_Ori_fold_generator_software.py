@@ -97,3 +97,6 @@ tilt = 10.0   # The horizontal shift applied to alternating rows to create the z
 fold_data = generate_miura_fold(cols=cols, rows=rows, dx=dx, dy=dy, tilt=tilt)
 with open(filename, "w") as f:   
     json.dump(fold_data, f, indent=2)
+
+# now you can upload the .fold file to OrigamiSimulator (https://origamisimulator.org/) to visualize and simulate the Miura-ori crease pattern.
+# when uploading, make sure to UNCHECK "Use current angles as target fold angles" otherwise it won't fold.
