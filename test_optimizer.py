@@ -12,6 +12,7 @@ from RigidBodyModel    import RigidPanel, KinematicCoupling, CouplingSystem
 from coupling_optimizer import CouplingOptimizer
 from visualization_rigid import (
     figure_optimization_result,
+    figure_optimization_heatmaps,
 )
 
 
@@ -233,6 +234,13 @@ print(repr(result))
 # FIGURE
 # ══════════════════════════════════════════════════════════════════════
 figure_optimization_result(
+    system_before = system_before,
+    system_after  = system_after,
+    result        = result,
+)
+plt.show()
+
+figure_optimization_heatmaps(
     system_before = system_before,
     system_after  = system_after,
     result        = result,

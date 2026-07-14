@@ -400,6 +400,41 @@ def figure_optimization_result(system_before, system_after, result):
     plt.tight_layout()
     return fig
 
+
+def figure_optimization_heatmaps(system_before, system_after, result,
+                                  n_panels=2):
+    """
+    2-row heatmap figure comparing the constraint matrix C before and
+    after groove-angle optimisation. Same layout as
+    figure_section2_heatmaps, but titled with each system's lambda_min
+    instead of a fixed coupling count.
+
+    Parameters
+    ----------
+    system_before : CouplingSystem  (thetas at their starting values)
+    system_after  : CouplingSystem  (thetas at optimal values)
+    result        : OptimizationResult
+    n_panels      : number of panels (for column labels)
+    """
+    C_before = system_before.build_constraint_matrix()
+    C_after  = system_after.build_constraint_matrix()
+
+    fig, axes = plt.subplots(2, 1, figsize=(13, 6))
+    fig.suptitle('Constraint matrix C: before vs after optimisation',
+                 fontweight='bold')
+
+    for ax, (C_mat, title) in zip(axes, [
+        (C_before, f'Before  (λ_min = {result.lambda_min_initial:.4f})  '
+                   f'→  C shape {C_before.shape}'),
+        (C_after,  f'After   (λ_min = {result.lambda_min:.4f})  '
+                   f'→  C shape {C_after.shape}'),
+    ]):
+        draw_constraint_heatmap(ax, C_mat, n_panels=n_panels, title=title)
+
+    plt.tight_layout()
+    return fig
+
+
 def figure_section4_robustness(panel_A, panel_B, p1, p2, p3,
                                 face_normal, lambda_mins_sampled,
                                 KinematicCoupling, CouplingSystem,
