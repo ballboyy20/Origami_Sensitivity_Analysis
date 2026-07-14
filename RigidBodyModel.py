@@ -62,6 +62,8 @@ class KinematicCoupling:
         self.face_normal = np.array(face_normal, dtype=float)
         self.face_normal /= np.linalg.norm(self.face_normal)
         self.theta      = theta
+
+        self.active = True   # set False to exclude from constraint matrix (not yet implemnted)
         
         self._compute_groove_normals()
     
@@ -140,11 +142,11 @@ class CouplingSystem:
         
         rows = []
         for c in self.couplings:
-            r1, r2 = c.get_constraint_rows(self.total_dofs)
-            rows.append(r1)
-            rows.append(r2)
-        
-        return np.array(rows)
+            if getattr(c, 'active', True):          # ← respect active flag
+                r1, r2 = c.get_constraint_rows(self.total_dofs)
+                rows.append(r1)
+                rows.append(r2)
+        return np.zeros((0, self.total_dofs)) if not rows else np.array(rows) 
     
     def get_rigidity_eigenvalue(self):
         C = self.build_constraint_matrix()

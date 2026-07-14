@@ -328,6 +328,77 @@ def figure_section3_eigenvalues(systems_and_titles):
     plt.tight_layout()
     return fig
 
+def figure_optimization_result(system_before, system_after, result):
+    """
+    Four-panel summary figure for a completed optimisation:
+      top-left     — 3D config before optimisation
+      top-right    — 3D config after optimisation
+      bottom-left  — eigenvalue spectrum before vs after
+      bottom-right — lambda_min convergence history
+ 
+    Parameters
+    ----------
+    system_before : CouplingSystem  (thetas at theta=0 start)
+    system_after  : CouplingSystem  (thetas at optimal values)
+    result        : OptimizationResult
+    """
+    fig = plt.figure(figsize=(14, 10))
+    fig.suptitle('Groove angle optimisation result', fontweight='bold',
+                 fontsize=13)
+ 
+    ax_3d_before = fig.add_subplot(2, 2, 1, projection='3d')
+    ax_3d_after  = fig.add_subplot(2, 2, 2, projection='3d')
+    ax_spec      = fig.add_subplot(2, 2, 3)
+    ax_hist      = fig.add_subplot(2, 2, 4)
+ 
+    # ── 3D configs ───────────────────────────────────────────────────
+    draw_3d_config(ax_3d_before, system_before,
+                   title=f'Before  (λ_min = {result.lambda_min_initial:.4f})')
+    draw_3d_config(ax_3d_after,  system_after,
+                   title=f'After   (λ_min = {result.lambda_min:.4f})')
+ 
+    # ── Eigenvalue spectra overlaid ───────────────────────────────────
+    def _eigs(system):
+        C = system.build_constraint_matrix()
+        K = C.T @ C if C.shape[0] > 0 else np.zeros(
+            (system.total_dofs, system.total_dofs))
+        return np.sort(np.linalg.eigvalsh(K))
+ 
+    eigs_before = _eigs(system_before)
+    eigs_after  = _eigs(system_after)
+    x = np.arange(len(eigs_before))
+    w = 0.35
+    ax_spec.bar(x - w/2, eigs_before, w, label='Before',
+                color='#BDC3C7', edgecolor='white')
+    ax_spec.bar(x + w/2, eigs_after,  w, label='After',
+                color=CONSTRAINED, edgecolor='white', alpha=0.85)
+    ax_spec.set_xlabel('Mode index', fontsize=9)
+    ax_spec.set_ylabel('Eigenvalue',  fontsize=9)
+    ax_spec.set_title('Eigenvalue spectrum: before vs after', fontsize=9)
+    ax_spec.legend(fontsize=8)
+    ax_spec.grid(True, axis='y', alpha=0.25, linewidth=0.5)
+ 
+    # ── Convergence history ───────────────────────────────────────────
+    lam_hist = result.history['lambda_min']
+    ax_hist.plot(lam_hist, color='steelblue', linewidth=1.2, alpha=0.6,
+                 label='Each evaluation')
+    # Running maximum — what the optimiser has found so far
+    running_max = np.maximum.accumulate(lam_hist)
+    ax_hist.plot(running_max, color='#E74C3C', linewidth=2,
+                 label='Best so far')
+    ax_hist.axhline(result.lambda_min, color='k', linewidth=1,
+                    linestyle='--', alpha=0.5, label=f'Optimal ({result.lambda_min:.4f})')
+    ax_hist.set_xlabel('Evaluation', fontsize=9)
+    ax_hist.set_ylabel('λ_min',       fontsize=9)
+    ax_hist.set_title(
+        f'Convergence  ({result.n_evaluations} evaluations, '
+        f'converged={result.converged})',
+        fontsize=9)
+    ax_hist.legend(fontsize=8)
+    ax_hist.grid(True, alpha=0.25, linewidth=0.5)
+ 
+    plt.tight_layout()
+    return fig
 
 def figure_section4_robustness(panel_A, panel_B, p1, p2, p3,
                                 face_normal, lambda_mins_sampled,
