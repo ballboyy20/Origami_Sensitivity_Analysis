@@ -150,7 +150,9 @@ def make_axes(ax, title):
 sys1 = CouplingSystem([panel_A, panel_B])
 sys1.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0.))
 
-# Scene 2 — Test 3b: 3 grooves at p1/p2/p3, θ=0 → 6 constraints
+# Scene 2 — Test 3b: 3 PARALLEL grooves at p1/p2/p3, θ=0 → 5 constraints
+# (grooves open toward face_normal but stay parallel, so 1 shared slide DOF
+# remains free — same behavior as a real Kelvin/Maxwell V-groove)
 sys2 = CouplingSystem([panel_A, panel_B])
 for p in [p1, p2, p3]:
     sys2.add_coupling(KinematicCoupling(panel_A, panel_B, p, face_normal, theta=0.))
@@ -161,17 +163,19 @@ for k in range(3):
     sys3.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal,
                                         theta=k * np.pi / 4))
 
-# Scene 4 — Test 4a: 3 grooves at p1/p2/p3, θ=π/4 — show groove rotation effect
+# Scene 4 — Test 4a: grooves at p1/p2/p3 NOT parallel (groove 1 at θ=0,
+# grooves 2 & 3 rotated by π/4 relative to it) → fully locks to 6 constraints
 sys4 = CouplingSystem([panel_A, panel_B])
-for p in [p1, p2, p3]:
+sys4.add_coupling(KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0.))
+for p in [p2, p3]:
     sys4.add_coupling(KinematicCoupling(panel_A, panel_B, p, face_normal,
                                         theta=np.pi / 4))
 
 scenes = [
     (sys1, 'Test 3a: 1 groove, θ=0\n(2 constraints)'),
-    (sys2, 'Test 3b: 3 grooves at p1/p2/p3, θ=0\n(6 constraints — full kinematic coupling)'),
+    (sys2, 'Test 3b: 3 parallel grooves at p1/p2/p3, θ=0\n(5 constraints — 1 shared slide DOF free)'),
     (sys3, 'Test 3c: 3 grooves at p1, θ=0/π/4/π/2\n(≤3 constraints — same contact point)'),
-    (sys4, 'Test 4a: 3 grooves at p1/p2/p3, θ=π/4\n(6 constraints — rotated grooves)'),
+    (sys4, 'Test 4a: groove 1 at θ=0, grooves 2/3 at θ=π/4\n(6 constraints — non-parallel grooves fully lock)'),
 ]
 
 # ── Plot ──────────────────────────────────────────────────────────────

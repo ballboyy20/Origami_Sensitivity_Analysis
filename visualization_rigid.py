@@ -212,9 +212,11 @@ def draw_constraint_heatmap(ax, C, n_panels=2, title=''):
 
 def draw_groove_normals_2d(ax, coupling, title=''):
     """
-    Show n1, n2, and the bisector projected onto the mating face plane
-    (Y and Z components only — the face-normal X component is zero
-    for both groove normals by construction).
+    Show n1, n2, and the bisector projected onto the V-groove's actual
+    cross-section plane — spanned by face_normal (vertical axis) and w,
+    the in-plane transverse direction (horizontal axis) — since the
+    groove's slide axis u is, by construction, perpendicular to both
+    n1 and n2 and carries no information about the V shape itself.
 
     Parameters
     ----------
@@ -227,6 +229,12 @@ def draw_groove_normals_2d(ax, coupling, title=''):
     if np.linalg.norm(bisector) > 1e-10:
         bisector = bisector / np.linalg.norm(bisector)
 
+    fn = coupling.face_normal
+    w  = coupling.w
+
+    def project(vec):
+        return (np.dot(vec, w), np.dot(vec, fn))
+
     arrow_kw = dict(xytext=(0, 0), textcoords='data',
                     xycoords='data')
 
@@ -235,10 +243,11 @@ def draw_groove_normals_2d(ax, coupling, title=''):
         (n2,       N2_COLOR,    'n2'),
         (bisector * 0.65, BISECT_COLOR, 'bisector'),
     ]:
-        ax.annotate('', xy=(vec[1], vec[2]),
+        px, py = project(vec)
+        ax.annotate('', xy=(px, py),
                     arrowprops=dict(arrowstyle='->', lw=2, color=color),
                     **arrow_kw)
-        ax.text(vec[1] * 1.2, vec[2] * 1.2, label,
+        ax.text(px * 1.2, py * 1.2, label,
                 color=color, fontsize=9,
                 fontweight='bold', ha='center', va='center')
 
@@ -247,8 +256,8 @@ def draw_groove_normals_2d(ax, coupling, title=''):
     ax.set_aspect('equal')
     ax.axhline(0, color='k', linewidth=0.4, alpha=0.35)
     ax.axvline(0, color='k', linewidth=0.4, alpha=0.35)
-    ax.set_xlabel('Y', fontsize=9)
-    ax.set_ylabel('Z', fontsize=9)
+    ax.set_xlabel('w (transverse, in-plane)', fontsize=9)
+    ax.set_ylabel('face_normal', fontsize=9)
     ax.set_title(title, fontsize=9)
     ax.grid(True, alpha=0.2)
 
@@ -336,27 +345,30 @@ def figure_section4_robustness(panel_A, panel_B, p1, p2, p3,
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
     fig.suptitle('Section 4: Physical robustness', fontweight='bold')
 
-    # ── Left: λ_min vs θ ────────────────────────────────────────────
-    thetas_fine = np.linspace(0, np.pi / 2, 60)
+    # ── Left: λ_min vs δ (relative rotation of grooves 2 & 3 vs groove 1) ──
+    deltas_fine = np.linspace(0, np.pi / 2, 60)
     lmins_fine  = []
-    for th in thetas_fine:
+    for delta in deltas_fine:
         sys = CouplingSystem([panel_A, panel_B])
-        for p in [p1, p2, p3]:
-            sys.add_coupling(
-                KinematicCoupling(panel_A, panel_B, p,
-                                  face_normal, theta=th))
+        sys.add_coupling(KinematicCoupling(panel_A, panel_B, p1,
+                                           face_normal, theta=0.))
+        sys.add_coupling(KinematicCoupling(panel_A, panel_B, p2,
+                                           face_normal, theta=delta))
+        sys.add_coupling(KinematicCoupling(panel_A, panel_B, p3,
+                                           face_normal, theta=delta))
         nz, _ = count_eigenvalues(sys)
         lmins_fine.append(min(nz) if nz else 0.)
 
-    sample_thetas = np.linspace(0, np.pi / 2, len(lambda_mins_sampled))
-    axes[0].plot(np.degrees(thetas_fine), lmins_fine,
+    sample_deltas = np.linspace(0, np.pi / 2, len(lambda_mins_sampled))
+    axes[0].plot(np.degrees(deltas_fine), lmins_fine,
                  color='steelblue', linewidth=2, label='λ_min (dense)')
-    axes[0].scatter(np.degrees(sample_thetas), lambda_mins_sampled,
+    axes[0].scatter(np.degrees(sample_deltas), lambda_mins_sampled,
                     color='red', zorder=5, s=60,
                     label='Test 4a sample points')
-    axes[0].set_xlabel('θ (degrees)', fontsize=9)
+    axes[0].set_xlabel('δ — relative groove rotation (degrees)', fontsize=9)
     axes[0].set_ylabel('λ_min',       fontsize=9)
-    axes[0].set_title('Test 4a: λ_min vs groove angle θ', fontsize=9)
+    axes[0].set_title('Test 4a: λ_min vs relative groove rotation δ\n'
+                       '(groove 1 fixed at θ=0)', fontsize=9)
     axes[0].grid(True, alpha=0.3)
     axes[0].legend(fontsize=8)
 

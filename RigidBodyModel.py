@@ -68,33 +68,39 @@ class KinematicCoupling:
     def _compute_groove_normals(self):
         """
         Build n1 and n2 from theta.
-        
+
+        The groove is a V-shaped channel cut into the mating face, as in a
+        Kelvin/Maxwell kinematic coupling: the two walls open toward
+        face_normal (so contact captures relative motion along the face
+        normal) and splay ± HALF_ANGLE from it in the transverse (w)
+        direction. The groove's own length axis u — the one direction each
+        wall's normal stays perpendicular to, and therefore the only
+        direction sliding remains free — lies in the mating-face plane and
+        is rotated by theta, measured from +Z at theta=0.
+
         Since mating faces are always orthogonal to the XY plane,
-        face_normal always lies in XY. Z is therefore always perpendicular
-        to face_normal and is a stable reference for the in-plane frame.
-        
-        At theta=0, the groove bisector points in +Z (vertical, upward).
-        Rotating by theta rotates the bisector within the mating face plane.
+        face_normal always lies in XY, so Z is a stable in-plane reference.
         """
 
         in_plane_Z = np.array([0., 0., 1.])
         in_plane_Y = np.cross(in_plane_Z, self.face_normal)
         in_plane_Y /= np.linalg.norm(in_plane_Y)
 
-        bisector = (np.cos(self.theta) * in_plane_Z +
-                    np.sin(self.theta) * in_plane_Y)
-        bisector /= np.linalg.norm(bisector)
+        u = (np.cos(self.theta) * in_plane_Z +
+             np.sin(self.theta) * in_plane_Y)
+        u /= np.linalg.norm(u)
 
-        # Rotate ±half_angle about face_normal using Rodrigues' formula
-        # perp is always orthogonal to bisector regardless of theta
-        perp = np.cross(self.face_normal, bisector)
-        perp /= np.linalg.norm(perp)
+        # w is transverse to u, in the mating-face plane
+        w = np.cross(self.face_normal, u)
+        w /= np.linalg.norm(w)
 
         c = np.cos(self.HALF_ANGLE)
         s = np.sin(self.HALF_ANGLE)
 
-        self.n1 = c * bisector + s * perp
-        self.n2 = c * bisector - s * perp
+        self.u  = u
+        self.w  = w
+        self.n1 = c * self.face_normal + s * w
+        self.n2 = c * self.face_normal - s * w
         self.n1 /= np.linalg.norm(self.n1)
         self.n2 /= np.linalg.norm(self.n2)
     
