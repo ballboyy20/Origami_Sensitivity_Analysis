@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from RigidBodyModel    import RigidPanel, KinematicCoupling, CouplingSystem
-from Coupling_Optimizer.py import CouplingOptimizer
+from coupling_optimizer import CouplingOptimizer
 from visualization_rigid import (
     figure_optimization_result,
 )
@@ -48,14 +48,23 @@ print("=" * 60)
 print("SECTION 1: Baseline checks")
 print("=" * 60)
 
-print("\nTest 1a: optimizer.lambda_min() matches direct computation")
-system = make_system()
+# theta=(0,0,0) is 3 PARALLEL grooves — only rank 5 (see RigidBodyModel
+# fix notes: parallel grooves always leave one shared slide DOF free).
+# Use a spread-out, non-parallel baseline for the "clean" sanity checks
+# in this section so they aren't entangled with the rank-deficient case,
+# which Test 1d below tests on purpose.
+NONPARALLEL_THETAS = (0., np.radians(60), np.radians(120))
+
+print("\nTest 1a: optimizer.lambda_min() matches direct (rank-aware) computation")
+system = make_system(thetas=NONPARALLEL_THETAS)
 opt    = CouplingOptimizer(system)
-lam_opt    = opt.lambda_min()
-C          = system.build_constraint_matrix()
-K          = C.T @ C
-eigs       = np.linalg.eigvalsh(K)
-lam_direct = float(np.min(eigs[eigs > 1e-9]))
+lam_opt = opt.lambda_min()
+C       = system.build_constraint_matrix()
+rank    = np.linalg.matrix_rank(C)
+assert rank == opt.target_rank, \
+    f"Expected this spread-out config to be full rank ({opt.target_rank}), got {rank}"
+eigs       = np.sort(np.linalg.eigvalsh(C.T @ C))
+lam_direct = float(eigs[C.shape[1] - rank])
 assert abs(lam_opt - lam_direct) < 1e-12, \
     f"lambda_min mismatch: {lam_opt} vs {lam_direct}"
 print(f"  lambda_min = {lam_opt:.6f} ✓")
@@ -76,8 +85,17 @@ assert len(active) == 2, f"Expected 2 active, got {len(active)}"
 system.couplings[1].active = True   # restore
 print(f"  2 active after disabling one ✓")
 
-print("\nTest 1d: lambda_min > 0 (3 nonzero modes exist at theta=0)")
+print("\nTest 1d: lambda_min == 0 at theta=(0,0,0) — parallel grooves are")
+print("          rank-deficient (rank 5 < target 6), NOT a valid baseline")
 system = make_system(thetas=(0., 0., 0.))
+opt    = CouplingOptimizer(system)
+lam    = opt.lambda_min()
+assert np.linalg.matrix_rank(system.build_constraint_matrix()) == 5
+assert lam == 0., f"lambda_min should be exactly 0 (rank-deficient), got {lam}"
+print(f"  lambda_min = {lam:.6f} (rank-deficient, correctly reported as 0) ✓")
+
+print("\nTest 1e: lambda_min > 0 for a non-parallel, fully-locked configuration")
+system = make_system(thetas=NONPARALLEL_THETAS)
 opt    = CouplingOptimizer(system)
 lam    = opt.lambda_min()
 assert lam > 0, f"lambda_min should be > 0, got {lam}"

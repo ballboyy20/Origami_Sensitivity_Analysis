@@ -1,7 +1,9 @@
 """
 CouplingOptimizer.py
-Optimizes V-groove orientations (theta) to maximize the smallest nonzero
-eigenvalue of K = C^T C — the rigidity metric for a kinematic coupling system.
+Optimizes V-groove orientations (theta) to maximize the smallest
+rank-constrained eigenvalue of K = C^T C — the rigidity metric for a
+kinematic coupling system. See CouplingOptimizer's docstring for why
+"rank-constrained" (not just "nonzero") matters here.
 
 Optimization hierarchy (in order of implementation):
     1. Groove angle theta        ← current: one float per coupling
@@ -79,19 +81,29 @@ class CouplingOptimizer:
     ---------
     maximize  lambda_min( C(theta)^T C(theta) )
 
-    where lambda_min is the smallest NONZERO eigenvalue —
-    zero eigenvalues (global rigid body modes, unconstrained DOFs)
-    are excluded because they are structural, not tunable.
+    where lambda_min is the smallest eigenvalue among the DOFs this
+    coupling set actually locks — i.e. the (total_dofs - rank(C))-th
+    eigenvalue in sorted order, NOT "smallest eigenvalue above a fixed
+    magnitude threshold". A magnitude threshold silently drops whatever
+    is smallest instead of penalizing it, so a configuration that loses
+    rank (parallel grooves, or a disabled coupling) can look artificially
+    stiffer than one that doesn't. Any configuration with rank(C) below
+    target_rank returns 0. outright, so under-constrained configurations
+    can never outscore fully-constrained ones — critical for the future
+    on/off extension below, where comparing configurations of different
+    rank is the whole point.
 
     Future extension
     ----------------
     Greedy on/off selection uses the same _compute_lambda_min()
     infrastructure — just toggle coupling.active and re-optimise theta.
+    Note two panels need at least 3 active couplings to reach full rank
+    at all (2 couplings contribute at most 4 constraint rows, capping
+    rank(C) <= 4 < target_rank=6), so the greedy search must not prune
+    below that floor.
     """
 
-    EIG_TOL = 1e-9   # threshold separating zero from nonzero eigenvalues
-
-    def __init__(self, system):
+    def __init__(self, system, target_rank=None):
         """
         Parameters
         ----------
@@ -99,9 +111,20 @@ class CouplingOptimizer:
             The panel + coupling system to optimise.
             Active couplings are those with coupling.active == True
             (default True for all couplings unless explicitly set).
+        target_rank : int or None
+            The constraint-matrix rank a fully-locked assembly should
+            reach. Defaults to ``system.total_dofs - 6``, i.e. every
+            relative DOF constrained except the 6 unavoidable rigid-body
+            gauge modes of the whole assembly — correct for any number
+            of panels as long as they form one connected rigid group.
+            Override this if couplings can be turned off in a way that
+            splits the assembly into multiple disconnected rigid groups
+            (each such group needs its own 6 gauge DOFs subtracted).
         """
-        self.system   = system
-        self._history = None
+        self.system      = system
+        self.target_rank = (target_rank if target_rank is not None
+                             else system.total_dofs - 6)
+        self._history     = {'thetas': [], 'lambda_min': []}
 
     # ── Public API ─────────────────────────────────────────────────────
 
@@ -159,11 +182,12 @@ class CouplingOptimizer:
             result = differential_evolution(
                 self._objective,
                 bounds  = bounds,
-                seed    = seed,
                 tol     = tol,
                 maxiter = 1000,
-                polish  = True,   # Nelder-Mead polish after DE converges
-                workers = 1,      # keep single-process for portability
+                polish  = True,   # L-BFGS-B polish of the best DE member
+                workers = 1,      # required: _objective mutates self.system
+                                  # and self._history, so evaluations must
+                                  # stay in-process (see _compute_lambda_min)
             )
             converged = result.success
 
@@ -173,6 +197,7 @@ class CouplingOptimizer:
                 self._objective,
                 x0,
                 method  = 'Nelder-Mead',
+                bounds  = bounds,
                 options = {'xatol': tol, 'fatol': tol, 'maxiter': 10000},
             )
             converged = result.success
@@ -236,9 +261,29 @@ class CouplingOptimizer:
 
     def _compute_lambda_min(self, thetas):
         """
-        Set groove angles, rebuild C, return smallest nonzero eigenvalue.
-        Zero eigenvalues (global RBM + structurally unconstrained DOFs)
-        are excluded — they are not tunable by groove angle changes.
+        Set groove angles, rebuild C, return the smallest eigenvalue
+        among the DOFs this coupling set actually locks.
+
+        Rank-aware by construction: this does NOT filter eigenvalues by
+        magnitude (`eigs > EIG_TOL`). A magnitude filter breaks the
+        moment two configurations have different rank — e.g. rotating
+        two grooves into parallel, or (for the planned on/off search)
+        disabling a coupling. Either can remove a weak-but-constrained
+        direction and open a brand-new *free* one in the same stroke;
+        filtering by magnitude alone silently drops the weak eigenvalue
+        from view while never penalizing the zero mode it left behind,
+        so an under-constrained system can score HIGHER than a fully
+        constrained one. (Confirmed empirically: disabling one coupling
+        in a 3-groove test system raised the naive lambda_min from
+        0.0133 to 0.098 even though the system went from fully locked
+        to a 2-DOF mechanism.)
+
+        Instead: rank(C) tells us exactly how many DOFs are locked.
+        Anything short of target_rank is treated as unconstrained
+        (returns 0., same convention as the "no couplings" case) so the
+        optimizer/greedy search can never prefer an under-constrained
+        configuration over a fully-constrained one. Only once rank ==
+        target_rank do we report the weakest genuinely-locked direction.
         """
         active = self._active_couplings()
         for coupling, theta in zip(active, thetas):
@@ -248,7 +293,11 @@ class CouplingOptimizer:
         if C.shape[0] == 0:
             return 0.
 
-        K       = C.T @ C
-        eigs    = np.linalg.eigvalsh(K)
-        nonzero = eigs[eigs > self.EIG_TOL]
-        return float(np.min(nonzero)) if len(nonzero) > 0 else 0.
+        rank = np.linalg.matrix_rank(C)
+        if rank < self.target_rank:
+            return 0.
+
+        K = C.T @ C
+        eigs   = np.sort(np.linalg.eigvalsh(K))
+        n_free = C.shape[1] - rank
+        return float(eigs[n_free])
