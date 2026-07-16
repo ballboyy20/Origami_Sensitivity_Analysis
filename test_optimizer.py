@@ -35,7 +35,14 @@ p1 = np.array([1., 0.2,  0.0])
 p2 = np.array([1., 0.8,  0.0])
 p3 = np.array([1., 0.5, -t  ])
 
-def make_system(thetas=(0., 0., 0.)):
+# Distinct, non-symmetric starting angles — used as make_system's default
+# and as the optimizer "cold start" baseline throughout this file. Not
+# (0,0,0) (parallel grooves, rank-5 degenerate — see Test 1d) and not the
+# regular 0/60/120 spread of NONPARALLEL_THETAS below, so this doesn't
+# accidentally retest that same special-case symmetry either.
+ARBITRARY_START_THETAS = (np.radians(17), np.radians(84), np.radians(151))
+
+def make_system(thetas=ARBITRARY_START_THETAS):
     """Fresh CouplingSystem with 3 grooves at the given thetas."""
     sys = CouplingSystem([panel_A, panel_B])
     for p, th in zip([p1, p2, p3], thetas):
@@ -113,7 +120,7 @@ print("SECTION 2: optimize_theta() — differential_evolution")
 print("=" * 60)
 
 print("\nTest 2a: result.lambda_min >= result.lambda_min_initial")
-system = make_system(thetas=(0., 0., 0.))
+system = make_system(thetas=ARBITRARY_START_THETAS)
 opt    = CouplingOptimizer(system)
 result = opt.optimize_theta(method='differential_evolution', seed=42)
 print(f"  λ_min: {result.lambda_min_initial:.6f} → {result.lambda_min:.6f}")
@@ -141,8 +148,21 @@ assert abs(lam_check - result.lambda_min) < 1e-8, \
     f"Mismatch: result says {result.lambda_min:.8f}, direct gives {lam_check:.8f}"
 print(f"  Direct recompute: {lam_check:.6f} ✓")
 
+print("\nTest 2e: differential_evolution still escapes a fully-degenerate")
+print("          (0,0,0) start (parallel grooves, rank 5, λ_min=0)")
+system_degenerate = make_system(thetas=(0., 0., 0.))
+opt_degenerate     = CouplingOptimizer(system_degenerate)
+result_degenerate  = opt_degenerate.optimize_theta(
+    method='differential_evolution', seed=42)
+assert result_degenerate.lambda_min_initial == 0., \
+    "Sanity check: (0,0,0) should start rank-deficient"
+assert result_degenerate.lambda_min > 0., \
+    "Optimizer failed to escape the fully-degenerate starting point"
+print(f"  λ_min: {result_degenerate.lambda_min_initial:.6f} → "
+      f"{result_degenerate.lambda_min:.6f}  ✓")
+
 # Save system state before apply for comparison figure
-system_before = make_system(thetas=(0., 0., 0.))
+system_before = make_system(thetas=ARBITRARY_START_THETAS)
 lam_before    = CouplingOptimizer(system_before).lambda_min()
 
 
@@ -154,7 +174,7 @@ print("SECTION 3: apply_result()")
 print("=" * 60)
 
 print("\nTest 3a: after apply_result, system thetas match optimal_thetas")
-system = make_system(thetas=(0., 0., 0.))
+system = make_system(thetas=ARBITRARY_START_THETAS)
 opt    = CouplingOptimizer(system)
 result = opt.optimize_theta(method='differential_evolution', seed=42)
 opt.apply_result(result)
@@ -180,8 +200,8 @@ print("\n" + "=" * 60)
 print("SECTION 4: optimize_theta() — nelder_mead")
 print("=" * 60)
 
-print("\nTest 4a: nelder_mead also improves lambda_min from theta=0")
-system = make_system(thetas=(0., 0., 0.))
+print("\nTest 4a: nelder_mead also improves lambda_min from an arbitrary start")
+system = make_system(thetas=ARBITRARY_START_THETAS)
 opt    = CouplingOptimizer(system)
 result_nm = opt.optimize_theta(method='nelder_mead')
 print(f"  λ_min: {result_nm.lambda_min_initial:.6f} → {result_nm.lambda_min:.6f}")
