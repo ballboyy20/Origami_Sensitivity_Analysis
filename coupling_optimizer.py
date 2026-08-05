@@ -264,26 +264,31 @@ class CouplingOptimizer:
         Set groove angles, rebuild C, return the smallest eigenvalue
         among the DOFs this coupling set actually locks.
 
-        Rank-aware by construction: this does NOT filter eigenvalues by
-        magnitude (`eigs > EIG_TOL`). A magnitude filter breaks the
-        moment two configurations have different rank — e.g. rotating
-        two grooves into parallel, or (for the planned on/off search)
-        disabling a coupling. Either can remove a weak-but-constrained
-        direction and open a brand-new *free* one in the same stroke;
-        filtering by magnitude alone silently drops the weak eigenvalue
-        from view while never penalizing the zero mode it left behind,
-        so an under-constrained system can score HIGHER than a fully
-        constrained one. (Confirmed empirically: disabling one coupling
-        in a 3-groove test system raised the naive lambda_min from
-        0.0133 to 0.098 even though the system went from fully locked
-        to a 2-DOF mechanism.)
+        Why not just take eigs.min() or filter by a magnitude threshold
+        (`eigs > EIG_TOL`)? Both break the moment two configurations have
+        different rank — e.g. rotating two grooves into parallel, or (for
+        the planned on/off search) disabling a coupling. Either change can
+        remove a weak-but-constrained direction and open a brand-new
+        *free* one in the same stroke. A magnitude filter can't tell the
+        two apart: it silently drops the weak eigenvalue from view and
+        never penalizes the zero mode left behind, so an under-constrained
+        system can score HIGHER than a fully constrained one. (Confirmed
+        empirically: disabling one coupling in a 3-groove test system
+        raised the naive lambda_min from 0.0133 to 0.098, even though the
+        system went from fully locked to a 2-DOF mechanism.)
 
-        Instead: rank(C) tells us exactly how many DOFs are locked.
-        Anything short of target_rank is treated as unconstrained
-        (returns 0., same convention as the "no couplings" case) so the
-        optimizer/greedy search can never prefer an under-constrained
-        configuration over a fully-constrained one. Only once rank ==
-        target_rank do we report the weakest genuinely-locked direction.
+        So instead this is rank-aware:
+          1. rank(C) tells us exactly how many DOFs are locked. Anything
+             short of target_rank is under-constrained — return 0. (same
+             convention as the "no couplings" case), so the optimizer can
+             never prefer an under-constrained configuration over a fully
+             constrained one.
+          2. Once rank == target_rank, the first `n_free = total_dofs -
+             rank` eigenvalues are the assembly's unavoidable rigid-body
+             gauge modes (always ~0, never physically meaningful) — skip
+             those and report eigs[n_free], the weakest genuinely-locked
+             direction. With the default target_rank (total_dofs - 6),
+             n_free == 6, so this is eigs[6] — the 7th eigenvalue.
         """
         active = self._active_couplings()
         for coupling, theta in zip(active, thetas):
