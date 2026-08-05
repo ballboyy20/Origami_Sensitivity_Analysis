@@ -24,6 +24,7 @@ N2_COLOR      = 'royalblue'
 BISECT_COLOR  = 'gray'
 CONSTRAINED   = '#E74C3C'
 FREE_MODE     = '#BDC3C7'
+EIGVEC_COLOR  = '#8E44AD'
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -69,18 +70,89 @@ def draw_panel_box(ax, panel, color='steelblue', alpha=0.18):
 # 3-D configuration view
 # ══════════════════════════════════════════════════════════════════════
 
+def compute_lambda_min_eigenvector(system):
+    """
+    Eigenvector of K = C^T C for the weakest genuinely-locked direction —
+    same rank-aware convention as CouplingOptimizer._compute_lambda_min:
+    skip the n_free = total_dofs - rank(C) zero/gauge eigenvalues and
+    return the one at index n_free, rather than eigs.min() (which would
+    just return a gauge mode, not a constrained direction).
+
+    Returns
+    -------
+    lam : float — the eigenvalue (0. if there are no couplings at all)
+    vec : (total_dofs,) ndarray or None — its eigenvector
+    """
+    C = system.build_constraint_matrix()
+    if C.shape[0] == 0:
+        return 0., None
+
+    rank = np.linalg.matrix_rank(C)
+    K = C.T @ C
+    eigs, vecs = np.linalg.eigh(K)
+    n_free = C.shape[1] - rank
+    return float(eigs[n_free]), vecs[:, n_free]
+
+
+def draw_mode_arrows(ax, system, mode_vec, scale=0.3, color=EIGVEC_COLOR):
+    """
+    Draw the rigid-body "pull" each panel's corners feel under a given
+    generalized eigenvector of K = C^T C.
+
+    For panel i with twist (t_i, omega_i) = mode_vec's 6-dof slice, each
+    top-face corner p moves as t_i + omega_i x (p - centroid_i) — the same
+    rigid-body kinematics as RigidPanel.get_interpolation_matrix. Arrow
+    lengths are scaled together (not individually normalized) so corners
+    far from the centroid, which feel more leverage from the rotational
+    part, still show up longer.
+
+    Parameters
+    ----------
+    ax       : Axes3D
+    system   : CouplingSystem
+    mode_vec : (total_dofs,) ndarray — e.g. from compute_lambda_min_eigenvector
+    scale    : on-screen length of the largest arrow, in model units
+    color    : arrow color
+    """
+    origins, vectors = [], []
+    for panel in system.panels:
+        i = panel.dof_start
+        t_i     = mode_vec[i:i+3]
+        omega_i = mode_vec[i+3:i+6]
+        for p in panel.vertices:
+            r = p - panel.centroid
+            origins.append(p)
+            vectors.append(t_i + np.cross(omega_i, r))
+
+    origins = np.array(origins)
+    vectors = np.array(vectors)
+    max_norm = np.linalg.norm(vectors, axis=1).max()
+    if max_norm < 1e-12:
+        return
+    vectors = vectors * (scale / max_norm)
+
+    ax.quiver(origins[:, 0], origins[:, 1], origins[:, 2],
+              vectors[:, 0], vectors[:, 1], vectors[:, 2],
+              color=color, linewidth=1.8, arrow_length_ratio=0.3)
+
+
 def draw_3d_config(ax, system, title='',
-                   show_normals=True, normal_scale=0.12):
+                   show_normals=True, normal_scale=0.12,
+                   show_lambda_min_mode=False, eigvec_scale=0.3):
     """
     Draw all panels and coupling contact points in 3-D.
 
     Parameters
     ----------
-    ax            : Axes3D
-    system        : CouplingSystem
-    title         : subplot title string
-    show_normals  : draw n1 / n2 arrows at each contact
-    normal_scale  : length of normal arrows in model units
+    ax                   : Axes3D
+    system               : CouplingSystem
+    title                : subplot title string
+    show_normals         : draw n1 / n2 arrows at each contact
+    normal_scale         : length of normal arrows in model units
+    show_lambda_min_mode : overlay corner arrows for the weakest
+                           constrained eigenmode of K = C^T C (see
+                           compute_lambda_min_eigenvector / draw_mode_arrows)
+    eigvec_scale         : on-screen length of the largest mode arrow
     """
     for panel in system.panels:
         color = PANEL_COLORS[panel.id % len(PANEL_COLORS)]
@@ -102,16 +174,27 @@ def draw_3d_config(ax, system, title='',
                       arrow_length_ratio=0.35,
                       length=normal_scale, normalize=True)
 
+    lam_min = None
+    if show_lambda_min_mode:
+        lam_min, vec = compute_lambda_min_eigenvector(system)
+        if vec is not None:
+            draw_mode_arrows(ax, system, vec, scale=eigvec_scale)
+
     _set_3d_axes(ax, system)
 
-    ax.legend(handles=[
+    legend_handles = [
         Line2D([0], [0], color=CONTACT_COLOR, marker='o',
                    linestyle='', label='Contact point'),
         Line2D([0], [0], color=N1_COLOR,
                    linewidth=2, label='n1'),
         Line2D([0], [0], color=N2_COLOR,
                    linewidth=2, label='n2'),
-    ], fontsize=7, loc='upper left')
+    ]
+    if lam_min is not None:
+        legend_handles.append(
+            Line2D([0], [0], color=EIGVEC_COLOR, linewidth=2,
+                   label=f'λ_min mode (λ={lam_min:.4f})'))
+    ax.legend(handles=legend_handles, fontsize=7, loc='upper left')
 
     ax.set_title(title, fontsize=9)
 
@@ -213,6 +296,44 @@ def draw_constraint_heatmap(ax, C, n_panels=2, title=''):
     ax.set_title(title,              fontsize=8)
 
     plt.colorbar(im, ax=ax, fraction=0.02, pad=0.01)
+
+
+def print_constraint_matrix(system, n_panels=None, title=''):
+    """
+    Console printout of C (constraint rows x DOFs) and K = CᵀC, the
+    rigidity matrix the optimizer's lambda_min is computed from.
+
+    Parameters
+    ----------
+    system   : CouplingSystem
+    n_panels : number of panels (for column labels); defaults to
+               len(system.panels)
+    title    : printed above the tables if given
+    """
+    n_panels = n_panels if n_panels is not None else len(system.panels)
+    dof_labels = [f'P{i}_{d}'
+                  for i in range(n_panels)
+                  for d in ['ux', 'uy', 'uz', 'ωx', 'ωy', 'ωz']]
+
+    C = system.build_constraint_matrix()
+
+    if title:
+        print(title)
+
+    print(f"C  ({C.shape[0]} constraint rows x {C.shape[1]} DOFs)")
+    header = " " * 6 + " ".join(f"{lbl:>8}" for lbl in dof_labels)
+    print(header)
+    for i, row in enumerate(C):
+        print(f"c{i:<4} " + " ".join(f"{v:8.3f}" for v in row))
+
+    K = (C.T @ C if C.shape[0] > 0
+         else np.zeros((system.total_dofs, system.total_dofs)))
+    rank = np.linalg.matrix_rank(C) if C.shape[0] > 0 else 0
+
+    print(f"\nK = CᵀC  ({K.shape[0]} x {K.shape[1]}, rank(C) = {rank})")
+    print(header)
+    for i, row in enumerate(K):
+        print(f"{dof_labels[i]:<6}" + " ".join(f"{v:8.3f}" for v in row))
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -362,9 +483,11 @@ def figure_optimization_result(system_before, system_after, result):
  
     # ── 3D configs ───────────────────────────────────────────────────
     draw_3d_config(ax_3d_before, system_before,
-                   title=f'Before  (λ_min = {result.lambda_min_initial:.4f})')
+                   title=f'Before  (λ_min = {result.lambda_min_initial:.4f})',
+                   show_lambda_min_mode=True)
     draw_3d_config(ax_3d_after,  system_after,
-                   title=f'After   (λ_min = {result.lambda_min:.4f})')
+                   title=f'After   (λ_min = {result.lambda_min:.4f})',
+                   show_lambda_min_mode=True)
  
     # ── Eigenvalue spectra overlaid ───────────────────────────────────
     def _eigs(system):

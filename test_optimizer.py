@@ -14,6 +14,7 @@ from visualization_rigid import (
     figure_optimization_result,
     figure_optimization_heatmaps,
     print_eigenmode_table,
+    print_constraint_matrix,
     figure_optimization_eigenmodes,
 )
 
@@ -309,6 +310,15 @@ print()
 print_eigenmode_table(system_before, title='Before optimization')
 print()
 print_eigenmode_table(system_after, title='After optimization')
+
+# ══════════════════════════════════════════════════════════════════════
+# RIGIDITY MATRIX — C and K = CᵀC at the optimal configuration
+# ══════════════════════════════════════════════════════════════════════
+print("\n" + "=" * 60)
+print("RIGIDITY MATRIX (K = C^T C used by the optimizer)")
+print("=" * 60)
+print()
+print_constraint_matrix(system_after, title='After optimization')
 
 figure_optimization_eigenmodes(
     system_before = system_before,
