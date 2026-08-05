@@ -52,6 +52,36 @@ def make_system(thetas=ARBITRARY_START_THETAS):
 
 
 # ══════════════════════════════════════════════════════════════════════
+# SECTION 0: n1 / n2 orthogonality
+# ══════════════════════════════════════════════════════════════════════
+print("=" * 60)
+print("SECTION 0: n1 . n2 orthogonality across theta")
+print("=" * 60)
+
+print("\nTest 0a: n1 . n2 == 0 for a fine sweep of theta")
+thetas_sweep = np.linspace(0, 2 * np.pi, 361)
+dots = []
+for th in thetas_sweep:
+    c = KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=th)
+    dots.append(np.dot(c.n1, c.n2))
+dots = np.array(dots)
+print(f"  max |n1 . n2| over sweep = {np.max(np.abs(dots)):.3e}")
+assert np.allclose(dots, 0., atol=1e-10), \
+    f"n1, n2 not orthogonal at some theta: max |dot| = {np.max(np.abs(dots)):.3e}"
+print("  n1, n2 orthogonal at every theta ✓")
+
+print("\nTest 0b: n1, n2 stay orthogonal (and unit norm) after set_theta() updates")
+c = KinematicCoupling(panel_A, panel_B, p1, face_normal, theta=0.)
+for th in thetas_sweep:
+    c.set_theta(th)
+    dot = np.dot(c.n1, c.n2)
+    assert abs(dot) < 1e-10, f"set_theta({th:.3f}) broke orthogonality: dot={dot:.3e}"
+    assert abs(np.linalg.norm(c.n1) - 1.) < 1e-12
+    assert abs(np.linalg.norm(c.n2) - 1.) < 1e-12
+print("  n1, n2 orthonormal after every set_theta() call ✓")
+
+
+# ══════════════════════════════════════════════════════════════════════
 # SECTION 1: Baseline checks before optimisation
 # ══════════════════════════════════════════════════════════════════════
 print("=" * 60)

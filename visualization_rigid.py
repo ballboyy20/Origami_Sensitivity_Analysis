@@ -92,12 +92,15 @@ def draw_3d_config(ax, system, title='',
                    zorder=5, depthshade=True)
 
         if show_normals:
-            ax.quiver(*p, *(coupling.n1 * normal_scale),
-                      color=N1_COLOR, linewidth=1.5,
-                      arrow_length_ratio=0.35)
-            ax.quiver(*p, *(coupling.n2 * normal_scale),
-                      color=N2_COLOR, linewidth=1.5,
-                      arrow_length_ratio=0.35)
+            # normalize=True + length=normal_scale draws both arrows at the
+            # same on-screen length regardless of any floating-point drift
+            # in |n1|, |n2| — so they always render as unit vectors.
+            ax.quiver(*p, *coupling.n1, color=N1_COLOR, linewidth=1.5,
+                      arrow_length_ratio=0.35,
+                      length=normal_scale, normalize=True)
+            ax.quiver(*p, *coupling.n2, color=N2_COLOR, linewidth=1.5,
+                      arrow_length_ratio=0.35,
+                      length=normal_scale, normalize=True)
 
     _set_3d_axes(ax, system)
 
@@ -123,6 +126,12 @@ def _set_3d_axes(ax, system):
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     ax.set_zlim(-t_max * 1.5, t_max * 1.5)
+    # Match the box aspect to the real data ranges — otherwise matplotlib
+    # stretches each axis to fill the same cube regardless of scale (Z here
+    # spans far less than X/Y), which distorts angles in the projection and
+    # makes orthogonal vectors (e.g. n1/n2) look skewed even though they
+    # aren't.
+    ax.set_box_aspect((xmax - xmin, ymax - ymin, 3 * t_max))
     ax.set_xlabel('X', fontsize=7)
     ax.set_ylabel('Y', fontsize=7)
     ax.set_zlabel('Z', fontsize=7)
