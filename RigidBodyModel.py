@@ -54,7 +54,7 @@ class KinematicCoupling:
         face_normal: (3,) unit vector normal to the mating face
                      (points from panel_B toward panel_A)
         theta:       groove rotation angle (radians) about face_normal,
-                     measured from +Y at theta=0
+                     measured from +Z at theta=0
         """
         self.panel_A    = panel_A
         self.panel_B    = panel_B
