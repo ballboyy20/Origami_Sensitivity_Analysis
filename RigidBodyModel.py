@@ -136,20 +136,40 @@ class CouplingSystem:
     def add_coupling(self, coupling):
         self.couplings.append(coupling)
     
-    def build_constraint_matrix(self):
+    def build_constraint_matrix(self, length_scale=1.0):
+        """
+        length_scale: reference length used to nondimensionalize rotational
+        DOFs against translational ones. Translation columns of C are unit
+        normal components (dimensionless); rotation columns are r x n
+        (physical length). Dividing the rotation columns by length_scale
+        makes the relative weighting between "a rotation" and "a
+        translation" in K = C^T C an explicit, user-chosen quantity instead
+        of an accident of whatever units the panel geometry happens to use.
+        This is an elementary column operation, so it cannot change rank(C).
+        """
+        if length_scale <= 0:
+            raise ValueError(f"length_scale must be positive, got {length_scale}")
+
         if not self.couplings:
             return np.zeros((0, self.total_dofs))
-        
+
         rows = []
         for c in self.couplings:
             if getattr(c, 'active', True):          # ← respect active flag
                 r1, r2 = c.get_constraint_rows(self.total_dofs)
                 rows.append(r1)
                 rows.append(r2)
-        return np.zeros((0, self.total_dofs)) if not rows else np.array(rows) 
-    
-    def get_rigidity_eigenvalue(self):
-        C = self.build_constraint_matrix()
+        C = np.zeros((0, self.total_dofs)) if not rows else np.array(rows)
+
+        if length_scale != 1.0 and C.shape[0] > 0:
+            for panel in self.panels:
+                i = panel.dof_start
+                C[:, i+3:i+6] /= length_scale
+
+        return C
+
+    def get_rigidity_eigenvalue(self, length_scale=1.0):
+        C = self.build_constraint_matrix(length_scale=length_scale)
         K = C.T @ C
         eigenvalues = np.linalg.eigvalsh(K)
         nonzero = eigenvalues[eigenvalues > 1e-10]

@@ -226,19 +226,22 @@ def _set_3d_axes(ax, system):
 # Eigenvalue spectrum
 # ══════════════════════════════════════════════════════════════════════
 
-def draw_eigenvalue_bar(ax, system, title='', tol=1e-9):
+def draw_eigenvalue_bar(ax, system, title='', tol=1e-9, length_scale=1.0):
     """
     Bar chart of eigenvalues of K = CᵀC.
     Constrained modes (λ > tol) in red, free modes in gray.
 
     Parameters
     ----------
-    ax     : Axes
-    system : CouplingSystem
-    title  : subplot title
-    tol    : threshold separating zero from nonzero eigenvalues
+    ax           : Axes
+    system       : CouplingSystem
+    title        : subplot title
+    tol          : threshold separating zero from nonzero eigenvalues
+    length_scale : reference length used to nondimensionalize rotational
+                   DOFs against translational ones (see
+                   CouplingSystem.build_constraint_matrix)
     """
-    C = system.build_constraint_matrix()
+    C = system.build_constraint_matrix(length_scale=length_scale)
     K = (C.T @ C if C.shape[0] > 0
          else np.zeros((system.total_dofs, system.total_dofs)))
 
