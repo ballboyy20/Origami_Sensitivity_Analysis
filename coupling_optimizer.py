@@ -27,9 +27,10 @@ whatever units the panel geometry happens to use, not a deliberate
 choice, and the optimum theta isn't scale-invariant.
 
 Optimization hierarchy (in order of implementation):
-    1. Groove angle theta        ← current: one float per coupling
-    2. Coupling on/off selection ← next: binary per coupling (active flag)
-    3. Contact location          ← last priority
+    1. Groove angle theta        ← done: one float per coupling
+    2. Coupling on/off selection ← done: greedy leave-one-out pruning,
+                                    see CouplingOptimizer.prune_couplings
+    3. Contact location          ← next priority
 """
 
 import numpy as np
@@ -97,6 +98,92 @@ class OptimizationResult:
         )
 
 
+class PruneStep:
+    """
+    One round of CouplingOptimizer.prune_couplings(): a full stage-1/2
+    theta optimization on the active set at the time, followed by
+    (usually) one coupling removal.
+
+    Attributes
+    ----------
+    n_active_before            : int — active coupling count entering
+                                  this round, before any removal
+    theta_result                : OptimizationResult — stage 1+2 outcome
+                                   for this round's active set (already
+                                   applied to the system)
+    removed_coupling             : KinematicCoupling or None — the
+                                    coupling deactivated at the end of
+                                    this round; None on the final round,
+                                    where nothing was removed
+    removed_was_second_choice    : bool — True if the second-least-
+                                    critical coupling was removed instead
+                                    of the least-critical one (see
+                                    second_choice_prob)
+    lambda_min_after_removal     : float or None — lambda_min of the
+                                    reduced active set, at this round's
+                                    thetas, immediately after removal
+                                    (before the next round's
+                                    reoptimization); None when nothing
+                                    was removed
+    log_product_after_removal    : float or None — log_product
+                                    counterpart to lambda_min_after_removal
+    """
+
+    def __init__(self, n_active_before, theta_result, removed_coupling,
+                 removed_was_second_choice, lambda_min_after_removal,
+                 log_product_after_removal):
+        self.n_active_before           = n_active_before
+        self.theta_result              = theta_result
+        self.removed_coupling          = removed_coupling
+        self.removed_was_second_choice = removed_was_second_choice
+        self.lambda_min_after_removal  = lambda_min_after_removal
+        self.log_product_after_removal = log_product_after_removal
+
+
+class PruneResult:
+    """
+    Full trajectory returned by CouplingOptimizer.prune_couplings().
+
+    Attributes
+    ----------
+    steps         : list[PruneStep], one per round, in order
+    stop_reason   : 'min_couplings_reached' — the active count hit
+                     min_couplings before any coupling became
+                     unremovable
+                    'rank_floor_reached' — no active coupling could be
+                     removed without dropping rank below target_rank,
+                     even though more than min_couplings were still
+                     active (can happen before the count-based floor —
+                     see prune_couplings' docstring)
+    min_couplings : int — the floor actually used (after defaulting)
+    """
+
+    def __init__(self, steps, stop_reason, min_couplings):
+        self.steps         = steps
+        self.stop_reason   = stop_reason
+        self.min_couplings = min_couplings
+
+    @property
+    def lambda_min_trajectory(self):
+        """[(n_active_couplings, lambda_min), ...], one entry per round,
+        for plotting stiffness vs. coupling count."""
+        return [(step.n_active_before, step.theta_result.lambda_min)
+                for step in self.steps]
+
+    def __repr__(self):
+        n_removed = sum(1 for s in self.steps if s.removed_coupling is not None)
+        final_n   = self.steps[-1].n_active_before   # last round removes nothing
+        return (
+            f"PruneResult(\n"
+            f"  rounds:        {len(self.steps)}\n"
+            f"  removed:       {n_removed}\n"
+            f"  final active:  {final_n}\n"
+            f"  stop_reason:   {self.stop_reason}\n"
+            f"  min_couplings: {self.min_couplings}\n"
+            f")"
+        )
+
+
 # ══════════════════════════════════════════════════════════════════════
 # Optimizer
 # ══════════════════════════════════════════════════════════════════════
@@ -148,14 +235,18 @@ class CouplingOptimizer:
     n_solutions times to surface distinct near-optimal designs rather
     than whichever one the search happened to land on first.
 
-    Future extension
-    ----------------
-    Greedy on/off selection uses the same _locked_eigenvalues()
-    infrastructure — just toggle coupling.active and re-optimise theta.
-    Note two panels need at least 3 active couplings to reach full rank
-    at all (2 couplings contribute at most 4 constraint rows, capping
-    rank(C) <= 4 < target_rank=6), so the greedy search must not prune
-    below that floor.
+    Stage 3 (greedy on/off selection)
+    ----------------------------------
+    prune_couplings() reuses this same _locked_eigenvalues() /
+    lambda_min / log_product infrastructure: each round runs stages 1+2
+    to convergence, then a leave-one-out pass toggles each active
+    coupling.active off in turn to measure its individual contribution,
+    and deactivates the least-critical one (occasionally the second-
+    least, for variety) before the next round re-optimises theta on the
+    smaller active set. E.g. two panels need at least 3 active couplings
+    to reach full rank at all (2 couplings contribute at most 4
+    constraint rows, capping rank(C) <= 4 < target_rank=6) — the
+    structural floor prune_couplings() computes and never prunes below.
     """
 
     def __init__(self, system, target_rank=None, length_scale=1.0):
@@ -318,12 +409,163 @@ class CouplingOptimizer:
         lp = self._compute_log_product(thetas)
         return lp if lp is not None else float('-inf')
 
+    def prune_couplings(self, min_couplings=None, second_choice_prob=0.15,
+                         rng_seed=123, theta_seed=42, tol=1e-8,
+                         maxiter=1000, n_solutions=1):
+        """
+        Stage 3: greedily deactivate couplings, re-optimizing theta after
+        each removal, until a minimum active-coupling floor is reached.
+
+        Each round runs the full stage-1/2 search (optimize_theta) on the
+        current active set, applies the best candidate, then measures
+        every active coupling's contribution to stiffness by leave-one-
+        out at those same thetas (no re-optimization per candidate — see
+        _removal_candidates) and deactivates whichever coupling's removal
+        would hurt lambda_min/log_product least, i.e. contributes least.
+        With probability second_choice_prob, the second-least-critical
+        coupling is deactivated instead, for variety across runs.
+
+        A coupling is only a removal candidate if the system without it
+        still reaches target_rank. Once no active coupling qualifies —
+        which can happen strictly before the active count reaches
+        min_couplings, e.g. if pruning has stripped every coupling off
+        one shared edge — the search stops even though min_couplings
+        hasn't been reached. See PruneResult.stop_reason.
+
+        Parameters
+        ----------
+        min_couplings : int or None
+            Stop once the active count is <= this. Defaults to
+            ceil(target_rank / 2) — the theoretical minimum coupling
+            count able to reach target_rank at all (2 constraint rows
+            per coupling). Raises ValueError if given a value below that
+            floor.
+        second_choice_prob : float
+            Probability in [0, 1] of removing the second-least-critical
+            coupling instead of the least-critical one. 0 always removes
+            the strict worst; 1 always removes the second-worst (only
+            meaningful with >= 2 removal candidates).
+        rng_seed : int
+            Seeds the removal-choice randomness (numpy Generator),
+            independent of theta_seed, so the same prune trajectory is
+            reproducible.
+        theta_seed, tol, maxiter, n_solutions
+            Forwarded to optimize_theta() every round (differential
+            evolution only — this method always uses that method, since
+            stage 3 depends on stage 2's tie-breaking).
+
+        Returns
+        -------
+        PruneResult
+        """
+        structural_floor = int(np.ceil(self.target_rank / 2))
+        if min_couplings is None:
+            min_couplings = structural_floor
+        elif min_couplings < structural_floor:
+            raise ValueError(
+                f"min_couplings={min_couplings} is below the structural "
+                f"floor ceil(target_rank/2)={structural_floor} — fewer "
+                f"couplings than that can never reach target_rank="
+                f"{self.target_rank} (2 rows per coupling).")
+
+        rng = np.random.default_rng(rng_seed)
+        steps = []
+
+        while True:
+            results = self.optimize_theta(
+                method='differential_evolution', seed=theta_seed,
+                tol=tol, maxiter=maxiter, n_solutions=n_solutions)
+            best = results[0]
+            self.apply_result(best)
+
+            n_active = len(self._active_couplings())
+
+            if n_active <= min_couplings:
+                steps.append(PruneStep(n_active, best, None, False, None, None))
+                return PruneResult(steps, 'min_couplings_reached', min_couplings)
+
+            candidates = self._removal_candidates()
+            if not candidates:
+                steps.append(PruneStep(n_active, best, None, False, None, None))
+                return PruneResult(steps, 'rank_floor_reached', min_couplings)
+
+            (chosen, lam_after, logp_after), was_second = self._select_removal(
+                candidates, rng, second_choice_prob)
+            chosen.active = False
+
+            steps.append(PruneStep(
+                n_active, best, chosen, was_second, lam_after, logp_after))
+
     # ── Private helpers ────────────────────────────────────────────────
 
     def _active_couplings(self):
         """Return couplings with active=True (default True if unset)."""
         return [c for c in self.system.couplings
                 if getattr(c, 'active', True)]
+
+    def _removal_candidates(self):
+        """
+        Leave-one-out stiffness impact of removing each currently active
+        coupling, at each coupling's own current theta (no
+        re-optimization — that happens at the start of the next
+        prune_couplings() round via optimize_theta).
+
+        Returns
+        -------
+        list of (coupling, lambda_min_without, log_product_without)
+        — one entry per active coupling whose removal keeps rank(C) >=
+        target_rank. Couplings whose removal would make the system
+        rank-deficient are omitted entirely (not real candidates this
+        round).
+        """
+        candidates = []
+        for coupling in self._active_couplings():
+            coupling.active = False
+            remaining = self._active_couplings()
+            remaining_thetas = np.array([c.theta for c in remaining])
+            _, locked = self._locked_eigenvalues(remaining_thetas)
+            coupling.active = True
+
+            if locked is None:
+                continue   # removing this coupling loses rank — not removable
+
+            lam  = float(locked[0])
+            logp = float(np.sum(np.log(np.maximum(locked, self._log_floor(locked)))))
+            candidates.append((coupling, lam, logp))
+
+        return candidates
+
+    @staticmethod
+    def _select_removal(candidates, rng, second_choice_prob):
+        """
+        Pick which removal candidate to actually deactivate.
+
+        Ranks candidates descending by (lambda_min_without,
+        log_product_without) — the same lexicographic priority stage 1/2
+        already use — so the top-ranked candidate is the coupling whose
+        removal hurts stiffness least, i.e. contributes least. Usually
+        that one is chosen; with probability second_choice_prob the
+        second-ranked candidate is chosen instead (only possible with
+        >= 2 candidates), so pruning doesn't always walk the single
+        greedy path.
+
+        Parameters
+        ----------
+        candidates          : list of (coupling, lambda_min_without,
+                               log_product_without), as returned by
+                               _removal_candidates() — must be non-empty
+        rng                 : numpy.random.Generator
+        second_choice_prob  : float in [0, 1]
+
+        Returns
+        -------
+        (chosen_candidate, was_second_choice)
+        """
+        ranked = sorted(candidates, key=lambda item: (item[1], item[2]),
+                        reverse=True)
+        if len(ranked) >= 2 and rng.random() < second_choice_prob:
+            return ranked[1], True
+        return ranked[0], False
 
     def _locked_eigenvalues(self, thetas):
         """

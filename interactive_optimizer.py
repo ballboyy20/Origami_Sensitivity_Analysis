@@ -279,6 +279,20 @@ class RigidityExplorer:
         self.update()
         self.figure.canvas.draw_idle()
 
+    def _eigenvalue_axis_ceiling(self, system):
+        """Eigenvalue upper bound at the length_scale slider's minimum
+        value (where rotational-DOF eigenvalues are most amplified — see
+        CouplingSystem.build_constraint_matrix). Used as a fixed y-axis
+        ceiling for the eigenvalue spectrum plot so dragging the
+        length_scale slider changes bar heights within a stable frame
+        instead of visibly resizing the whole plot on every step.
+        Recomputed from the current system/thetas, so it still updates
+        correctly when thetas or panel configuration change."""
+        C = system.build_constraint_matrix(length_scale=self.length_scale_slider.valmin)
+        if C.shape[0] == 0:
+            return 1.0
+        return max(1e-6, float(np.max(np.linalg.eigvalsh(C.T @ C))) * 1.05)
+
     def update(self, _value=None):
         system, length_scale = self._build_current_system()
         C = system.build_constraint_matrix(length_scale=length_scale)
@@ -293,6 +307,7 @@ class RigidityExplorer:
             title=f"Eigenvalue spectrum  (L={length_scale:.2f})",
             length_scale=length_scale,
         )
+        self.ax_eig.set_ylim(0, self._eigenvalue_axis_ceiling(system))
 
         self.ax_matrix.clear()
         if self._matrix_cbar_ax is not None:
