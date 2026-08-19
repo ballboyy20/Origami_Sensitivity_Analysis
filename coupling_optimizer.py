@@ -411,7 +411,7 @@ class CouplingOptimizer:
 
     def prune_couplings(self, min_couplings=None, second_choice_prob=0.15,
                          rng_seed=123, theta_seed=42, tol=1e-8,
-                         maxiter=1000, n_solutions=1):
+                         maxiter=1000, n_solutions=1, max_retries=5):
         """
         Stage 3: greedily deactivate couplings, re-optimizing theta after
         each removal, until a minimum active-coupling floor is reached.
@@ -453,6 +453,17 @@ class CouplingOptimizer:
             Forwarded to optimize_theta() every round (differential
             evolution only — this method always uses that method, since
             stage 3 depends on stage 2's tie-breaking).
+        max_retries : int
+            optimize_theta() occasionally raises RuntimeError when stage
+            2 fails to clear its tight (1e-7-relative) feasibility bar
+            against stage 1's optimum on an unlucky seed — a known,
+            already-documented characteristic of that method (see its
+            docstring and test_optimizer.py's Test 2e, which tolerates
+            the same thing for a single call). A multi-round
+            prune_couplings() run has far more progress to lose to one
+            bad round than a single optimize_theta() call does, so each
+            round retries up to max_retries times with theta_seed offset
+            by 1000 * attempt before giving up and re-raising.
 
         Returns
         -------
@@ -472,9 +483,8 @@ class CouplingOptimizer:
         steps = []
 
         while True:
-            results = self.optimize_theta(
-                method='differential_evolution', seed=theta_seed,
-                tol=tol, maxiter=maxiter, n_solutions=n_solutions)
+            results = self._optimize_theta_with_retries(
+                theta_seed, tol, maxiter, n_solutions, max_retries)
             best = results[0]
             self.apply_result(best)
 
@@ -497,6 +507,24 @@ class CouplingOptimizer:
                 n_active, best, chosen, was_second, lam_after, logp_after))
 
     # ── Private helpers ────────────────────────────────────────────────
+
+    def _optimize_theta_with_retries(self, theta_seed, tol, maxiter,
+                                      n_solutions, max_retries):
+        """optimize_theta(), retried with theta_seed + 1000*attempt on
+        RuntimeError — see prune_couplings' max_retries docstring."""
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                return self.optimize_theta(
+                    method='differential_evolution',
+                    seed=theta_seed + 1000 * attempt,
+                    tol=tol, maxiter=maxiter, n_solutions=n_solutions)
+            except RuntimeError as e:
+                last_error = e
+        raise RuntimeError(
+            f"optimize_theta() failed to converge in {max_retries} "
+            f"attempt(s) (seeds {theta_seed}, {theta_seed + 1000}, ...): "
+            f"{last_error}")
 
     def _active_couplings(self):
         """Return couplings with active=True (default True if unset)."""
