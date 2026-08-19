@@ -15,7 +15,11 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from coupling_optimizer  import CouplingOptimizer
-from interactive_optimizer import build_birdsfoot_system, BIRDSFOOT_START_THETAS_DEG
+from interactive_optimizer import (
+    build_birdsfoot_system, BIRDSFOOT_START_THETAS_DEG, birdsfoot_spoke_name)
+from visualization_rigid import draw_3d_config, draw_eigenvalue_bar
+
+RESULT_LOG_PATH = os.path.join(os.path.dirname(__file__), 'prune_couplings_result.txt')
 
 # Reduced maxiter vs. the library default (1000) — prune_couplings() runs a
 # full stage-1/2 DE search every round, and this script runs several full
@@ -42,6 +46,10 @@ def fresh_optimizer():
 print("=" * 60)
 print("SECTION 1: prune_couplings() basic trajectory")
 print("=" * 60)
+
+# Kept separate from opt.system (which prune_couplings mutates in place)
+# so the "before" state stays available for a before/after comparison.
+system_before = build_birdsfoot_system(np.array(BIRDSFOOT_START_THETAS_DEG))
 
 opt = fresh_optimizer()
 structural_floor = int(np.ceil(opt.target_rank / 2))
@@ -123,8 +131,61 @@ print("  removal choices diverge between second_choice_prob=0 and =1 ✓")
 
 
 # ══════════════════════════════════════════════════════════════════════
-# FIGURE: pruning trajectory — stiffness vs. active coupling count
+# REPORT: which couplings got removed, round by round — printed AND
+# saved to RESULT_LOG_PATH so this doesn't have to be re-derived from
+# terminal scrollback (or a re-run) later.
 # ══════════════════════════════════════════════════════════════════════
+def build_removal_report(prune_result):
+    lines = [
+        "Coupling pruning report (birds-foot)",
+        "=" * 78,
+        f"stop_reason:   {prune_result.stop_reason}",
+        f"min_couplings: {prune_result.min_couplings}",
+        "",
+    ]
+    header = (f"{'Round':>5}  {'Active->':>8}  {'Spoke':>5}  "
+              f"{'Removed point (x,y,z)':>26}  {'theta(deg)':>10}  "
+              f"{'2nd choice':>10}  {'lambda_min after':>16}  {'log_prod after':>14}")
+    lines.append(header)
+    lines.append("-" * len(header))
+    for i, step in enumerate(prune_result.steps):
+        if step.removed_coupling is None:
+            lines.append(f"{i:>5}  {step.n_active_before:>8}  "
+                         f"(final round — nothing removed, search stopped)")
+            continue
+        c     = step.removed_coupling
+        spoke = birdsfoot_spoke_name(c)
+        pt    = tuple(np.round(c.point, 4))
+        lines.append(
+            f"{i:>5}  {step.n_active_before:>8}  {spoke:>5}  {str(pt):>26}  "
+            f"{np.degrees(c.theta):>10.2f}  {str(step.removed_was_second_choice):>10}  "
+            f"{step.lambda_min_after_removal:>16.6f}  {step.log_product_after_removal:>14.6f}")
+
+    lines.append("")
+    lines.append("Final active couplings per spoke:")
+    active_by_spoke = {}
+    for c in opt.system.couplings:
+        if getattr(c, 'active', True):
+            active_by_spoke.setdefault(birdsfoot_spoke_name(c), []).append(c)
+    for spoke_name in ('O-M', 'O-B', 'O-N', 'O-A'):
+        n = len(active_by_spoke.get(spoke_name, []))
+        lines.append(f"  {spoke_name}: {n} active")
+
+    return "\n".join(lines)
+
+
+report_text = build_removal_report(result)
+print("\n" + report_text)
+with open(RESULT_LOG_PATH, "w", encoding="utf-8") as f:
+    f.write(report_text + "\n")
+print(f"\n(saved to {RESULT_LOG_PATH})")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# FIGURES
+# ══════════════════════════════════════════════════════════════════════
+
+# -- Trajectory: stiffness vs. active coupling count ---------------------
 lambda_traj = result.lambda_min_trajectory
 counts_plot = [c for c, _ in lambda_traj]
 lam_plot    = [lam for _, lam in lambda_traj]
@@ -147,6 +208,28 @@ axes[1].set_ylabel('log_product')
 axes[1].set_title('Overall stiffness proxy vs. coupling count')
 axes[1].grid(True, alpha=0.3)
 
+plt.tight_layout()
+plt.show()
+
+# -- Before vs. after 3-D configuration -----------------------------------
+final_active = result.steps[-1].n_active_before
+fig2 = plt.figure(figsize=(14, 7))
+fig2.suptitle('Birds-foot configuration: before vs. after pruning', fontweight='bold')
+ax_before = fig2.add_subplot(1, 2, 1, projection='3d')
+ax_after  = fig2.add_subplot(1, 2, 2, projection='3d')
+draw_3d_config(ax_before, system_before,
+              title=f'Before pruning ({len(system_before.couplings)} couplings, all active)')
+draw_3d_config(ax_after, opt.system,
+              title=f'After pruning ({final_active} active, '
+                    f'{len(opt.system.couplings) - final_active} removed)')
+plt.tight_layout()
+plt.show()
+
+# -- Before vs. after eigenvalue spectrum ----------------------------------
+fig3, axes3 = plt.subplots(1, 2, figsize=(12, 5))
+fig3.suptitle('Eigenvalue spectrum: before vs. after pruning', fontweight='bold')
+draw_eigenvalue_bar(axes3[0], system_before, title='Before pruning')
+draw_eigenvalue_bar(axes3[1], opt.system, title='After pruning')
 plt.tight_layout()
 plt.show()
 

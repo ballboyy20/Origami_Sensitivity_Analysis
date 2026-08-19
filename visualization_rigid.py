@@ -25,6 +25,7 @@ BISECT_COLOR  = 'gray'
 CONSTRAINED   = '#E74C3C'
 FREE_MODE     = '#BDC3C7'
 EIGVEC_COLOR  = '#8E44AD'
+REMOVED_COLOR = '#95A5A6'
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -158,8 +159,20 @@ def draw_3d_config(ax, system, title='',
         color = PANEL_COLORS[panel.id % len(PANEL_COLORS)]
         draw_panel_box(ax, panel, color=color)
 
+    any_removed = False
     for coupling in system.couplings:
         p = coupling.point
+        if not getattr(coupling, 'active', True):
+            # Deactivated coupling (e.g. by CouplingOptimizer.prune_couplings)
+            # — mark its former contact point distinctly instead of just
+            # dropping it silently, so a pruned system's figure still shows
+            # where couplings used to be. No normals: an inactive coupling
+            # contributes no constraint rows, so n1/n2 aren't meaningful.
+            any_removed = True
+            ax.scatter(*p, color=REMOVED_COLOR, s=40, marker='x',
+                       linewidth=1.5, zorder=4, depthshade=True)
+            continue
+
         ax.scatter(*p, color=CONTACT_COLOR, s=50,
                    zorder=5, depthshade=True)
 
@@ -190,6 +203,10 @@ def draw_3d_config(ax, system, title='',
         Line2D([0], [0], color=N2_COLOR,
                    linewidth=2, label='n2'),
     ]
+    if any_removed:
+        legend_handles.append(
+            Line2D([0], [0], color=REMOVED_COLOR, marker='x',
+                       linestyle='', label='Removed coupling'))
     if lam_min is not None:
         legend_handles.append(
             Line2D([0], [0], color=EIGVEC_COLOR, linewidth=2,

@@ -111,6 +111,21 @@ BIRDSFOOT_START_THETAS_DEG = (
     35.0, 108.0, 155.0,    # spoke 3 (O-A)
 )
 
+# Human-readable spoke name for a coupling, keyed by its two panel ids —
+# lets callers (e.g. a pruning report) say "removed from spoke O-B"
+# instead of "removed from panels (1, 2)".
+BIRDSFOOT_SPOKE_NAMES = {
+    frozenset({birdsfoot_panel_0.id, birdsfoot_panel_1.id}): 'O-M',
+    frozenset({birdsfoot_panel_1.id, birdsfoot_panel_2.id}): 'O-B',
+    frozenset({birdsfoot_panel_2.id, birdsfoot_panel_3.id}): 'O-N',
+    frozenset({birdsfoot_panel_3.id, birdsfoot_panel_0.id}): 'O-A',
+}
+
+
+def birdsfoot_spoke_name(coupling):
+    """Spoke name ('O-M', 'O-B', 'O-N', or 'O-A') a coupling belongs to."""
+    return BIRDSFOOT_SPOKE_NAMES[frozenset({coupling.panel_A.id, coupling.panel_B.id})]
+
 
 def _spoke_face_normal(far_point, panel_A, panel_B):
     """In-plane normal perpendicular to the O->far_point spoke, pointing
