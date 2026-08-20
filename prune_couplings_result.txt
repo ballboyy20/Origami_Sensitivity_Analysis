@@ -1,0 +1,17 @@
+Coupling pruning report (birds-foot)
+==============================================================================
+stop_reason:   min_couplings_reached
+min_couplings: 9
+
+Round  Active->  Spoke       Removed point (x,y,z)  theta(deg)  2nd choice  lambda_min after  log_prod after
+------------------------------------------------------------------------------------------------------------
+    0        12    O-B             (0.6, 0.4, 0.0)       78.37       False          0.013307       -9.522552
+    1        11    O-N             (0.5, 0.6, 0.0)      117.29        True          0.009109      -15.814807
+    2        10    O-N           (0.5, 0.75, -0.1)       90.62       False          0.003242      -18.626555
+    3         9  (final round — nothing removed, search stopped)
+
+Final active couplings per spoke:
+  O-M: 3 active
+  O-B: 2 active
+  O-N: 1 active
+  O-A: 3 active
