@@ -19,7 +19,9 @@ from interactive_optimizer import (
     build_birdsfoot_system, BIRDSFOOT_START_THETAS_DEG, birdsfoot_spoke_name)
 from visualization_rigid import draw_3d_config, draw_eigenvalue_bar
 
-RESULT_LOG_PATH = os.path.join(os.path.dirname(__file__), 'prune_couplings_result.txt')
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
+RESULT_LOG_PATH = os.path.join(RESULTS_DIR, 'prune_couplings_result.txt')
 
 # Reduced maxiter vs. the library default (1000) — prune_couplings() runs a
 # full stage-1/2 DE search every round, and this script runs several full
@@ -209,7 +211,7 @@ axes[1].set_title('Overall stiffness proxy vs. coupling count')
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
-fig.savefig(os.path.join(os.path.dirname(__file__), 'prune_trajectory.png'), dpi=150)
+fig.savefig(os.path.join(RESULTS_DIR, 'prune_trajectory.png'), dpi=150)
 plt.show()
 
 # -- Before vs. after 3-D configuration -----------------------------------
@@ -224,7 +226,7 @@ draw_3d_config(ax_after, opt.system,
               title=f'After pruning ({final_active} active, '
                     f'{len(opt.system.couplings) - final_active} removed)')
 plt.tight_layout()
-fig2.savefig(os.path.join(os.path.dirname(__file__), 'prune_before_after_3d.png'), dpi=150)
+fig2.savefig(os.path.join(RESULTS_DIR, 'prune_before_after_3d.png'), dpi=150)
 plt.show()
 
 # -- Before vs. after eigenvalue spectrum ----------------------------------
@@ -233,12 +235,12 @@ fig3.suptitle('Eigenvalue spectrum: before vs. after pruning', fontweight='bold'
 draw_eigenvalue_bar(axes3[0], system_before, title='Before pruning')
 draw_eigenvalue_bar(axes3[1], opt.system, title='After pruning')
 plt.tight_layout()
-fig3.savefig(os.path.join(os.path.dirname(__file__), 'prune_before_after_eigs.png'), dpi=150)
+fig3.savefig(os.path.join(RESULTS_DIR, 'prune_before_after_eigs.png'), dpi=150)
 plt.show()
 
 print("\nFigures saved:")
-print(f"  {os.path.join(os.path.dirname(__file__), 'prune_trajectory.png')}")
-print(f"  {os.path.join(os.path.dirname(__file__), 'prune_before_after_3d.png')}")
-print(f"  {os.path.join(os.path.dirname(__file__), 'prune_before_after_eigs.png')}")
+print(f"  {os.path.join(RESULTS_DIR, 'prune_trajectory.png')}")
+print(f"  {os.path.join(RESULTS_DIR, 'prune_before_after_3d.png')}")
+print(f"  {os.path.join(RESULTS_DIR, 'prune_before_after_eigs.png')}")
 
 print("\n✓ All tests passed.")

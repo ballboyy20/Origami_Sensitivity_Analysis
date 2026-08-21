@@ -23,9 +23,11 @@ from visualization_rigid import draw_3d_config
 FAST_KW = dict(maxiter=300, n_solutions=2)
 SPOKE_NAMES = ('O-M', 'O-B', 'O-N', 'O-A')
 
-RESULT_LOG_PATH = os.path.join(os.path.dirname(__file__), 'prune_baseline_comparison.txt')
-FIG_PATH        = os.path.join(os.path.dirname(__file__), 'prune_baseline_comparison.png')
-CONFIG_FIG_PATH = os.path.join(os.path.dirname(__file__), 'prune_baseline_configs.png')
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
+os.makedirs(RESULTS_DIR, exist_ok=True)
+RESULT_LOG_PATH = os.path.join(RESULTS_DIR, 'prune_baseline_comparison.txt')
+FIG_PATH        = os.path.join(RESULTS_DIR, 'prune_baseline_comparison.png')
+CONFIG_FIG_PATH = os.path.join(RESULTS_DIR, 'prune_baseline_configs.png')
 
 
 def build_baseline_system(removed_spoke):
