@@ -282,6 +282,7 @@ class CouplingOptimizer:
                               else system.total_dofs - 6)
         self.length_scale = length_scale
         self._threshold    = float('-inf')  # set for real before stage 2 runs
+        self._use_periodic = True           # set for real in optimize_theta()
         self._history       = {'thetas': [], 'lambda_min': [], 'log_product': []}
 
     # ── Public API ─────────────────────────────────────────────────────
@@ -313,9 +314,21 @@ class CouplingOptimizer:
                                       uniformity with the DE branch.
         bounds : list of (lo, hi) or None
             Per-coupling angle bounds in radians.
-            Default: (0, pi) — one full period of V-groove symmetry.
-            theta and theta+pi produce identical n1, n2 (normals swap),
-            so [0, pi] covers all distinct configurations.
+            Default None: search isn't done over raw theta at all — each
+            coupling's theta is reparametrized as a periodic embedding
+            (cos(2*theta), sin(2*theta)), searched unconstrained over a
+            box with no edge corresponding to any physically special
+            angle. See _decode_thetas' docstring for why: raw theta
+            bounded to (0, pi) — one full period of V-groove symmetry,
+            since theta and theta+pi produce identical n1, n2 — puts a
+            hard wall exactly at those two physically-identical edges,
+            and both differential_evolution's polish step and
+            Nelder-Mead's bounded simplex were observed pinning results
+            there (e.g. thetas of 0.39 deg and 179.83 deg in the same
+            result). Passing explicit bounds here opts back into the old
+            direct-theta search (no periodic embedding) over exactly the
+            given range — use this if you need to restrict the search to
+            a sub-range for physical/hardware reasons.
         seed : int
             Random seed for stage 1, and the base seed for stage 2 (each
             of the n_solutions stage-2 runs uses seed + 101*run).
@@ -347,6 +360,9 @@ class CouplingOptimizer:
         if n == 0:
             raise ValueError("No active couplings to optimise.")
 
+        # Engage the periodic embedding only when the caller hasn't asked
+        # for a specific theta sub-range — see bounds' docstring above.
+        use_periodic = bounds is None
         if bounds is None:
             bounds = [(0., np.pi)] * n
 
@@ -362,11 +378,11 @@ class CouplingOptimizer:
 
         if method == 'differential_evolution':
             return self._optimize_two_stage(
-                bounds, seed, tol, maxiter, n_solutions,
+                bounds, use_periodic, seed, tol, maxiter, n_solutions,
                 lambda_min_initial, log_product_initial)
         elif method == 'nelder_mead':
             return self._optimize_nelder_mead(
-                thetas_initial, bounds, tol, maxiter,
+                thetas_initial, bounds, use_periodic, tol, maxiter,
                 lambda_min_initial, log_product_initial)
         else:
             raise ValueError(
@@ -411,7 +427,9 @@ class CouplingOptimizer:
 
     def prune_couplings(self, min_couplings=None, second_choice_prob=0.15,
                          rng_seed=123, theta_seed=42, tol=1e-8,
-                         maxiter=1000, n_solutions=1, max_retries=5):
+                         maxiter=1000, n_solutions=1, max_retries=5,
+                         final_maxiter=None, final_n_solutions=None,
+                         final_nelder_mead_polish=True):
         """
         Stage 3: greedily deactivate couplings, re-optimizing theta after
         each removal, until a minimum active-coupling floor is reached.
@@ -431,6 +449,15 @@ class CouplingOptimizer:
         min_couplings, e.g. if pruning has stripped every coupling off
         one shared edge — the search stops even though min_couplings
         hasn't been reached. See PruneResult.stop_reason.
+
+        Once stopped (either reason), one further, higher-effort
+        optimization pass runs on the final active set before returning
+        — see final_maxiter/final_n_solutions/final_nelder_mead_polish.
+        Every other round's result is partly disposable (its only job is
+        picking which coupling to remove next); the final one is what
+        actually gets reported and used, so it's worth spending more
+        search budget on just that one rather than reusing the same
+        per-round settings throughout.
 
         Parameters
         ----------
@@ -464,6 +491,21 @@ class CouplingOptimizer:
             bad round than a single optimize_theta() call does, so each
             round retries up to max_retries times with theta_seed offset
             by 1000 * attempt before giving up and re-raising.
+        final_maxiter, final_n_solutions : int or None
+            maxiter/n_solutions for the one final polish pass, once
+            stopped. Default (None) to max(4*maxiter, 2000) and
+            max(3, 2*n_solutions) respectively — comfortably more search
+            budget than a per-round pass, since this is the only result
+            that's actually kept.
+        final_nelder_mead_polish : bool
+            After the final differential_evolution pass, also try a
+            nelder_mead polish warm-started from its result (nelder_mead
+            reads the couplings' current theta as its starting point, so
+            this just works once that DE result has been applied). Kept
+            only if it's at least as good (lambda_min first, log_product
+            to break ties) — nelder_mead is a local search and can
+            converge somewhere worse, so this is a strict "only if it
+            helps" comparison, not an unconditional swap.
 
         Returns
         -------
@@ -479,6 +521,11 @@ class CouplingOptimizer:
                 f"couplings than that can never reach target_rank="
                 f"{self.target_rank} (2 rows per coupling).")
 
+        if final_maxiter is None:
+            final_maxiter = max(4 * maxiter, 2000)
+        if final_n_solutions is None:
+            final_n_solutions = max(3, 2 * n_solutions)
+
         rng = np.random.default_rng(rng_seed)
         steps = []
 
@@ -490,14 +537,21 @@ class CouplingOptimizer:
 
             n_active = len(self._active_couplings())
 
+            stop_reason = None
+            candidates  = None
             if n_active <= min_couplings:
-                steps.append(PruneStep(n_active, best, None, False, None, None))
-                return PruneResult(steps, 'min_couplings_reached', min_couplings)
+                stop_reason = 'min_couplings_reached'
+            else:
+                candidates = self._removal_candidates()
+                if not candidates:
+                    stop_reason = 'rank_floor_reached'
 
-            candidates = self._removal_candidates()
-            if not candidates:
+            if stop_reason is not None:
+                best = self._final_polish(
+                    theta_seed, tol, final_maxiter, final_n_solutions,
+                    max_retries, final_nelder_mead_polish)
                 steps.append(PruneStep(n_active, best, None, False, None, None))
-                return PruneResult(steps, 'rank_floor_reached', min_couplings)
+                return PruneResult(steps, stop_reason, min_couplings)
 
             (chosen, lam_after, logp_after), was_second = self._select_removal(
                 candidates, rng, second_choice_prob)
@@ -526,10 +580,80 @@ class CouplingOptimizer:
             f"attempt(s) (seeds {theta_seed}, {theta_seed + 1000}, ...): "
             f"{last_error}")
 
+    def _final_polish(self, theta_seed, tol, final_maxiter, final_n_solutions,
+                       max_retries, try_nelder_mead):
+        """
+        One higher-effort optimize_theta() pass for prune_couplings()'
+        final active set, optionally followed by a nelder_mead polish —
+        see prune_couplings' docstring for why this is worth doing
+        separately from the per-round searches.
+        """
+        de_results = self._optimize_theta_with_retries(
+            theta_seed, tol, final_maxiter, final_n_solutions, max_retries)
+        best = de_results[0]
+        self.apply_result(best)
+
+        if try_nelder_mead:
+            nm_best = self.optimize_theta(
+                method='nelder_mead', tol=tol, maxiter=final_maxiter)[0]
+            improves = (
+                nm_best.lambda_min > best.lambda_min + 1e-12 or
+                (abs(nm_best.lambda_min - best.lambda_min) <= 1e-9
+                 and nm_best.log_product > best.log_product))
+            if improves:
+                best = nm_best
+            self.apply_result(best)  # re-apply the actual winner — nelder_mead's
+                                      # own search leaves the system at ITS last
+                                      # evaluated point as a side effect, which
+                                      # isn't necessarily the winner if DE's
+                                      # result was kept instead
+
+        return best
+
     def _active_couplings(self):
         """Return couplings with active=True (default True if unset)."""
         return [c for c in self.system.couplings
                 if getattr(c, 'active', True)]
+
+    @staticmethod
+    def _encode_thetas(thetas):
+        """
+        theta (n,) -> embedded (2n,): [cos(2*th_0), sin(2*th_0), ...].
+
+        Pairs with _decode_thetas — see that method's docstring for why
+        this embedding, not raw theta, is what differential_evolution and
+        nelder_mead actually search over by default.
+        """
+        thetas = np.asarray(thetas, dtype=float)
+        return np.column_stack([np.cos(2. * thetas), np.sin(2. * thetas)]).ravel()
+
+    @staticmethod
+    def _decode_thetas(x):
+        """
+        Embedded (2n,) -> theta (n,) in [0, pi).
+
+        theta = 0.5 * atan2(b, a), where (a, b) are consecutive pairs in
+        x. Only the ANGLE of (a, b) matters, never its magnitude — so
+        (a, b) doesn't need to lie on the unit circle, and the search box
+        differential_evolution explores it in has no edge that
+        corresponds to any physically special theta (unlike raw theta
+        bounded to [0, pi], whose two edges are exactly the same physical
+        groove and where DE's polish step and Nelder-Mead's bounded
+        simplex both got observed pinning solutions to the wall — see
+        optimize_theta's docstring). The only degenerate point is
+        (0, 0) (atan2(0,0) = 0 by convention) — measure zero in the
+        search box, not a wall a search can get stuck against.
+
+        Result is taken mod pi so it lands in the same [0, pi) range
+        optimize_theta has always returned (theta and theta+pi are the
+        same physical groove — n1/n2 swap, K = C^T C is unchanged, see
+        the class docstring) — this keeps every existing caller
+        (apply_result, the GUI's [0, 180] degree sliders, reports) working
+        unchanged.
+        """
+        x = np.asarray(x, dtype=float).reshape(-1, 2)
+        a, b = x[:, 0], x[:, 1]
+        return (0.5 * np.arctan2(b, a)) % np.pi
 
     def _removal_candidates(self):
         """
@@ -683,12 +807,21 @@ class CouplingOptimizer:
         self._history['log_product'].append(logp)
         return lam, logp
 
-    def _objective(self, thetas):
-        """Stage-1 objective for scipy: returns -lambda_min."""
+    def _objective(self, x):
+        """
+        Stage-1 objective for scipy: returns -lambda_min.
+
+        x is whatever scipy is searching over — the raw periodic
+        embedding (2n,) when self._use_periodic, otherwise plain theta
+        (n,) directly. Decoded once here so _record_and_evaluate (and
+        its history) always deals in real theta values regardless of the
+        internal search representation.
+        """
+        thetas = self._decode_thetas(x) if self._use_periodic else x
         lam, _ = self._record_and_evaluate(thetas)
         return -lam
 
-    def _secondary_objective(self, thetas):
+    def _secondary_objective(self, x):
         """
         Stage-2 objective for scipy: penalty-barrier on lambda_min
         falling below self._threshold, else -log_product. This is a
@@ -696,18 +829,30 @@ class CouplingOptimizer:
         log_product improvement can compensate for missing the stage-1
         floor, because the penalty (1e6 baseline + steep linear term)
         is always larger than any feasible -log_product value.
+
+        See _objective's docstring for what x is.
         """
+        thetas = self._decode_thetas(x) if self._use_periodic else x
         lam, logp = self._record_and_evaluate(thetas)
         if lam < self._threshold:
             return 1e6 + 1e8 * (self._threshold - lam)
         return -logp
 
-    def _optimize_two_stage(self, bounds, seed, tol, maxiter, n_solutions,
-                             lambda_min_initial, log_product_initial):
+    def _optimize_two_stage(self, bounds, use_periodic, seed, tol, maxiter,
+                             n_solutions, lambda_min_initial, log_product_initial):
+        self._use_periodic = use_periodic
+        n = len(bounds)
+        # Search box for the periodic (cos 2*theta, sin 2*theta) embedding
+        # — see _decode_thetas' docstring. [-1, 1] per component covers
+        # every angle; the box's own edges/corners have no special
+        # physical meaning (unlike raw theta's edges at 0 and pi), which
+        # is the whole point.
+        de_bounds = [(-1., 1.)] * (2 * n) if use_periodic else bounds
+
         # ── Stage 1: maximise lambda_min ────────────────────────────────
         primary = differential_evolution(
             self._objective,
-            bounds  = bounds,
+            bounds  = de_bounds,
             tol     = tol,
             maxiter = maxiter,
             seed    = seed,
@@ -726,7 +871,7 @@ class CouplingOptimizer:
             run_start = len(self._history['lambda_min'])
             secondary = differential_evolution(
                 self._secondary_objective,
-                bounds  = bounds,
+                bounds  = de_bounds,
                 tol     = tol,
                 maxiter = maxiter,
                 seed    = seed + 101 * run,
@@ -736,13 +881,15 @@ class CouplingOptimizer:
             )
             run_end = len(self._history['lambda_min'])
 
-            _, locked = self._locked_eigenvalues(secondary.x)
+            secondary_thetas = (self._decode_thetas(secondary.x)
+                                 if use_periodic else secondary.x)
+            _, locked = self._locked_eigenvalues(secondary_thetas)
             if locked is None:
                 continue
             lam = float(locked[0])
             if lam < self._threshold:
                 continue
-            if any(np.linalg.norm(secondary.x - c.optimal_thetas) < 0.05
+            if any(np.linalg.norm(secondary_thetas - c.optimal_thetas) < 0.05
                    for c in candidates):
                 continue   # duplicate of an already-accepted candidate
 
@@ -754,7 +901,7 @@ class CouplingOptimizer:
                 for key in self._history
             }
             candidates.append(OptimizationResult(
-                optimal_thetas      = secondary.x,
+                optimal_thetas      = secondary_thetas,
                 lambda_min          = lam,
                 lambda_min_initial  = lambda_min_initial,
                 primary_lambda_min  = best_lambda_min,
@@ -776,17 +923,27 @@ class CouplingOptimizer:
         candidates.sort(key=lambda r: r.log_product, reverse=True)
         return candidates
 
-    def _optimize_nelder_mead(self, thetas_initial, bounds, tol, maxiter,
-                               lambda_min_initial, log_product_initial):
+    def _optimize_nelder_mead(self, thetas_initial, bounds, use_periodic,
+                               tol, maxiter, lambda_min_initial,
+                               log_product_initial):
+        self._use_periodic = use_periodic
+        # Nelder-Mead's bounds are optional (unlike DE's), so the periodic
+        # embedding just runs genuinely unconstrained — no box needed at
+        # all once theta itself can't get pinned to a wall. See
+        # _decode_thetas' docstring.
+        x0 = (self._encode_thetas(thetas_initial) if use_periodic
+              else thetas_initial.copy())
         result = minimize(
             self._objective,
-            thetas_initial.copy(),
+            x0,
             method  = 'Nelder-Mead',
-            bounds  = bounds,
+            bounds  = None if use_periodic else bounds,
             options = {'xatol': tol, 'fatol': tol, 'maxiter': maxiter},
         )
 
-        _, locked = self._locked_eigenvalues(result.x)
+        result_thetas = (self._decode_thetas(result.x)
+                          if use_periodic else result.x)
+        _, locked = self._locked_eigenvalues(result_thetas)
         if locked is None:
             lam, log_prod = 0.0, float('-inf')
         else:
@@ -795,7 +952,7 @@ class CouplingOptimizer:
                 locked, self._log_floor(locked)))))
 
         return [OptimizationResult(
-            optimal_thetas      = result.x,
+            optimal_thetas      = result_thetas,
             lambda_min          = lam,
             lambda_min_initial  = lambda_min_initial,
             primary_lambda_min  = lam,
