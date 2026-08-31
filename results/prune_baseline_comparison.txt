@@ -5,12 +5,12 @@ Baseline active couplings: 9 (3 spokes x 3, 1 spoke x 0) for all four
 
                Configuration    lambda_min   log_product
 ----------------------------------------------------------
-      Greedy pruned (uneven)      0.004521    -23.184108
-            Baseline: no O-M      0.004740    -16.603818
-            Baseline: no O-B      0.004195    -18.000756
-            Baseline: no O-N      0.004723    -16.606234
-            Baseline: no O-A      0.004195    -18.000744
+      Greedy pruned (uneven)      0.004521    -23.280649
+            Baseline: no O-M      0.004740    -16.604525
+            Baseline: no O-B      0.004195    -18.003298
+            Baseline: no O-N      0.004723    -16.606392
+            Baseline: no O-A      0.004195    -18.002486
 
-Best baseline: no O-M (lambda_min=0.004740, log_product=-16.603818)
+Best baseline: no O-M (lambda_min=0.004740, log_product=-16.604525)
 Greedy does NOT beat the best baseline on lambda_min (0.004521 vs 0.004740).
-Greedy does NOT beat the best baseline on log_product (-23.184108 vs -16.603818).
+Greedy does NOT beat the best baseline on log_product (-23.280649 vs -16.604525).

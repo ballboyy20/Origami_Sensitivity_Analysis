@@ -493,19 +493,28 @@ class CouplingOptimizer:
             by 1000 * attempt before giving up and re-raising.
         final_maxiter, final_n_solutions : int or None
             maxiter/n_solutions for the one final polish pass, once
-            stopped. Default (None) to max(4*maxiter, 2000) and
-            max(3, 2*n_solutions) respectively — comfortably more search
-            budget than a per-round pass, since this is the only result
-            that's actually kept.
+            stopped. Default (None) to 2*maxiter and n_solutions+1
+            respectively — a modest bump over a per-round pass, not a
+            hard floor. A floor like max(4*maxiter, 2000) sounds modest
+            in isolation but compounds badly: differential_evolution's
+            cost scales with population size (~15 per dimension) times
+            maxiter times however many of the final_n_solutions runs
+            actually execute, so a 4x-6x maxiter bump stacked with a 2x-3x
+            n_solutions bump is a 10-20x jump in one pass, not "somewhat
+            more". Tune these up deliberately if a given run's final
+            answer still looks under-converged, rather than reaching for
+            a big default that pays that cost on every single call.
         final_nelder_mead_polish : bool
             After the final differential_evolution pass, also try a
             nelder_mead polish warm-started from its result (nelder_mead
             reads the couplings' current theta as its starting point, so
-            this just works once that DE result has been applied). Kept
-            only if it's at least as good (lambda_min first, log_product
-            to break ties) — nelder_mead is a local search and can
-            converge somewhere worse, so this is a strict "only if it
-            helps" comparison, not an unconditional swap.
+            this just works once that DE result has been applied), using
+            the per-round maxiter (not final_maxiter) — nelder_mead is a
+            cheap local refinement, not another global search, so it
+            doesn't need the bumped budget. Kept only if it's at least as
+            good (lambda_min first, log_product to break ties) —
+            nelder_mead can converge somewhere worse, so this is a strict
+            "only if it helps" comparison, not an unconditional swap.
 
         Returns
         -------
@@ -522,9 +531,9 @@ class CouplingOptimizer:
                 f"{self.target_rank} (2 rows per coupling).")
 
         if final_maxiter is None:
-            final_maxiter = max(4 * maxiter, 2000)
+            final_maxiter = 2 * maxiter
         if final_n_solutions is None:
-            final_n_solutions = max(3, 2 * n_solutions)
+            final_n_solutions = n_solutions + 1
 
         rng = np.random.default_rng(rng_seed)
         steps = []
@@ -548,7 +557,7 @@ class CouplingOptimizer:
 
             if stop_reason is not None:
                 best = self._final_polish(
-                    theta_seed, tol, final_maxiter, final_n_solutions,
+                    theta_seed, tol, maxiter, final_maxiter, final_n_solutions,
                     max_retries, final_nelder_mead_polish)
                 steps.append(PruneStep(n_active, best, None, False, None, None))
                 return PruneResult(steps, stop_reason, min_couplings)
@@ -580,8 +589,8 @@ class CouplingOptimizer:
             f"attempt(s) (seeds {theta_seed}, {theta_seed + 1000}, ...): "
             f"{last_error}")
 
-    def _final_polish(self, theta_seed, tol, final_maxiter, final_n_solutions,
-                       max_retries, try_nelder_mead):
+    def _final_polish(self, theta_seed, tol, maxiter, final_maxiter,
+                       final_n_solutions, max_retries, try_nelder_mead):
         """
         One higher-effort optimize_theta() pass for prune_couplings()'
         final active set, optionally followed by a nelder_mead polish —
@@ -594,8 +603,11 @@ class CouplingOptimizer:
         self.apply_result(best)
 
         if try_nelder_mead:
+            # Per-round maxiter, not final_maxiter — this is a cheap local
+            # refinement, not another global search, so it doesn't need
+            # the bumped DE budget (see final_nelder_mead_polish's docstring).
             nm_best = self.optimize_theta(
-                method='nelder_mead', tol=tol, maxiter=final_maxiter)[0]
+                method='nelder_mead', tol=tol, maxiter=maxiter)[0]
             improves = (
                 nm_best.lambda_min > best.lambda_min + 1e-12 or
                 (abs(nm_best.lambda_min - best.lambda_min) <= 1e-9

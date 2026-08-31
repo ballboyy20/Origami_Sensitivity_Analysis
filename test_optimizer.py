@@ -83,6 +83,42 @@ print("  n1, n2 orthonormal after every set_theta() call ✓")
 
 
 # ══════════════════════════════════════════════════════════════════════
+# SECTION 0b: periodic theta embedding round-trip
+# ══════════════════════════════════════════════════════════════════════
+print("\n" + "=" * 60)
+print("SECTION 0b: CouplingOptimizer theta<->embedding round-trip")
+print("=" * 60)
+
+print("\nTest 0c: decode(encode(theta)) == theta for random theta in [0, pi)")
+rng = np.random.default_rng(0)
+thetas_random = rng.uniform(0, np.pi, size=200)
+decoded = CouplingOptimizer._decode_thetas(
+    CouplingOptimizer._encode_thetas(thetas_random))
+max_err = np.max(np.abs(decoded - thetas_random))
+print(f"  max |decode(encode(theta)) - theta| = {max_err:.3e}")
+assert max_err < 1e-9, f"Round-trip error too large: {max_err:.3e}"
+print("  round-trip exact to floating-point precision ✓")
+
+print("\nTest 0d: encode(theta) == encode(theta + pi) — same physical groove")
+thetas_shifted = thetas_random + np.pi
+enc_a = CouplingOptimizer._encode_thetas(thetas_random)
+enc_b = CouplingOptimizer._encode_thetas(thetas_shifted)
+max_diff = np.max(np.abs(enc_a - enc_b))
+print(f"  max |encode(theta) - encode(theta+pi)| = {max_diff:.3e}")
+assert max_diff < 1e-9, \
+    f"Embedding isn't period-pi as expected: max diff = {max_diff:.3e}"
+print("  embedding correctly period-pi ✓")
+
+print("\nTest 0e: decode() always lands in [0, pi), including at the seam")
+edge_thetas = np.array([0., 1e-12, np.pi - 1e-12, np.pi / 2])
+decoded_edges = CouplingOptimizer._decode_thetas(
+    CouplingOptimizer._encode_thetas(edge_thetas))
+assert np.all(decoded_edges >= 0.) and np.all(decoded_edges < np.pi), \
+    f"decode() left [0, pi): {decoded_edges}"
+print(f"  edge cases {np.round(np.degrees(decoded_edges), 6)} deg — all in [0, 180) ✓")
+
+
+# ══════════════════════════════════════════════════════════════════════
 # SECTION 1: Baseline checks before optimisation
 # ══════════════════════════════════════════════════════════════════════
 print("=" * 60)
