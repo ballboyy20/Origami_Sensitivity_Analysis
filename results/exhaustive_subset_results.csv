@@ -1,0 +1,300 @@
+size,active_indices,spoke_counts,lambda_min,log_product,converged,n_evaluations,elapsed_sec,failed,error
+9,0 1 2 3 4 5 6 8 11,"O-M:3,O-B:3,O-N:2,O-A:1",0.006361247098033499,-16.886404086061745,False,81977,230.32,False,
+9,0 1 2 3 4 5 6 7 10,"O-M:3,O-B:3,O-N:2,O-A:1",0.0030099177557373975,-18.89098593577652,False,81958,230.61,False,
+9,0 1 2 3 4 5 6 7 8,"O-M:3,O-B:3,O-N:3,O-A:0",0.004194934128028958,-18.005020469000964,False,81958,232.24,False,
+9,0 1 2 3 4 5 6 8 10,"O-M:3,O-B:3,O-N:2,O-A:1",0.005981329310737353,-17.01297240282676,False,83041,235.23,False,
+9,0 1 2 3 4 5 6 7 11,"O-M:3,O-B:3,O-N:2,O-A:1",0.0034596447131641102,-21.688986545471657,False,84846,241.82,False,
+9,0 1 2 3 4 5 6 10 11,"O-M:3,O-B:3,O-N:1,O-A:2",0.004752129805963056,-21.238549470678684,False,81977,251.68,False,
+9,0 1 2 3 4 5 6 9 10,"O-M:3,O-B:3,O-N:1,O-A:2",0.0007419136177770313,-19.63261533528442,False,82642,254.87,False,
+9,0 1 2 3 4 5 7 8 10,"O-M:3,O-B:3,O-N:2,O-A:1",0.005951156116144452,-16.17702851342457,False,81977,249.85,False,
+9,0 1 2 3 4 5 7 8 11,"O-M:3,O-B:3,O-N:2,O-A:1",0.006023993661230245,-17.54039457533324,False,82300,234.55,False,
+9,0 1 2 3 4 5 6 7 9,"O-M:3,O-B:3,O-N:2,O-A:1",0.0014794351866356842,-22.875377185793443,False,81977,722.46,False,
+9,0 1 2 3 4 5 8 9 10,"O-M:3,O-B:3,O-N:1,O-A:2",0.0031122465344558636,-17.511015839748836,False,81977,234.74,False,
+9,0 1 2 3 4 5 7 9 10,"O-M:3,O-B:3,O-N:1,O-A:2",0.002545399607874749,-16.289548826909897,False,82680,710.48,False,
+9,0 1 2 3 4 5 6 8 9,"O-M:3,O-B:3,O-N:2,O-A:1",0.0038691786111663493,-26.144950871314546,False,84941,1210.32,False,
+9,0 1 2 3 4 5 6 9 11,"O-M:3,O-B:3,O-N:1,O-A:2",,,False,,1209.83,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 50, 1050, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00190958, threshold=0.00190958, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 4 5 9 10 11,"O-M:3,O-B:3,O-N:0,O-A:3",0.004723220651198736,-16.614542069169424,False,81958,235.50,False,
+9,0 1 2 3 4 5 7 8 9,"O-M:3,O-B:3,O-N:2,O-A:1",0.006279775000295841,-18.98563535823797,False,84276,1230.27,False,
+9,0 1 2 3 4 5 8 9 11,"O-M:3,O-B:3,O-N:1,O-A:2",0.004827080686216813,-21.70111777056058,False,81977,706.24,False,
+9,0 1 2 3 4 6 7 8 9,"O-M:3,O-B:2,O-N:3,O-A:1",0.002700125264078961,-19.32391560692153,False,81977,234.46,False,
+9,0 1 2 3 4 5 7 9 11,"O-M:3,O-B:3,O-N:1,O-A:2",,,False,,1205.64,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 56, 1056, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00330699, threshold=0.00330699, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 4 6 7 8 11,"O-M:3,O-B:2,O-N:3,O-A:1",0.006417254423514726,-18.20782565105096,False,81958,235.45,False,
+9,0 1 2 3 4 5 7 10 11,"O-M:3,O-B:3,O-N:1,O-A:2",,,False,,1183.62,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 57, 1057, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00452116, threshold=0.00452115, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 4 6 7 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.001336658713307725,-20.21010679132723,False,81958,233.79,False,
+9,0 1 2 3 4 5 8 10 11,"O-M:3,O-B:3,O-N:1,O-A:2",0.003469625942406706,-24.38519794837383,False,83896,714.68,False,
+9,0 1 2 3 4 6 7 8 10,"O-M:3,O-B:2,O-N:3,O-A:1",0.006356232858745866,-18.197404024225417,False,81958,467.16,False,
+9,0 1 2 3 4 6 8 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",0.004038420725381288,-15.34450035423373,False,81958,234.30,False,
+9,0 1 2 3 4 6 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.0007418071458970491,-19.542465212079176,False,82718,241.66,False,
+9,0 1 2 3 4 6 8 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.006792949418936729,-17.61278489175523,False,82623,493.32,False,
+9,0 1 2 3 4 6 8 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.004192293869602945,-18.41928929260474,False,84371,502.78,False,
+9,0 1 2 3 4 6 7 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.002837387035944704,-18.74561012202486,False,84561,742.21,False,
+9,0 1 2 3 4 7 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.0025455800136836722,-16.368720265248466,False,81958,254.00,False,
+9,0 1 2 3 4 7 8 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",0.006115836767254431,-16.532435385960355,False,81958,747.17,False,
+9,0 1 2 3 5 6 7 8 9,"O-M:3,O-B:2,O-N:3,O-A:1",0.0034807804937614394,-24.33187062988788,False,83839,255.27,False,
+9,0 1 2 3 4 6 7 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1161.69,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 65, 1065, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 4 8 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.0031124814627848554,-17.47645139853803,False,81958,494.47,False,
+9,0 1 2 3 4 7 8 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.008656516145359127,-15.890176202739625,False,84770,762.30,False,
+9,0 1 2 3 4 7 8 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.00421897534529908,-17.320375485634344,False,81958,994.91,False,
+9,0 1 2 3 5 6 7 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",0.0013367066286039504,-19.480267641571256,False,81958,240.32,False,
+9,0 1 2 3 5 6 7 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.0033136542601734003,-17.37021696816845,False,81958,236.64,False,
+9,0 1 2 3 5 6 8 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.0071385814954665365,-18.459845891024425,False,84010,243.35,False,
+9,0 1 2 3 5 6 7 8 11,"O-M:3,O-B:2,O-N:3,O-A:1",0.009258560312019347,-20.0058911063263,False,83953,982.57,False,
+9,0 1 2 3 5 7 8 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",0.0042191200775387435,-17.932673117544628,False,82680,477.87,False,
+9,0 1 2 3 5 6 7 8 10,"O-M:3,O-B:2,O-N:3,O-A:1",,,False,,1206.38,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 78, 1078, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00733445, threshold=0.00733445, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 5 7 8 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.0029378252487204087,-18.497162298652484,False,81958,236.75,False,
+9,0 1 2 3 5 6 8 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.009057623041135636,-20.406857096236962,False,81977,960.67,False,
+9,0 1 2 3 5 6 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.00190922434480329,-24.44905001382454,False,83459,960.59,False,
+9,0 1 2 3 5 6 7 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1211.65,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 82, 1082, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00374428, threshold=0.00374427, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 5 6 8 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",0.006793544340849582,-17.668277876208514,False,83896,1204.47,False,
+9,0 1 2 3 5 8 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.004826489870602626,-21.998705919856423,False,82756,240.18,False,
+9,0 1 2 3 6 7 8 9 10,"O-M:3,O-B:1,O-N:3,O-A:2",0.002700136254005207,-19.3041990476634,False,81977,238.31,False,
+9,0 1 2 3 6 7 8 10 11,"O-M:3,O-B:1,O-N:3,O-A:2",0.006724401622503998,-20.626003032345114,False,81996,240.85,False,
+9,0 1 2 3 6 7 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.0014797427046833922,-22.718351242666948,False,81977,746.40,False,
+9,0 1 2 3 5 7 8 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1250.87,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 89, 1089, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00719033, threshold=0.00719033, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 3 5 7 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.00330721209484534,-22.45246062521828,False,85226,1239.03,False,
+9,0 1 2 3 6 8 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.00386795883346752,-26.006661566840627,False,82889,993.35,False,
+9,0 1 2 3 7 8 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.006278064907301991,-20.12240494191173,False,83022,991.43,False,
+9,0 1 2 4 5 6 7 8 11,"O-M:3,O-B:2,O-N:3,O-A:1",0.006909295922157405,-18.330216188608375,False,82395,241.70,False,
+9,0 1 2 3 6 7 8 9 11,"O-M:3,O-B:1,O-N:3,O-A:2",,,False,,1238.17,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 93, 1093, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00348068, threshold=0.00348068, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 6 7 8 9,"O-M:3,O-B:2,O-N:3,O-A:1",,,False,,1249.86,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 98, 1098, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00672775, threshold=0.00672775, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 6 8 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.002938661148077635,-21.935893484155688,False,81958,251.19,False,
+9,0 1 2 4 5 6 7 8 10,"O-M:3,O-B:2,O-N:3,O-A:1",0.008395641680018459,-17.686191145995604,False,83364,1228.10,False,
+9,0 1 2 4 5 6 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.004752439903801128,-21.060097466990115,False,82870,243.83,False,
+9,0 1 2 4 5 6 7 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1264.50,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 101, 1101, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00284214, threshold=0.00284214, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 7 8 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",0.00719114346811892,-16.560395862047265,False,84960,268.92,False,
+9,0 1 2 4 5 6 7 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1259.56,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 102, 1102, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00374604, threshold=0.00374604, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 6 7 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1263.70,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 103, 1103, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00410654, threshold=0.00410654, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 6 8 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1270.83,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 104, 1104, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00419311, threshold=0.00419311, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 6 8 9 11,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1279.21,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 105, 1105, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00713894, threshold=0.00713894, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 8 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.0034688597429339153,-24.897363841453622,False,82528,248.51,False,
+9,0 1 2 4 6 7 8 9 10,"O-M:3,O-B:1,O-N:3,O-A:2",0.006356164102429445,-18.102351643433565,False,81977,248.15,False,
+9,0 1 2 4 6 7 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.0030099641839719834,-19.904791845068672,False,81977,235.98,False,
+9,0 1 2 4 6 8 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.005981340345378208,-16.978296110589806,False,84238,243.56,False,
+9,0 1 2 4 6 7 8 10 11,"O-M:3,O-B:1,O-N:3,O-A:2",0.008396143127842197,-17.691759045157774,False,83953,490.38,False,
+9,0 1 2 4 7 8 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.005951114513932249,-16.214118608197488,False,82490,240.42,False,
+9,0 1 2 4 5 7 8 9 10,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1238.01,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 108, 1108, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00865482, threshold=0.00865482, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 4 5 7 9 10 11,"O-M:3,O-B:2,O-N:1,O-A:3",0.004521048944933353,-22.148508655289202,False,81977,962.35,False,
+9,0 1 2 5 6 7 8 9 10,"O-M:3,O-B:1,O-N:3,O-A:2",0.006417164013224971,-18.507358888014906,False,81977,475.61,False,
+9,0 1 2 5 6 7 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.003459902833976308,-21.841767312799806,False,81787,237.08,False,
+9,0 1 2 5 6 8 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.006361227339629433,-16.868071169398704,False,83212,240.43,False,
+9,0 1 2 4 5 7 8 10 11,"O-M:3,O-B:2,O-N:2,O-A:2",,,False,,1225.34,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 110, 1110, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00896893, threshold=0.00896892, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 5 7 8 9 10 11,"O-M:3,O-B:1,O-N:2,O-A:3",0.0060242274993344705,-17.57349822296514,False,81996,237.54,False,
+9,0 1 2 4 6 7 8 9 11,"O-M:3,O-B:1,O-N:3,O-A:2",,,False,,1233.80,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 114, 1114, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0073352, threshold=0.0073352, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 2 6 7 8 9 10 11,"O-M:3,O-B:0,O-N:3,O-A:3",0.004194931005233991,-18.001102374246184,False,81958,247.03,False,
+9,0 1 3 4 5 6 7 8 11,"O-M:2,O-B:3,O-N:3,O-A:1",0.003508687234130409,-19.20847652130687,False,81958,247.50,False,
+9,0 1 2 5 6 7 8 10 11,"O-M:3,O-B:1,O-N:3,O-A:2",0.006909415130484959,-18.38048941476347,False,84257,983.56,False,
+9,0 1 2 5 6 7 8 9 11,"O-M:3,O-B:1,O-N:3,O-A:2",,,False,,1237.92,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 120, 1120, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00925871, threshold=0.00925871, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 6 8 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.0016676036845172312,-22.459458779580505,False,81958,245.67,False,
+9,0 1 3 4 5 6 7 8 9,"O-M:2,O-B:3,O-N:3,O-A:1",0.0015518338030491342,-22.193536356901404,False,81977,987.59,False,
+9,0 1 3 4 5 6 8 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",0.002160623131018722,-21.17358931880004,False,84143,498.46,False,
+9,0 1 3 4 5 6 8 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.002890597571202212,-20.7710947256092,False,83079,243.81,False,
+9,0 1 3 4 5 6 7 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1156.62,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 129, 1129, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 6 7 8 10,"O-M:2,O-B:3,O-N:3,O-A:1",,,False,,1243.42,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 127, 1127, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00307378, threshold=0.00307378, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 6 7 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1147.91,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 130, 1130, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 6 7 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1146.55,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 131, 1131, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 7 8 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.004705194468697449,-18.673283110876955,False,83516,240.47,False,
+9,0 1 3 4 5 8 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.0007351492633551133,-29.140996603269908,False,81958,247.32,False,
+9,0 1 3 4 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.0013447460423751266,-20.133969127094453,False,81958,250.03,False,
+9,0 1 3 4 5 6 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",,,False,,1143.29,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 135, 1135, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 7 8 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1223.69,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 136, 1136, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00282829, threshold=0.00282829, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0021602874713208503,-20.928502156503257,False,84618,247.56,False,
+9,0 1 3 4 5 7 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",,,False,,1142.15,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 139, 1139, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 5 7 8 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1228.67,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 137, 1137, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00364364, threshold=0.00364364, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1140.93,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 141, 1141, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 5 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",0.0013448032722157828,-20.19303024972445,False,81958,237.33,False,
+9,0 1 3 5 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.0033291824327090916,-17.642872300371764,False,81958,238.12,False,
+9,0 1 3 5 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0016675818139110803,-22.135695014196706,False,81958,236.78,False,
+9,0 1 3 4 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,1135.54,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 144, 1144, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 4 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1227.33,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 143, 1143, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00281156, threshold=0.00281156, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",0.001551535150926311,-21.565611106668847,False,81977,1676.85,False,
+9,0 1 4 5 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.0037098075606609698,-23.263272775282047,False,84067,1702.07,False,
+9,0 1 3 5 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0036520211386178577,-21.133033119713627,False,83497,2622.29,False,
+9,0 1 4 5 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0028905616570060644,-19.60574944449257,False,81958,503.31,False,
+9,0 1 3 4 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,3616.00,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 146, 1146, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00282845, threshold=0.00282845, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 4 5 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.004135624093976717,-20.65289444613484,False,82718,1456.06,False,
+9,0 1 3 5 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,3643.48,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 149, 1149, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00371077, threshold=0.00371077, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 3 5 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,3542.77,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 150, 1150, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 5 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",0.003508649942257468,-19.337936536136734,False,81958,236.30,False,
+9,0 1 4 5 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,3938.20,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 154, 1154, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00275376, threshold=0.00275376, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 5 6 7 8 10,"O-M:2,O-B:3,O-N:3,O-A:1",0.005991688784986669,-18.29795530240433,False,84086,997.97,False,
+9,0 1 4 5 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,2643.48,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 157, 1157, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 5 6 7 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",0.0021652938020695713,-19.971070949754953,False,82585,749.94,False,
+9,0 1 4 5 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,1818.20,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 159, 1159, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00470636, threshold=0.00470636, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 1 4 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",,,False,,1788.51,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 160, 1160, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00307352, threshold=0.00307352, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 5 6 7 8 11,"O-M:2,O-B:3,O-N:3,O-A:1",0.004126709075329047,-23.272992072196153,False,85226,1562.86,False,
+9,0 2 3 4 5 6 7 8 9,"O-M:2,O-B:3,O-N:3,O-A:1",,,False,,1797.51,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 162, 1162, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00232437, threshold=0.00232437, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 5 6 7 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.002325798906279936,-22.536630184714447,False,84105,750.88,False,
+9,0 2 3 4 5 6 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.0011895502354390417,-20.896166405503827,False,81958,237.76,False,
+9,0 2 3 4 5 7 8 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",0.0034766109474970827,-21.07335285968179,False,83877,241.00,False,
+9,0 2 3 4 5 7 8 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.0016127992655881544,-26.263867521562645,False,84865,244.29,False,
+9,0 2 3 4 5 7 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.0022014511789512385,-15.539746623517516,False,72238,208.55,False,
+9,0 2 3 4 5 6 7 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1292.61,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 166, 1166, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00252857, threshold=0.00252857, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 5 8 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.0042217022480842215,-18.03651639162127,False,81958,236.66,False,
+9,0 2 3 4 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",0.0038732122867777517,-15.020361282466212,False,81958,238.95,False,
+9,0 2 3 4 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.007311379046588719,-18.253199245122563,False,83668,239.96,False,
+9,0 2 3 4 5 6 8 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1226.46,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 168, 1168, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00509464, threshold=0.00509464, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0021647014775628354,-20.70497727875504,False,84200,239.99,False,
+9,0 2 3 4 5 6 8 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1239.36,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 169, 1169, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00404295, threshold=0.00404294, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 5 6 8 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1215.64,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 170, 1170, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00839282, threshold=0.00839282, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.005086678548432828,-21.825605101527504,False,87126,252.92,False,
+9,0 2 3 5 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",0.0011790933041005082,-27.603855053504244,False,84656,247.64,False,
+9,0 2 3 4 5 7 8 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1287.24,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 174, 1174, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0052745, threshold=0.0052745, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 5 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0016146109456528486,-26.951297228442165,False,83782,376.75,False,
+9,0 2 3 4 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1476.16,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 178, 1178, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00117673, threshold=0.00117673, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",0.0023243642545020867,-24.519179779626782,False,81977,361.92,False,
+9,0 2 4 5 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",0.0073111828589075235,-18.458119007526705,False,81958,364.12,False,
+9,0 2 3 5 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1566.44,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 184, 1184, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 3 4 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0035438425192913575,-20.811953602478866,False,86005,1690.62,False,
+9,0 2 3 5 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1718.80,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 185, 1185, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00419535, threshold=0.00419535, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 4 5 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.007941851065148694,-20.687415677467,False,81977,361.91,False,
+9,0 2 3 5 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,1779.32,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 186, 1186, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00252832, threshold=0.00252832, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 2 4 5 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0023258585640428962,-22.438548624757367,False,81958,358.17,False,
+9,0 2 3 5 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,1819.33,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 187, 1187, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00401267, threshold=0.00401267, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 3 4 5 6 7 8 9 10,"O-M:1,O-B:3,O-N:3,O-A:2",0.0009407960382448727,-20.331139879383358,False,81977,363.32,False,
+9,0 3 4 5 6 7 8 9 11,"O-M:1,O-B:3,O-N:3,O-A:2",0.0013707019771569751,-24.718907882837353,False,83193,367.64,False,
+9,0 2 4 5 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.00839318220663831,-17.488395101028086,False,84846,1127.70,False,
+9,0 3 4 5 6 7 8 10 11,"O-M:1,O-B:3,O-N:3,O-A:2",0.004793867404552524,-21.678968817910103,False,81977,725.28,False,
+9,0 2 4 5 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1850.04,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 191, 1191, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00419626, threshold=0.00419626, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 3 4 5 6 8 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.0014144525944059568,-22.30028378462443,False,83668,369.10,False,
+9,0 3 4 5 7 8 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.004803481387487241,-21.318310957131057,False,81958,369.91,False,
+9,0 3 4 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",0.0009406908217771718,-20.3671942856839,False,82642,373.37,False,
+9,0 2 4 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",0.00599391135632095,-18.35504317432228,False,83231,1849.02,False,
+9,0 2 4 5 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",,,False,,1867.79,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 195, 1195, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00533678, threshold=0.00533678, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 4 5 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",0.004793788601835892,-21.636112986041606,False,81958,363.84,False,
+9,0 2 5 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",,,False,,1877.99,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 197, 1197, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00412593, threshold=0.00412592, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 3 4 5 6 7 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",,,False,,1744.53,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 201, 1201, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,0 3 5 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",0.0013703634148485404,-24.928808395934496,False,83250,1544.69,False,
+9,1 2 3 4 5 6 7 8 9,"O-M:2,O-B:3,O-N:3,O-A:1",0.005733604973244127,-20.939415110247932,False,83459,1904.57,False,
+9,1 2 3 4 5 6 7 8 10,"O-M:2,O-B:3,O-N:3,O-A:1",,,False,,1908.17,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 208, 1208, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00499182, threshold=0.00499182, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 4 5 6 7 8 11,"O-M:2,O-B:3,O-N:3,O-A:1",,,False,,1927.79,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 209, 1209, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00574665, threshold=0.00574665, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 4 5 6 7 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1921.06,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 210, 1210, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00284151, threshold=0.00284151, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 4 5 6 7 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.0028959965133904496,-21.51968115264798,False,85340,1939.72,False,
+9,1 2 3 4 5 6 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.004389746971062341,-20.07869208456218,False,81958,365.35,False,
+9,1 2 3 4 5 6 7 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1906.63,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 212, 1212, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00338791, threshold=0.00338791, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 4 5 7 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.004004675685904974,-15.11752466915334,False,81958,366.73,False,
+9,1 2 3 4 5 6 8 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",0.0035725251327903404,-23.100605850881237,False,82927,1837.62,False,
+9,1 2 3 4 5 6 8 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.0016140497142278787,-24.866436814328043,False,84580,1111.19,False,
+9,1 2 3 4 5 7 8 9 10,"O-M:2,O-B:3,O-N:2,O-A:2",0.008567559274718854,-15.984334648187394,False,82509,1120.34,False,
+9,1 2 3 4 5 8 9 10 11,"O-M:2,O-B:3,O-N:1,O-A:3",0.002262363586445432,-16.74923168276954,False,81958,386.78,False,
+9,1 2 3 4 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",0.006044017630656181,-16.030160530660076,False,81977,397.73,False,
+9,1 2 3 4 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.002836513766812872,-17.97419738044142,False,84979,387.10,False,
+9,1 2 3 4 5 6 8 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1908.68,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 214, 1214, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00669837, threshold=0.00669837, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 4 5 7 8 10 11,"O-M:2,O-B:3,O-N:2,O-A:2",0.005042457830308551,-20.971536434781065,False,85758,1546.95,False,
+9,1 2 3 4 5 7 8 9 11,"O-M:2,O-B:3,O-N:2,O-A:2",,,False,,1912.82,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 218, 1218, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00674266, threshold=0.00674266, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 4 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0035710245195422078,-22.749587109996256,False,84067,750.37,False,
+9,1 2 3 5 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.009047682876158519,-19.125424181678873,False,81977,365.90,False,
+9,1 2 3 4 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.008567477393746388,-15.939706125793403,False,81958,741.23,False,
+9,1 2 3 5 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.002897012692060315,-21.58221465097002,False,84048,375.93,False,
+9,1 2 3 4 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1921.74,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 223, 1223, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00822714, threshold=0.00822713, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 3 5 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.006720640944892099,-21.828979546786304,False,84219,752.04,False,
+9,1 2 3 4 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",0.004074195853696642,-21.632723054107185,False,84181,1906.56,False,
+9,1 2 3 5 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0067332996790928626,-18.98515154178591,False,83706,1119.57,False,
+9,1 2 3 5 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1849.09,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 228, 1228, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00822723, threshold=0.00822723, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 4 5 6 7 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0033698957654362273,-20.04682951157713,False,83801,370.66,False,
+9,1 2 4 5 6 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.0016137851850762351,-26.289493138680335,False,82433,363.35,False,
+9,1 2 3 5 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1898.31,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 230, 1230, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0065754, threshold=0.00657539, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 4 5 7 8 9 10 11,"O-M:2,O-B:2,O-N:2,O-A:3",0.005053455049806643,-21.16801872240729,False,84447,370.81,False,
+9,1 2 3 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",,,False,,1869.34,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 234, 1234, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00573473, threshold=0.00573473, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 3 4 5 6 7 8 9 10,"O-M:1,O-B:3,O-N:3,O-A:2",0.002941128696287705,-19.303912560561827,False,85264,379.69,False,
+9,1 2 4 5 6 7 8 9 10,"O-M:2,O-B:2,O-N:3,O-A:2",0.003128160417386706,-20.768675859719913,False,82889,1843.54,False,
+9,1 2 4 5 6 7 8 10 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1711.75,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 237, 1237, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 4 5 6 7 8 9 11,"O-M:2,O-B:2,O-N:3,O-A:2",,,False,,1867.77,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 236, 1236, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00662204, threshold=0.00662204, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 3 4 5 6 8 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.002731162247565512,-15.440295032394813,False,81252,360.21,False,
+9,1 3 4 5 7 8 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.004538465301186039,-14.75241348226696,False,81958,368.33,False,
+9,1 3 4 5 6 7 8 10 11,"O-M:1,O-B:3,O-N:3,O-A:2",0.004123934200397421,-22.01625147315786,False,84466,1132.54,False,
+9,1 2 4 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",,,False,,1851.93,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 241, 1241, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00499255, threshold=0.00499255, n_solutions=1). Try increasing maxiter or n_solutions."
+9,1 2 5 6 7 8 9 10 11,"O-M:2,O-B:1,O-N:3,O-A:3",0.005747030537506878,-22.355114093376823,False,85074,1894.53,False,
+9,1 3 4 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",0.0029414496759315595,-18.86481601932989,False,81977,733.95,False,
+9,2 3 4 5 6 7 8 9 10,"O-M:1,O-B:3,O-N:3,O-A:2",0.00395076202849313,-17.906123840909856,False,81958,366.01,False,
+9,1 3 4 5 6 7 8 9 11,"O-M:1,O-B:3,O-N:3,O-A:2",,,False,,1850.27,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 244, 1244, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00399571, threshold=0.00399571, n_solutions=1). Try increasing maxiter or n_solutions."
+9,2 3 4 5 6 7 8 9 11,"O-M:1,O-B:3,O-N:3,O-A:2",0.003489960076332166,-23.292070700994554,False,81977,367.34,False,
+9,1 4 5 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",0.004120011193153312,-21.634721662409063,False,84789,746.09,False,
+9,2 3 4 5 6 7 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.0012564650271875866,-30.330097219205726,False,81958,362.12,False,
+9,1 3 4 5 6 7 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",,,False,,1729.49,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 246, 1246, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+9,2 3 4 5 6 8 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.00529245218687106,-17.69021187386912,False,84637,374.32,False,
+9,2 3 4 5 7 8 9 10 11,"O-M:1,O-B:3,O-N:2,O-A:3",0.002565667786422164,-16.549652243641564,False,81958,363.22,False,
+9,2 3 4 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",0.003950691575939116,-17.921987481540636,False,81958,367.38,False,
+9,3 4 5 6 7 8 9 10 11,"O-M:0,O-B:3,O-N:3,O-A:3",0.004740366440216939,-16.608973923369646,False,81958,364.00,False,
+9,1 3 5 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",,,False,,1843.95,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 250, 1250, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00399588, threshold=0.00399588, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 5 6 7 8 10,"O-M:3,O-B:3,O-N:3,O-A:1",0.011828423863562497,-10.169072077683355,False,91062,443.87,False,
+10,0 1 2 3 4 5 6 7 8 11,"O-M:3,O-B:3,O-N:3,O-A:1",0.012194060817711405,-11.813376168002664,False,91062,439.63,False,
+10,0 1 2 3 4 5 6 7 9 10,"O-M:3,O-B:3,O-N:2,O-A:2",0.0030982962789314816,-12.74667484707632,False,91062,442.83,False,
+10,0 1 2 3 4 5 6 7 9 11,"O-M:3,O-B:3,O-N:2,O-A:2",0.004053073515604862,-16.793492006542863,False,91062,442.22,False,
+9,2 3 4 5 6 7 8 10 11,"O-M:1,O-B:3,O-N:3,O-A:2",,,False,,1872.75,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 254, 1254, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00425263, threshold=0.00425263, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 5 6 7 10 11,"O-M:3,O-B:3,O-N:2,O-A:2",0.004877294963391736,-16.68486360966114,False,91881,444.12,False,
+10,0 1 2 3 4 5 6 8 10 11,"O-M:3,O-B:3,O-N:2,O-A:2",0.010193881847464127,-18.091706934404748,False,95493,462.25,False,
+10,0 1 2 3 4 5 6 9 10 11,"O-M:3,O-B:3,O-N:1,O-A:3",0.004908016051195854,-12.618141090379456,False,91062,444.27,False,
+9,2 3 5 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",,,False,,1830.16,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 259, 1259, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00349035, threshold=0.00349034, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 5 6 7 8 9,"O-M:3,O-B:3,O-N:3,O-A:1",0.009372389269015862,-16.28268827451664,False,91083,1780.63,False,
+10,0 1 2 3 4 5 6 8 9 10,"O-M:3,O-B:3,O-N:2,O-A:2",0.007994378629907192,-12.871651626652493,False,91062,885.51,False,
+9,2 4 5 6 7 8 9 10 11,"O-M:1,O-B:2,O-N:3,O-A:3",,,False,,1865.95,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 260, 1260, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00425297, threshold=0.00425297, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 5 6 8 9 11,"O-M:3,O-B:3,O-N:2,O-A:2",0.010400153573359152,-17.593140857473845,False,92511,906.09,False,
+10,0 1 2 3 4 5 7 9 10 11,"O-M:3,O-B:3,O-N:1,O-A:3",0.004787268073687703,-9.87746487454363,False,91062,442.49,False,
+10,0 1 2 3 4 5 8 9 10 11,"O-M:3,O-B:3,O-N:1,O-A:3",0.005145096589450986,-11.046318797338182,False,91062,445.21,False,
+10,0 1 2 3 4 6 7 8 9 10,"O-M:3,O-B:2,O-N:3,O-A:2",0.006733798685329165,-11.666524277775437,False,91062,447.44,False,
+10,0 1 2 3 4 6 7 8 9 11,"O-M:3,O-B:2,O-N:3,O-A:2",0.008241520631927438,-14.105215608247741,False,91062,444.45,False,
+10,0 1 2 3 4 6 7 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",0.003098276928470853,-12.460604227177972,False,91062,449.53,False,
+10,0 1 2 3 4 6 8 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",0.007994529243701046,-12.852375335987658,False,91062,447.20,False,
+10,0 1 2 3 5 6 7 8 9 10,"O-M:3,O-B:2,O-N:3,O-A:2",0.008241055380540846,-13.91899816324296,False,91083,443.38,False,
+10,0 1 2 3 5 6 7 8 9 11,"O-M:3,O-B:2,O-N:3,O-A:2",0.012300565036195163,-14.798416775185084,False,91062,442.26,False,
+10,0 1 2 3 5 6 7 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",0.004052812351561617,-15.559291013610556,False,91062,442.83,False,
+10,0 1 2 3 4 5 7 8 9 10,"O-M:3,O-B:3,O-N:2,O-A:2",,,False,,2255.83,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 272, 1272, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0105408, threshold=0.0105408, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 5 7 8 9 11,"O-M:3,O-B:3,O-N:2,O-A:2",,,False,,2282.54,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 273, 1273, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.010581, threshold=0.010581, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 5 7 8 10 11,"O-M:3,O-B:3,O-N:2,O-A:2",,,False,,2274.95,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 274, 1274, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0114326, threshold=0.0114326, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 4 6 7 8 10 11,"O-M:3,O-B:2,O-N:3,O-A:2",,,False,,2281.23,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 279, 1279, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0109531, threshold=0.0109531, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 5 6 8 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",0.0103997186401216,-17.19663920778323,False,91083,890.05,False,
+10,0 1 2 3 4 7 8 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",,,False,,2262.56,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 282, 1282, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0105391, threshold=0.0105391, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 4 5 6 7 8 10 11,"O-M:3,O-B:2,O-N:3,O-A:2",0.013302857716567798,-13.016582624499101,False,91062,447.10,False,
+10,0 1 2 4 5 6 7 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",0.004877389792823964,-16.680322142722172,False,91062,446.51,False,
+10,0 1 2 3 5 6 7 8 10 11,"O-M:3,O-B:2,O-N:3,O-A:2",,,False,,2278.17,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 285, 1285, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0123651, threshold=0.0123651, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 4 5 7 8 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",0.011433530298192376,-14.41373910307482,False,93750,459.22,False,
+10,0 1 2 4 6 7 8 9 10 11,"O-M:3,O-B:1,O-N:3,O-A:3",0.011828429147595675,-10.206718241019866,False,91062,451.81,False,
+10,0 1 2 5 6 7 8 9 10 11,"O-M:3,O-B:1,O-N:3,O-A:3",0.012194041594553043,-12.010966363784934,False,91062,462.78,False,
+10,0 1 2 3 6 7 8 9 10 11,"O-M:3,O-B:1,O-N:3,O-A:3",,,False,,2268.18,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 289, 1289, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00937212, threshold=0.00937212, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 3 5 7 8 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",,,False,,2328.41,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 288, 1288, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0106917, threshold=0.0106917, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 2 4 5 6 7 8 9 10,"O-M:3,O-B:2,O-N:3,O-A:2",,,False,,2314.59,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 290, 1290, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.010953, threshold=0.010953, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 3 4 5 6 7 8 9 10,"O-M:2,O-B:3,O-N:3,O-A:2",0.0031386499771258033,-15.136911200404594,False,94380,474.73,False,
+10,0 1 3 4 5 6 7 8 10 11,"O-M:2,O-B:3,O-N:3,O-A:2",0.0048864032134733485,-15.467154611295008,False,91062,485.81,False,
+10,0 1 3 4 5 6 8 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.0029147913253988788,-11.728370750574044,False,91062,486.34,False,
+10,0 1 2 4 5 6 7 8 9 11,"O-M:3,O-B:2,O-N:3,O-A:2",,,False,,2352.61,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 291, 1291, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0123661, threshold=0.0123661, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 3 4 5 7 8 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.004833512092726792,-12.796702217259442,False,91062,481.80,False,
+10,0 1 3 4 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.003138641230096663,-13.993676281477871,False,91062,440.64,False,
+10,0 1 3 5 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.004088720743341038,-15.698938299642093,False,91062,440.42,False,
+10,0 2 3 4 5 6 7 8 9 10,"O-M:2,O-B:3,O-N:3,O-A:2",0.007414345468901113,-14.998195378454152,False,91062,441.32,False,
+10,0 1 4 5 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.004886390244431656,-15.33629761393729,False,91839,447.53,False,
+10,0 1 2 4 5 6 8 9 10 11,"O-M:3,O-B:2,O-N:2,O-A:3",,,False,,2374.66,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 294, 1294, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0102181, threshold=0.0102181, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 2 3 4 5 6 7 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.002822736615459722,-12.222942596350325,False,91062,439.18,False,
+10,0 2 3 4 5 6 8 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.008846944518543138,-12.04693180018005,False,91062,440.41,False,
+10,0 2 3 4 5 6 7 8 9 11,"O-M:2,O-B:3,O-N:3,O-A:2",0.0045491821134449936,-19.60173450031906,False,92931,898.53,False,
+10,0 2 3 4 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.00741430992827847,-14.976279012601152,False,91083,445.03,False,
+10,0 1 3 4 5 6 7 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",,,False,,2153.13,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 301, 1301, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0, threshold=-1e-09, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 1 3 4 5 6 7 8 9 11,"O-M:2,O-B:3,O-N:3,O-A:2",,,False,,2288.61,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 299, 1299, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00408873, threshold=0.00408873, n_solutions=1). Try increasing maxiter or n_solutions."
+10,0 2 3 4 5 6 7 8 10 11,"O-M:2,O-B:3,O-N:3,O-A:2",0.00884806185799502,-13.280159597475029,False,91083,1347.68,False,
+10,0 3 4 5 6 7 8 9 10 11,"O-M:1,O-B:3,O-N:3,O-A:3",0.005023770537602848,-13.81629554119525,False,91062,447.66,False,
+10,1 2 3 4 5 6 7 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.004412736765289231,-16.70672435021433,False,91062,454.50,False,
+10,0 2 3 5 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.004549424193015481,-19.79007249855451,False,91923,1354.85,False,
+10,1 2 3 4 5 7 8 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.008831687714736601,-9.815599595561807,False,61962,300.00,False,
+10,1 2 3 4 5 6 7 8 10 11,"O-M:2,O-B:3,O-N:3,O-A:2",0.007954228568487381,-21.21676125246413,False,94968,942.61,False,
+10,1 2 3 4 5 6 8 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",0.008148888203486936,-21.64160863273916,False,94338,461.20,False,
+10,0 2 3 4 5 7 8 9 10 11,"O-M:2,O-B:3,O-N:2,O-A:3",,,False,,2272.25,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 312, 1312, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00700502, threshold=0.00700502, n_solutions=1). Try increasing maxiter or n_solutions."
+10,1 2 4 5 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.008069972188666992,-18.427770555771907,False,95535,471.40,False,
+10,1 3 4 5 6 7 8 9 10 11,"O-M:1,O-B:3,O-N:3,O-A:3",0.004853716949235699,-10.759140425185945,False,85062,421.09,False,
+10,0 2 4 5 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",0.008848279033767567,-13.398918989888173,False,91083,2263.80,False,
+10,2 3 4 5 6 7 8 9 10 11,"O-M:1,O-B:3,O-N:3,O-A:3",0.005493268768237488,-12.492058407634572,False,91062,447.28,False,
+11,0 1 2 3 4 5 6 7 8 9 10,"O-M:3,O-B:3,O-N:3,O-A:2",0.012237568401284123,-9.553538370389905,False,101063,537.76,False,
+10,1 2 3 4 5 6 7 8 9 11,"O-M:2,O-B:3,O-N:3,O-A:2",0.01026609183358261,-13.958801859917417,False,91083,2271.37,False,
+10,1 2 3 4 5 6 7 8 9 10,"O-M:2,O-B:3,O-N:3,O-A:2",,,False,,2300.70,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 317, 1317, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00983015, threshold=0.00983015, n_solutions=1). Try increasing maxiter or n_solutions."
+11,0 1 2 3 4 5 6 7 8 9 11,"O-M:3,O-B:3,O-N:3,O-A:2",0.013306723246690572,-10.837487808084587,False,100166,535.53,False,
+11,0 1 2 3 4 5 6 7 8 10 11,"O-M:3,O-B:3,O-N:3,O-A:2",0.013307068487086932,-12.256543356245695,False,100166,538.82,False,
+11,0 1 2 3 4 5 6 7 9 10 11,"O-M:3,O-B:3,O-N:2,O-A:3",0.005013884338562457,-8.816577038892504,False,100166,538.51,False,
+11,0 1 2 3 4 5 6 8 9 10 11,"O-M:3,O-B:3,O-N:2,O-A:3",0.010427159225928991,-16.369115651539715,False,100189,534.13,False,
+11,0 1 2 3 4 5 7 8 9 10 11,"O-M:3,O-B:3,O-N:2,O-A:3",0.011668579944000362,-16.50720999246506,False,101040,541.41,False,
+11,0 1 2 3 4 6 7 8 9 10 11,"O-M:3,O-B:2,O-N:3,O-A:3",0.01223760764873642,-9.610347056411348,False,101063,536.48,False,
+11,0 1 2 3 5 6 7 8 9 10 11,"O-M:3,O-B:2,O-N:3,O-A:3",0.013306723516372212,-10.817502829110502,False,100166,532.82,False,
+11,0 1 2 4 5 6 7 8 9 10 11,"O-M:3,O-B:2,O-N:3,O-A:3",0.013307068571288896,-12.654517457575292,False,100166,532.53,False,
+10,1 2 3 4 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",,,False,,2288.45,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 323, 1323, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.00983117, threshold=0.00983117, n_solutions=1). Try increasing maxiter or n_solutions."
+11,0 1 3 4 5 6 7 8 9 10 11,"O-M:2,O-B:3,O-N:3,O-A:3",0.005028500972990198,-9.420050795818376,False,101086,515.88,False,
+11,0 2 3 4 5 6 7 8 9 10 11,"O-M:2,O-B:3,O-N:3,O-A:3",0.00916807516791604,-12.566990636277097,False,100166,500.94,False,
+10,1 2 3 5 6 7 8 9 10 11,"O-M:2,O-B:2,O-N:3,O-A:3",,,False,,2231.22,True,"optimize_theta() failed to converge in 5 attempt(s) (seeds 324, 1324, ...): No stage-2 candidate reached the stage-1 optimum (best_lambda_min=0.0102669, threshold=0.0102669, n_solutions=1). Try increasing maxiter or n_solutions."
+11,1 2 3 4 5 6 7 8 9 10 11,"O-M:2,O-B:3,O-N:3,O-A:3",0.010655917453598463,-16.450621862094337,False,100166,428.94,False,
+12,0 1 2 3 4 5 6 7 8 9 10 11,"O-M:3,O-B:3,O-N:3,O-A:3",0.013307332624242647,-7.091616956712845,False,83710,312.01,False,
