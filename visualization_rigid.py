@@ -412,6 +412,133 @@ def draw_groove_normals_2d(ax, coupling, title=''):
     ax.grid(True, alpha=0.2)
 
 
+def draw_hinge_layout(ax, couplings, edge_start, edge_end, face_normal,
+                      thickness, title='', arrow_scale=0.18,
+                      inactive_couplings=()):
+    """
+    True 2-D slice of one hinge's mating face — the actual physical
+    interface plane, not an abstract diagram: x = position along the
+    edge (edge_start -> edge_end, real distance), y = depth through the
+    thickness (0 at the top face, -thickness at the bottom). n1/n2 are
+    projected onto this SAME plane (dropping their face_normal
+    component, which points out of the page here).
+
+    This is a literal projection, derived straight from
+    KinematicCoupling._compute_groove_normals: u = cos(theta)*Z +
+    sin(theta)*in_plane_Y lies entirely in this plane (in_plane_Y =
+    Z x face_normal, matching that method exactly), and w =
+    face_normal x u therefore ALSO lies entirely in this plane — w has
+    zero face_normal component. Since n1 = cos(45)*face_normal +
+    sin(45)*w and n2 = cos(45)*face_normal - sin(45)*w, their
+    projections onto this plane are +sin(45)*w and -sin(45)*w: equal
+    length, EXACTLY opposite directions. So each coupling draws as a
+    single straight line through its contact point (n1 one way, n2 the
+    other) — not a V — and that line's angle directly IS theta (up to
+    the established n1/n2-swap-under-theta+pi symmetry, which just
+    swaps which half of the line is green vs blue, not the line itself).
+    This is deliberately NOT draw_groove_normals_2d's (w, face_normal)
+    diagram, which co-rotates with theta by construction and therefore
+    always looks like the same fixed V regardless of theta — the point
+    here is the opposite: to see theta as a literal rotation across
+    couplings sharing one physical hinge.
+
+    Parameters
+    ----------
+    ax                  : Axes (2-D)
+    couplings           : list[KinematicCoupling], all active, sharing
+                          this hinge — each drawn with an n1/n2 line
+    edge_start, edge_end : (3,) array-like — the hinge edge's two ends
+    face_normal         : (3,) array-like — this hinge's face normal
+                          (shared by every coupling on it); defines the
+                          projection plane together with world Z
+    thickness           : float — panel thickness, for the depth-axis
+                          extent and the top/bottom face reference lines
+    title               : subplot title
+    arrow_scale         : arrow length as a fraction of the edge length
+    inactive_couplings  : couplings on this hinge that are NOT active —
+                          drawn as a removed-coupling 'x', no line (an
+                          inactive coupling's theta was never optimized
+                          for this configuration) — mirrors
+                          draw_3d_config's active/inactive convention.
+    """
+    edge_start = np.asarray(edge_start, dtype=float)
+    edge_end   = np.asarray(edge_end,   dtype=float)
+    edge_len   = np.linalg.norm(edge_end - edge_start)
+    arrow_len  = arrow_scale * edge_len
+
+    Z = np.array([0., 0., 1.])
+    fn = np.asarray(face_normal, dtype=float)
+    fn = fn / np.linalg.norm(fn)
+    in_plane_Y = np.cross(Z, fn)          # matches _compute_groove_normals exactly
+    in_plane_Y /= np.linalg.norm(in_plane_Y)
+    # cross(Z, face_normal)'s sign depends on which way face_normal happens
+    # to point (a per-hinge, panel-order convention unrelated to which end
+    # of THIS edge is "start"), so it isn't guaranteed to point from
+    # edge_start toward edge_end -- pin it so positions land in [0, edge_len]
+    # as the x-axis below assumes, instead of silently plotting off-screen.
+    if np.dot(edge_end - edge_start, in_plane_Y) < 0:
+        in_plane_Y = -in_plane_Y
+
+    def along_edge(point):
+        return np.dot(np.asarray(point, dtype=float) - edge_start, in_plane_Y)
+
+    def project(vec):
+        # Drop the face_normal component -- that's the whole point of a
+        # true interface-plane slice, not an abstract cross-section.
+        return np.dot(vec, in_plane_Y), np.dot(vec, Z)
+
+    for coupling in inactive_couplings:
+        s = along_edge(coupling.point)
+        z = coupling.point[2]
+        ax.scatter([s], [z], color=REMOVED_COLOR, marker='x', s=45,
+                  linewidth=1.5, zorder=4)
+
+    for coupling in couplings:
+        p = coupling.point
+        s = along_edge(p)
+        z = p[2]
+
+        ax.scatter([s], [z], color=CONTACT_COLOR, s=55, zorder=5)
+        ax.annotate(f'{np.degrees(coupling.theta):.0f}°', (s, z),
+                    xytext=(4, 4), textcoords='offset points', fontsize=7)
+
+        for vec, color in [(coupling.n1, N1_COLOR), (coupling.n2, N2_COLOR)]:
+            dx, dy = project(vec)
+            ax.annotate('', xy=(s + dx * arrow_len, z + dy * arrow_len),
+                       xytext=(s, z),
+                       arrowprops=dict(arrowstyle='->', lw=1.6, color=color))
+
+    # Top/bottom face reference lines -- the physical extent of the
+    # mating face this hinge's couplings actually sit on.
+    ax.plot([0, edge_len], [0, 0], color='black', linewidth=1, alpha=0.35)
+    ax.plot([0, edge_len], [-thickness, -thickness],
+           color='black', linewidth=1, alpha=0.35)
+
+    # ax.annotate arrows aren't included in matplotlib's autoscaling, so
+    # without explicit limits any arrow tip extending past the
+    # [-thickness, 0] span the scatter points/reference lines establish
+    # gets silently clipped outside the visible frame — since n1/n2's
+    # projections are equal-length and opposite, that clips exactly one
+    # of the two arrows at every point otherwise.
+    margin = 1.15 * arrow_len
+    ax.set_xlim(-max(0.08 * edge_len, margin), edge_len + max(0.08 * edge_len, margin))
+    ax.set_ylim(-thickness - margin, margin)
+    ax.set_xlabel('Position along hinge', fontsize=8)
+    ax.set_ylabel('Depth (thickness)', fontsize=8)
+    ax.set_title(title, fontsize=9)
+    ax.grid(True, alpha=0.2)
+
+    legend_handles = [
+        Line2D([0], [0], color=CONTACT_COLOR, marker='o', linestyle='', label='Contact point'),
+        Line2D([0], [0], color=N1_COLOR, linewidth=2, label='n1'),
+        Line2D([0], [0], color=N2_COLOR, linewidth=2, label='n2'),
+    ]
+    if inactive_couplings:
+        legend_handles.append(
+            Line2D([0], [0], color=REMOVED_COLOR, marker='x', linestyle='', label='Removed coupling'))
+    ax.legend(handles=legend_handles, fontsize=6, loc='best')
+
+
 # ══════════════════════════════════════════════════════════════════════
 # Convenience: complete figures used by the test suite
 # ══════════════════════════════════════════════════════════════════════
