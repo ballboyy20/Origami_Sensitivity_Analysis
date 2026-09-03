@@ -1,0 +1,10 @@
+Two-panel / 3-coupling assembly -- two-stage theta optimizer baseline
+========================================================================
+method: differential_evolution, seed=42
+start thetas (deg): (17.0, 84.0, 151.0)
+
+lambda_min:   0.013330  ->  0.013330  (primary stage-1 optimum: 0.013330)
+log_product:  -4.097287  ->  -1.989929
+converged:    True
+evaluations:  8426
+optimal thetas (deg): [99.216, 80.782, 180.0]
