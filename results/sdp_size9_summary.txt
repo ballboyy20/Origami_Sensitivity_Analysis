@@ -1,0 +1,42 @@
+SDP stage-1 relaxation sweep: birds-foot size-9 subsets (220 total)
+==============================================================================
+Subsets evaluated: 220
+Total wall-clock: 29.5s
+
+14 subset(s) had NO full-rank reference found in 300 random theta draws -- recorded with sdp_lambda_min=0, sdp_t=0 (not fed into the SDP at all). This is evidence (not proof) these specific topologies may be structurally rank-deficient for ANY theta, not merely hard for DE to optimize:
+  spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  indices=[0, 1, 2, 3, 4, 6, 7, 9, 10]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:3,O-N:2,O-A:2]  indices=[0, 1, 3, 4, 5, 6, 7, 9, 10]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:3,O-N:2,O-A:2]  indices=[0, 1, 3, 4, 5, 6, 7, 9, 11]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:3,O-N:2,O-A:2]  indices=[0, 1, 3, 4, 5, 6, 7, 10, 11]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:3,O-N:1,O-A:3]  indices=[0, 1, 3, 4, 5, 6, 9, 10, 11]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:3,O-N:1,O-A:3]  indices=[0, 1, 3, 4, 5, 7, 9, 10, 11]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:2,O-N:3,O-A:2]  indices=[0, 1, 3, 4, 6, 7, 8, 9, 10]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:2,O-N:2,O-A:3]  indices=[0, 1, 3, 4, 6, 7, 9, 10, 11]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:2,O-N:2,O-A:3]  indices=[0, 1, 3, 5, 6, 7, 9, 10, 11]  (DE also failed on this subset)
+  spokes=[O-M:2,O-B:2,O-N:2,O-A:3]  indices=[0, 1, 4, 5, 6, 7, 9, 10, 11]  (DE also failed on this subset)
+  ... and 4 more
+
+Sanity check PASSED: t >= achieved lambda_min - 1e-06 holds for all 220 subsets.
+
+Rounding gap (t - achieved lambda_min) distribution:
+  min=-1.640811e-09  median=2.039769e-03  mean=2.632459e-03  max=1.084983e-02
+
+DE-converged subsets (n=150): SDP achieved lambda_min vs. DE's own reported lambda_min
+  SDP strictly better: 3   DE strictly better: 97   tie (within 1e-6): 50
+  (sdp - de) distribution: min=-8.340e-03  median=-1.092e-03  max=3.893e-06
+
+DE-failed subsets (n=70, 'no stage-2 candidate reached the stage-1 optimum'):
+  SDP found a plausible non-degenerate result (lambda_min > 1e-06) for 51/70
+  resolved lambda_min: min=0.000006  median=0.000476  max=0.008702
+  still degenerate/near-zero (19), split by cause:
+    no full-rank reference found at all (14) -- evidence these topologies may be structurally rank-deficient for ANY theta, not just hard to optimize
+    full-rank reference existed, but decode still landed degenerate (5) -- the topology CAN reach full rank; the SDP's relaxed optimum for these apparently sits where one or more (u_i, v_i) has near-zero magnitude, so its decoded angle is unreliable (see decode_uv_to_theta's docstring on the (0,0) degeneracy) -- these look like a decode-step limitation, not evidence of infeasibility
+    e.g. spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  sdp_t=0.003819  decoded lambda_min=8.243e-07
+
+Best size-9 subset found by this SDP sweep (max achieved lambda_min, log_product tiebreak):
+  spokes=[O-M:2,O-B:2,O-N:3,O-A:2]  indices=[1, 2, 3, 5, 6, 7, 8, 9, 11]
+  sdp_t=0.009374  achieved lambda_min=0.008748  log_product=-17.746887
+  thetas (deg)=[100.01, 133.13, 48.3, 87.14, 75.74, 104.27, 178.97, 48.3, 87.14]
+
+Previous champion (exhaustive_subset_summary.txt): spokes=[O-M:3,O-B:2,O-N:3,O-A:1]  lambda_min=0.009259
+  -> does NOT beat the previous champion (0.008748 vs 0.009259)

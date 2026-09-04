@@ -167,46 +167,50 @@ def verify_config(name, system, ref_thetas_deg, active_idx, length_scale=1.0,
 # ══════════════════════════════════════════════════════════════════════
 # Configurations -- a handful of distinct active-coupling setups
 # ══════════════════════════════════════════════════════════════════════
-print("=" * 72)
-print("K(theta) structure check: K(theta) =?= K0 + sum_i [cos(2*ti)Kc_i + sin(2*ti)Ks_i]")
-print("=" * 72)
+# Guarded behind __main__ so other modules (e.g. sdp_theta_optimizer.py)
+# can import calibrate()/predict_K() without re-running this whole
+# verification script as an import side effect.
+if __name__ == "__main__":
+    print("=" * 72)
+    print("K(theta) structure check: K(theta) =?= K0 + sum_i [cos(2*ti)Kc_i + sin(2*ti)Ks_i]")
+    print("=" * 72)
 
-configs = []
+    configs = []
 
-sys1 = build_system(ARBITRARY_START_THETAS_DEG)
-configs.append(("Two-panel, 3/3 couplings active",
-                 sys1, ARBITRARY_START_THETAS_DEG, [0, 1, 2], 1.0))
+    sys1 = build_system(ARBITRARY_START_THETAS_DEG)
+    configs.append(("Two-panel, 3/3 couplings active",
+                     sys1, ARBITRARY_START_THETAS_DEG, [0, 1, 2], 1.0))
 
-sys2 = build_system(ARBITRARY_START_THETAS_DEG)
-sys2.couplings[2].active = False
-configs.append(("Two-panel, 2/3 active (1 pruned)",
-                 sys2, ARBITRARY_START_THETAS_DEG, [0, 1], 1.0))
+    sys2 = build_system(ARBITRARY_START_THETAS_DEG)
+    sys2.couplings[2].active = False
+    configs.append(("Two-panel, 2/3 active (1 pruned)",
+                     sys2, ARBITRARY_START_THETAS_DEG, [0, 1], 1.0))
 
-sys3 = build_system(ARBITRARY_START_THETAS_DEG)
-configs.append(("Two-panel, 3/3 active, length_scale=0.35",
-                 sys3, ARBITRARY_START_THETAS_DEG, [0, 1, 2], 0.35))
+    sys3 = build_system(ARBITRARY_START_THETAS_DEG)
+    configs.append(("Two-panel, 3/3 active, length_scale=0.35",
+                     sys3, ARBITRARY_START_THETAS_DEG, [0, 1, 2], 0.35))
 
-sys4 = build_birdsfoot_system(np.array(BIRDSFOOT_START_THETAS_DEG))
-configs.append(("Birds-foot, 12/12 couplings active",
-                 sys4, BIRDSFOOT_START_THETAS_DEG, list(range(12)), 1.0))
+    sys4 = build_birdsfoot_system(np.array(BIRDSFOOT_START_THETAS_DEG))
+    configs.append(("Birds-foot, 12/12 couplings active",
+                     sys4, BIRDSFOOT_START_THETAS_DEG, list(range(12)), 1.0))
 
-sys5 = build_birdsfoot_system(np.array(BIRDSFOOT_START_THETAS_DEG))
-pruned = [2, 5, 9]   # one coupling off of three different spokes
-for i in pruned:
-    sys5.couplings[i].active = False
-active5 = [i for i in range(12) if i not in pruned]
-configs.append(("Birds-foot, 9/12 active (3 pruned across spokes)",
-                 sys5, BIRDSFOOT_START_THETAS_DEG, active5, 1.0))
+    sys5 = build_birdsfoot_system(np.array(BIRDSFOOT_START_THETAS_DEG))
+    pruned = [2, 5, 9]   # one coupling off of three different spokes
+    for i in pruned:
+        sys5.couplings[i].active = False
+    active5 = [i for i in range(12) if i not in pruned]
+    configs.append(("Birds-foot, 9/12 active (3 pruned across spokes)",
+                     sys5, BIRDSFOOT_START_THETAS_DEG, active5, 1.0))
 
-results = [verify_config(*cfg) for cfg in configs]
+    results = [verify_config(*cfg) for cfg in configs]
 
-print("\n" + "=" * 72)
-print("Summary")
-print("=" * 72)
-for r in results:
-    worst = max(r['max_err_axis'], r['max_err_joint'], r['max_err_inactive'])
-    print(f"  {r['name']:<48s} worst = {worst:.3e}")
-print(f"\nAll {len(results)} configurations satisfy (*) to within {TOL:.0e} -- "
-      f"K(theta) is exactly affine in (cos 2*theta_i, sin 2*theta_i) per active "
-      f"coupling, with no cross terms. SDP over theta has a well-founded "
-      f"quadratic/trigonometric structure to build on.")
+    print("\n" + "=" * 72)
+    print("Summary")
+    print("=" * 72)
+    for r in results:
+        worst = max(r['max_err_axis'], r['max_err_joint'], r['max_err_inactive'])
+        print(f"  {r['name']:<48s} worst = {worst:.3e}")
+    print(f"\nAll {len(results)} configurations satisfy (*) to within {TOL:.0e} -- "
+          f"K(theta) is exactly affine in (cos 2*theta_i, sin 2*theta_i) per active "
+          f"coupling, with no cross terms. SDP over theta has a well-founded "
+          f"quadratic/trigonometric structure to build on.")
