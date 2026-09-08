@@ -1,0 +1,19 @@
+sdp_topology_bound.py validation summary
+==============================================================================
+
+Part A (per-coupling decomposition regression): PASS (worst |isolated_sum - joint| = 1.776e-15, tol 1e-09)
+Part B (leaf-node regression vs stored sdp_lambda_min.t): PASS (max diff = 7.268e-12, tol 1e-04)
+Part C (root-node soundness, 220 size-9 subsets): PASS
+Part D (intermediate-node stress, 98 nodes checked): PASS
+
+Root-node bound: t = 0.013297
+Best known achieved lambda_min (size-9, confirmed ground truth, n=201): 0.009259
+Root bound - best known = 0.004039 (43.6% looser than the best known achievable size-9 design)
+
+Solve-time by node size (representative):
+  root node (12 undecided, 0 decided): 0.501s
+  near-leaf (0-2 undecided): n=13  mean=0.426s  max=0.554s
+  mid-depth (3-7 undecided): n=46  mean=0.413s  max=0.693s
+  shallow (8-12 undecided): n=39  mean=0.441s  max=0.636s
+
+ALL CHECKS PASSED -- bound appears sound.
