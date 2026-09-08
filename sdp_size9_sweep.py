@@ -1,8 +1,10 @@
 """
 sdp_size9_sweep.py
 
-Runs the SDP relaxation of stage 1 (sdp_lambda_min, see
-sdp_theta_optimizer.py) on every size-9 subset of the birds-foot system's
+Runs the two-stage SDP relaxation (sdp_lambda_min, see
+sdp_theta_optimizer.py -- stage 1 maximizes t = relaxed lambda_min bound,
+stage 2 maximizes log_det among ties at t, and THAT solution is what gets
+decoded to real thetas) on every size-9 subset of the birds-foot system's
 12 couplings -- the same 220 subsets differential_evolution was run on
 in exhaustive_subset_baseline.py (results/exhaustive_subset_results.json),
 150 of which DE converged on and ~70 of which DE gave up on ("no stage-2
@@ -15,6 +17,14 @@ best subset DE ever found?) -- NOT to relax the discrete topology choice
 itself (that's a separate, out-of-scope follow-up; every subset here is
 still a FIXED, exhaustively-enumerated topology).
 
+This is the SECOND run of this sweep. The first run (stage-1-only decode:
+just take stage 1's own (u, v), with no tie-break) is preserved at
+results/sdp_size9_results_stage1_only.json the first time this script
+runs after that fix landed, so the "did stage 2 actually fix the
+broken decodes" comparison below has a fixed baseline to compare against
+even after this script overwrites results/sdp_size9_results.json with
+the new (stage-2-decoded) numbers.
+
 Run directly: python sdp_size9_sweep.py
 Requires results/exhaustive_subset_results.json (from
 exhaustive_subset_baseline.py) to already exist.
@@ -22,8 +32,10 @@ exhaustive_subset_baseline.py) to already exist.
 
 import json
 import os
+import shutil
 import sys
 import time
+import warnings
 
 import numpy as np
 
@@ -37,15 +49,22 @@ INPUT_JSON        = os.path.join(RESULTS_DIR, 'exhaustive_subset_results.json')
 OUT_JSON          = os.path.join(RESULTS_DIR, 'sdp_size9_results.json')
 OUT_CSV           = os.path.join(RESULTS_DIR, 'sdp_size9_results.csv')
 OUT_SUMMARY       = os.path.join(RESULTS_DIR, 'sdp_size9_summary.txt')
+BASELINE_JSON     = os.path.join(RESULTS_DIR, 'sdp_size9_results_stage1_only.json')
 
 GAP_TOL           = 1e-6   # tolerance for the t >= achieved lambda_min sanity check
 NONDEGENERATE_TOL = 1e-6   # achieved lambda_min above this counts as "resolved"
+SEVERE_FRACTION   = 0.1    # "severely broken" (pre-fix) := achieved lambda_min
+                            # < this fraction of DE's own reported lambda_min,
+                            # on a subset DE itself converged on
 N_REF_RETRIES     = 300    # random reference-theta draws tried (cheap rank
                             # check only, see _find_full_rank_reference)
                             # before giving up on a subset
 
 PREVIOUS_CHAMPION_LAMBDA_MIN = 0.009259   # from results/exhaustive_subset_summary.txt
 PREVIOUS_CHAMPION_SPOKES     = 'O-M:3,O-B:2,O-N:3,O-A:1'
+CHAMPION_SUBSET               = [0, 1, 2, 3, 5, 6, 7, 8, 11]
+CHAMPION_OLD_ACHIEVED         = 0.00870263   # stage-1-only decode, from the first sweep
+CHAMPION_BOUND                = 0.00927063   # t*, unchanged by stage 2
 
 
 def _spoke_counts(subset_indices, labels):
@@ -108,6 +127,27 @@ def _solve_one(subset, base_thetas_deg, rng, target_rank):
 
 
 def main():
+    # Snapshot the pre-stage-2 (stage-1-only decode) results ONCE, before
+    # this run overwrites OUT_JSON, so the before/after comparison below
+    # has a fixed baseline even on a third, fourth, ... rerun of this
+    # script. No-op if already snapshotted or if there's nothing to
+    # snapshot (first-ever run).
+    if os.path.exists(OUT_JSON) and not os.path.exists(BASELINE_JSON):
+        shutil.copy(OUT_JSON, BASELINE_JSON)
+        print(f"Snapshotted pre-stage-2 baseline: {BASELINE_JSON}")
+
+    baseline_by_subset = {}
+    if os.path.exists(BASELINE_JSON):
+        with open(BASELINE_JSON, 'r', encoding='utf-8') as f:
+            baseline_by_subset = {tuple(r['subset']): r for r in json.load(f)}
+
+    # cvxpy's log_det atom sometimes reports 'optimal_inaccurate' from
+    # CLARABEL on this problem size even when the returned point is a
+    # good decode (checked case-by-case against SCS during development,
+    # see the module docstring's stage-2 discussion) -- expected/handled,
+    # not worth 220 repeated warnings.
+    warnings.filterwarnings('ignore', message='Solution may be inaccurate')
+
     with open(INPUT_JSON, 'r', encoding='utf-8') as f:
         de_results = json.load(f)
     de_size9 = [r for r in de_results if r['size'] == 9]
@@ -142,6 +182,8 @@ def main():
                 sdp_gap=0.0,
                 sdp_thetas_deg=None,
                 sdp_no_full_rank_reference=True,
+                sdp_stage1_status=None,
+                sdp_stage2_status=None,
                 de_failed=de_r['failed'],
                 de_lambda_min=de_r['lambda_min'],
                 de_log_product=de_r['log_product'],
@@ -160,6 +202,8 @@ def main():
             sdp_gap=sdp_r['gap'],
             sdp_thetas_deg=np.degrees(sdp_r['thetas']).tolist(),
             sdp_no_full_rank_reference=False,
+            sdp_stage1_status=sdp_r['stage1_status'],
+            sdp_stage2_status=sdp_r['stage2_status'],
             de_failed=de_r['failed'],
             de_lambda_min=de_r['lambda_min'],
             de_log_product=de_r['log_product'],
@@ -181,13 +225,15 @@ def main():
     with open(OUT_CSV, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
         w.writerow(['active_indices', 'spoke_counts', 'sdp_t', 'sdp_lambda_min',
-                    'sdp_log_product', 'sdp_gap', 'de_failed', 'de_lambda_min',
+                    'sdp_log_product', 'sdp_gap', 'sdp_stage1_status',
+                    'sdp_stage2_status', 'de_failed', 'de_lambda_min',
                     'de_log_product', 'de_converged'])
         for r in results:
             w.writerow([
                 ' '.join(map(str, r['subset'])), r['spokes'],
                 f"{r['sdp_t']:.8f}", f"{r['sdp_lambda_min']:.8f}",
                 f"{r['sdp_log_product']:.6f}", f"{r['sdp_gap']:.3e}",
+                r['sdp_stage1_status'] or '', r['sdp_stage2_status'] or '',
                 r['de_failed'],
                 '' if r['de_lambda_min'] is None else f"{r['de_lambda_min']:.8f}",
                 '' if r['de_log_product'] is None else f"{r['de_log_product']:.6f}",
@@ -198,7 +244,9 @@ def main():
     # ── Sanity check: t >= achieved lambda_min everywhere ────────────────
     violations = [r for r in results if r['sdp_gap'] < -GAP_TOL]
     lines = [
-        "SDP stage-1 relaxation sweep: birds-foot size-9 subsets (220 total)",
+        "SDP two-stage relaxation sweep: birds-foot size-9 subsets (220 total)",
+        "(stage 1: maximize t; stage 2: maximize log_det among ties at t -- "
+        "decode uses stage 2)",
         "=" * 78,
         f"Subsets evaluated: {len(results)}",
         f"Total wall-clock: {total_elapsed:.1f}s",
@@ -294,9 +342,85 @@ def main():
                             f"decoded lambda_min={had_ref[0]['sdp_lambda_min']:.3e}")
         lines.append("")
 
+    # ── Stage-2 fix: before (stage-1-only decode) vs. after ────────────────
+    if baseline_by_subset:
+        results_by_subset = {tuple(r['subset']): r for r in results}
+
+        # (a) DE-converged subsets where the OLD decode was severely broken
+        # despite t already matching DE almost exactly -- see module
+        # docstring: SEVERE_FRACTION of DE's own reported lambda_min.
+        old_severe = [
+            old for old in baseline_by_subset.values()
+            if not old['de_failed'] and old['de_lambda_min']
+            and old['sdp_lambda_min'] < SEVERE_FRACTION * old['de_lambda_min']
+        ]
+        lines.append(f"Stage-2 fix, DE-converged subsets that were SEVERELY broken "
+                    f"before (old decode < {SEVERE_FRACTION:.0%} of DE's own "
+                    f"lambda_min, n={len(old_severe)}):")
+        if old_severe:
+            fixed_now = [
+                old for old in old_severe
+                if results_by_subset[tuple(old['subset'])]['sdp_lambda_min']
+                   >= SEVERE_FRACTION * old['de_lambda_min']
+            ]
+            lines.append(f"  now above that same {SEVERE_FRACTION:.0%} threshold: "
+                        f"{len(fixed_now)}/{len(old_severe)}")
+            deltas = np.array([
+                results_by_subset[tuple(old['subset'])]['sdp_lambda_min'] - old['sdp_lambda_min']
+                for old in old_severe
+            ])
+            lines.append(f"  achieved lambda_min improvement (new - old): "
+                        f"min={deltas.min():.3e}  median={np.median(deltas):.3e}  "
+                        f"max={deltas.max():.3e}")
+        lines.append("")
+
+        # (b) The 5 DE-failed subsets flagged last time as "full-rank
+        # reference existed but decode landed degenerate".
+        old_failed_had_ref_degenerate = [
+            old for old in baseline_by_subset.values()
+            if old['de_failed'] and not old.get('sdp_no_full_rank_reference')
+            and old['sdp_lambda_min'] <= NONDEGENERATE_TOL
+        ]
+        if old_failed_had_ref_degenerate:
+            lines.append(f"Stage-2 fix, DE-failed subsets previously flagged 'full-rank "
+                        f"reference existed but decode landed degenerate' "
+                        f"(n={len(old_failed_had_ref_degenerate)}):")
+            for old in old_failed_had_ref_degenerate:
+                new = results_by_subset[tuple(old['subset'])]
+                status = ("now resolved" if new['sdp_lambda_min'] > NONDEGENERATE_TOL
+                          else "still degenerate")
+                lines.append(f"  spokes=[{old['spokes']}]  t={new['sdp_t']:.6f}  "
+                            f"old achieved={old['sdp_lambda_min']:.3e}  "
+                            f"new achieved={new['sdp_lambda_min']:.6f}  -> {status}")
+            lines.append("")
+
+        # (c) The champion topology specifically.
+        champ_key = tuple(sorted(CHAMPION_SUBSET))
+        if champ_key in results_by_subset:
+            champ_new = results_by_subset[champ_key]
+            closer = (abs(champ_new['sdp_lambda_min'] - CHAMPION_BOUND)
+                      < abs(CHAMPION_OLD_ACHIEVED - CHAMPION_BOUND))
+            lines.append(f"Champion topology (spokes=[{PREVIOUS_CHAMPION_SPOKES}], "
+                        f"indices={CHAMPION_SUBSET}) stage-2 decode:")
+            lines.append(f"  bound t*={CHAMPION_BOUND:.6f}  "
+                        f"old (stage-1-only) achieved={CHAMPION_OLD_ACHIEVED:.6f}  "
+                        f"new (stage-2) achieved={champ_new['sdp_lambda_min']:.6f}")
+            lines.append(f"  -> stage-2 decode is "
+                        f"{'CLOSER to' if closer else 'NOT closer to'} the bound than "
+                        f"the old stage-1-only decode was "
+                        f"(old gap={CHAMPION_BOUND - CHAMPION_OLD_ACHIEVED:.3e}, "
+                        f"new gap={champ_new['sdp_gap']:.3e})")
+            lines.append("")
+
     # ── Best-of-run vs. previous champion ─────────────────────────────────
     best = max(results, key=lambda r: (r['sdp_lambda_min'], r['sdp_log_product']))
-    beats = best['sdp_lambda_min'] > PREVIOUS_CHAMPION_LAMBDA_MIN
+    MATCH_TOL = 1e-4
+    if best['sdp_lambda_min'] > PREVIOUS_CHAMPION_LAMBDA_MIN + MATCH_TOL:
+        verdict = 'BEATS'
+    elif best['sdp_lambda_min'] >= PREVIOUS_CHAMPION_LAMBDA_MIN - MATCH_TOL:
+        verdict = 'MATCHES (within 1e-4)'
+    else:
+        verdict = 'does NOT beat'
     lines.append("Best size-9 subset found by this SDP sweep (max achieved "
                 "lambda_min, log_product tiebreak):")
     lines.append(f"  spokes=[{best['spokes']}]  indices={best['subset']}")
@@ -307,7 +431,7 @@ def main():
     lines.append(f"Previous champion (exhaustive_subset_summary.txt): "
                 f"spokes=[{PREVIOUS_CHAMPION_SPOKES}]  "
                 f"lambda_min={PREVIOUS_CHAMPION_LAMBDA_MIN:.6f}")
-    lines.append(f"  -> {'BEATS' if beats else 'does NOT beat'} the previous champion "
+    lines.append(f"  -> {verdict} the previous champion "
                 f"({best['sdp_lambda_min']:.6f} vs {PREVIOUS_CHAMPION_LAMBDA_MIN:.6f})")
 
     summary = "\n".join(lines)

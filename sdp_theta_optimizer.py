@@ -29,11 +29,64 @@ relaxes to the SDP
 Dropping "== 1" to "<= 1" enlarges the feasible set (it's the convex hull
 of the circle, not the circle itself), so the SDP's optimal t is a valid
 UPPER BOUND on the true stage-1 optimum lambda_min — never a lower bound.
-The whole point of validating against ground truth (two-panel, and the
-birds-foot size-9 sweep) is to see how tight that bound is in practice,
-and whether decoding (u_i, v_i) back to a real theta_i and re-evaluating
-the TRUE lambda_min through CouplingOptimizer's own eigendecomposition
-finds solutions competitive with (or better than) differential_evolution.
+
+Stage-1-only decode is often unreliable: t* can be an excellent bound
+while the TRUE (re-evaluated) lambda_min at the decoded theta is far
+below it. The original hypothesis here was that non-binding couplings'
+(u_i, v_i) land near the degenerate (0, 0) point (which decode_uv_to_
+theta() correctly flags as ill-defined by angle alone -- see its
+docstring) and decode to an arbitrary angle. Empirically that is NOT the
+actual mechanism in most birds-foot size-9 cases checked (see the
+addendum in results/sdp_size9_summary.txt): magnitudes are frequently
+nowhere near zero, yet the decode is still badly off. The real cause,
+confirmed by inspecting stage 1's raw (u, v) directly, is that stage 1's
+own t*-maximizer often sits at one or more (u_i, v_i) meaningfully
+INSIDE the unit disk (not just infinitesimally) -- an interior point is
+a blend with no real theta behind it, so decoding it by angle alone is
+decoding something that was never a real configuration, and a large
+shortfall follows regardless of which secondary objective, if any, is
+used to pick the exact point.
+
+Stage 2 below is a genuine attempt at CouplingOptimizer.optimize_theta()'s
+own fix for the analogous ambiguity in differential_evolution: hold t*
+fixed (within a small tolerance) as a floor, and re-solve for a second,
+LEXICOGRAPHICALLY SECONDARY objective among everything tied for stage 1's
+optimum. It is implemented correctly and does help in some cases (e.g.
+the two-panel system, where it closes the decode error from ~1.5 deg to
+~0.003 deg) -- but the sdp_size9_summary.txt addendum found it fixes only
+a small minority of the birds-foot size-9 degenerate cases, because
+stage 2's feasible band (t_floor = t* - tol) is usually too narrow to
+contain any point meaningfully different from stage 1's own (already
+interior, already poorly-decoding) solution. When t* itself comes from
+an interior point, no tie-break confined to a tight neighborhood of t*
+can be expected to fix the decode -- that is a genuine relaxation-
+looseness problem for that topology, not a which-of-several-ties-to-pick
+problem. Treat a large reported gap as a signal of that, not merely of
+an unlucky tie-break.
+
+Concretely, stage 2 solves:
+
+    maximize log_det( K_reduced(u, v) )
+    s.t.     K_reduced(u, v) - t_floor*I >> 0     (t_floor = t* - tol)
+             u_i**2 + v_i**2 <= 1     for each active coupling i
+
+log_det is a natural "make every locked eigenvalue as large as possible,
+not just the worst one" objective — the same volumetric-stiffness idea
+optimize_theta's own stage 2 (log_product of the locked eigenvalues)
+uses, just phrased as a matrix (not per-eigenvalue) concave function of
+the SAME affine K_reduced(u, v). Because K_reduced - t_floor*I >> 0 is
+enforced as a constraint, K_reduced is guaranteed positive definite at
+any feasible point (t* > 0 for any topology that reaches full rank), so
+log_det is finite, concave, and well-posed with no artificial
+regularization term needed. This is a genuine two-stage SDP (not a
+weighted blend of two objectives), so there's no scale/epsilon to tune
+between the two terms — deliberately mirroring the lexicographic
+(not weighted) structure optimize_theta() itself uses.
+
+t* (stage 1's bound) is reported UNCHANGED regardless of stage 2 — it's
+still the valid upper bound needed for any future branch-and-bound use.
+Only the DECODED theta (and hence the true achieved lambda_min reported
+alongside it) comes from stage 2's solution.
 
 Run directly: python sdp_theta_optimizer.py runs (a) a standalone decode
 round-trip unit test and (b) the two-panel sanity check.
@@ -128,81 +181,26 @@ def _locked_subspace_projection(K_ref, target_rank):
 
 
 # ══════════════════════════════════════════════════════════════════════
-# Core SDP relaxation
+# Shared setup: calibrate + project onto the locked subspace
 # ══════════════════════════════════════════════════════════════════════
 
-def sdp_lambda_min(system, active_indices, length_scale=1.0,
-                    target_rank=None, ref_thetas=None, solver=None,
-                    **solver_kwargs):
+def _calibrate_reduced(system, active_indices, length_scale, target_rank,
+                        ref_thetas):
     """
-    Solve the SDP relaxation of stage 1 (maximize lambda_min) for a fixed
-    active-coupling topology, then decode back to real thetas and report
-    the TRUE achieved lambda_min alongside the relaxed bound.
+    calibrate() (K0/Kc/Ks over the full d-dim space), then project each
+    onto the target_rank-dim locked subspace via _locked_subspace_
+    projection. This is the one piece of setup stage 1 and stage 2 both
+    need identically -- computed once and reused, not repeated per stage.
 
-    Parameters
-    ----------
-    system : CouplingSystem
-        Modified in place: every coupling's `active` flag is set to
-        match active_indices, and (on return) active couplings are left
-        at the decoded optimal thetas — same "leaves system at the
-        result" convention as CouplingOptimizer.optimize_theta() +
-        apply_result().
-    active_indices : sequence of int
-        Indices into system.couplings to activate. Every other coupling
-        is deactivated. Must be nonempty and reach target_rank (checked
-        after the fact via the true re-evaluation, not assumed).
-    length_scale : float
-        Forwarded to build_constraint_matrix / CouplingOptimizer — same
-        meaning as elsewhere in this codebase.
-    target_rank : int or None
-        Defaults to system.total_dofs - 6, matching CouplingOptimizer's
-        own default.
-    ref_thetas : (len(system.couplings),) array or None
-        Reference angles calibrate() linearizes K around. Defaults to
-        each coupling's current theta. The decomposition (*) is EXACT
-        (not a local linearization) for any reference, so this choice
-        cannot bias the SDP's answer — it only has to avoid an
-        accidentally rank-deficient reference config, which calibrate()
-        itself doesn't require either.
-    solver : cvxpy solver constant or None
-        Defaults to trying cp.CLARABEL, falling back to cp.SCS if
-        CLARABEL fails or is unavailable — both open-source, no MOSEK
-        license assumed.
-    solver_kwargs : forwarded to Problem.solve().
+    Returns (K0_reduced, Kc_reduced, Ks_reduced): a target_rank x
+    target_rank symmetric ndarray, and two {coupling_index: target_rank x
+    target_rank symmetric ndarray} dicts (keyed by active_indices).
 
-    Returns
-    -------
-    dict with keys:
-        't'                 : float — SDP-relaxed upper bound on lambda_min
-        'lambda_min'        : float — TRUE lambda_min after decode + apply
-                               (via CouplingOptimizer.lambda_min())
-        'log_product'       : float — TRUE log_product at the same thetas
-                               (-inf if rank-deficient)
-        'thetas'            : (n,) ndarray — decoded angles (radians),
-                               index-aligned to active_indices
-        'active_indices'    : list[int] — echoed back, sorted
-        'gap'               : float — t - lambda_min (>= 0 expected; see
-                               module docstring — never negative in
-                               principle since t is a valid upper bound)
-        'solver_status'     : str — cvxpy problem.status
-        'u', 'v'            : (n,) ndarrays — raw SDP solution
+    Raises RuntimeError if ref_thetas is rank-deficient for this active
+    topology, or if the resulting "gauge" eigenvalues aren't close to
+    zero (the assumed theta-independent null space not holding cleanly)
+    -- see _locked_subspace_projection's module-level comment.
     """
-    active_indices = sorted(int(i) for i in active_indices)
-    n = len(active_indices)
-    if n == 0:
-        raise ValueError("active_indices is empty")
-
-    for i, c in enumerate(system.couplings):
-        c.active = (i in active_indices)
-
-    if target_rank is None:
-        target_rank = system.total_dofs - 6
-
-    if ref_thetas is None:
-        ref_thetas = np.array([c.theta for c in system.couplings], dtype=float)
-    else:
-        ref_thetas = np.asarray(ref_thetas, dtype=float).copy()
-
     K0, Kc, Ks = calibrate(system, ref_thetas, active_indices, length_scale)
     d = K0.shape[0]
     K0 = _symmetrize(K0)
@@ -233,26 +231,32 @@ def sdp_lambda_min(system, active_indices, length_scale=1.0,
             f"null space doesn't hold cleanly here; pass different "
             f"ref_thetas.")
 
-    K0 = P.T @ K0 @ P
-    Kc = {i: P.T @ Kc[i] @ P for i in active_indices}
-    Ks = {i: P.T @ Ks[i] @ P for i in active_indices}
+    K0_reduced = P.T @ K0 @ P
+    Kc_reduced = {i: P.T @ Kc[i] @ P for i in active_indices}
+    Ks_reduced = {i: P.T @ Ks[i] @ P for i in active_indices}
+    return K0_reduced, Kc_reduced, Ks_reduced
 
-    # ── Build and solve the SDP (over the target_rank-dim locked subspace,
-    #    not the full d-dim space -- see the projection comment above) ───
+
+def _K_expr_and_box(K0_reduced, Kc_reduced, Ks_reduced, active_indices):
+    """
+    Builds the shared pieces of both stage-1 and stage-2's SDP: fresh
+    (u, v) variables, the affine K_reduced(u, v) expression, and the
+    per-coupling u_i**2+v_i**2 <= 1 box constraints (as SOC constraints).
+    """
+    n = len(active_indices)
     u = cp.Variable(n)
     v = cp.Variable(n)
-    t = cp.Variable()
-
-    K_expr = K0
+    K_expr = K0_reduced
     for k, i in enumerate(active_indices):
-        K_expr = K_expr + u[k] * Kc[i] + v[k] * Ks[i]
+        K_expr = K_expr + u[k] * Kc_reduced[i] + v[k] * Ks_reduced[i]
+    box = [cp.SOC(1.0, cp.hstack([u[k], v[k]])) for k in range(n)]
+    return u, v, K_expr, box
 
-    constraints = [K_expr - t * np.eye(target_rank) >> 0]
-    for k in range(n):
-        constraints.append(cp.SOC(1.0, cp.hstack([u[k], v[k]])))
 
-    problem = cp.Problem(cp.Maximize(t), constraints)
-
+def _solve(problem, solver, solver_kwargs):
+    """Shared solve-with-fallback: try cp.CLARABEL first (or the given
+    solver), fall back to cp.SCS -- both open-source, no MOSEK license
+    assumed. Returns problem.status."""
     if solver is not None:
         problem.solve(solver=solver, **solver_kwargs)
     else:
@@ -262,15 +266,159 @@ def sdp_lambda_min(system, active_indices, length_scale=1.0,
             problem.solve(solver=cp.SCS, **solver_kwargs)
         if problem.status not in ('optimal', 'optimal_inaccurate'):
             problem.solve(solver=cp.SCS, **solver_kwargs)
+    return problem.status
 
-    if problem.status not in ('optimal', 'optimal_inaccurate'):
+
+# ══════════════════════════════════════════════════════════════════════
+# Stage 1: maximize t (the relaxed lambda_min bound)
+# ══════════════════════════════════════════════════════════════════════
+
+def _solve_stage1_bound(K0_reduced, Kc_reduced, Ks_reduced, active_indices,
+                         target_rank, solver, solver_kwargs):
+    u, v, K_expr, box = _K_expr_and_box(K0_reduced, Kc_reduced, Ks_reduced,
+                                         active_indices)
+    t = cp.Variable()
+    constraints = [K_expr - t * np.eye(target_rank) >> 0] + box
+    problem = cp.Problem(cp.Maximize(t), constraints)
+    status = _solve(problem, solver, solver_kwargs)
+    if status not in ('optimal', 'optimal_inaccurate'):
         raise RuntimeError(
-            f"SDP relaxation failed to solve (status={problem.status}) "
+            f"Stage-1 SDP failed to solve (status={status}) "
             f"for active_indices={active_indices}")
+    return float(t.value), status
 
-    t_val = float(t.value)
-    u_val = np.asarray(u.value, dtype=float)
-    v_val = np.asarray(v.value, dtype=float)
+
+# ══════════════════════════════════════════════════════════════════════
+# Stage 2: among ties at stage 1's optimum, maximize log_det(K_reduced)
+# ══════════════════════════════════════════════════════════════════════
+
+def _solve_stage2_logdet(K0_reduced, Kc_reduced, Ks_reduced, active_indices,
+                          target_rank, t_floor, solver, solver_kwargs):
+    """
+    See module docstring for why log_det, not a weighted blend with
+    stage 1: K_reduced - t_floor*I >> 0 is enforced as a hard constraint,
+    so K_reduced is guaranteed positive definite (t_floor is strictly
+    below t*, which is > 0 for any topology reaching full rank) at every
+    feasible point -- log_det is finite and concave there with no
+    artificial regularization needed.
+    """
+    u, v, K_expr, box = _K_expr_and_box(K0_reduced, Kc_reduced, Ks_reduced,
+                                         active_indices)
+    constraints = [K_expr - t_floor * np.eye(target_rank) >> 0] + box
+    problem = cp.Problem(cp.Maximize(cp.log_det(K_expr)), constraints)
+    status = _solve(problem, solver, solver_kwargs)
+    if status not in ('optimal', 'optimal_inaccurate'):
+        raise RuntimeError(
+            f"Stage-2 log_det SDP failed to solve (status={status}) "
+            f"for active_indices={active_indices}, t_floor={t_floor:.6g}")
+    return np.asarray(u.value, dtype=float), np.asarray(v.value, dtype=float), status
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Public entry point
+# ══════════════════════════════════════════════════════════════════════
+
+def sdp_lambda_min(system, active_indices, length_scale=1.0,
+                    target_rank=None, ref_thetas=None, solver=None,
+                    stage2_tol=None, **solver_kwargs):
+    """
+    Solve the two-stage SDP relaxation (stage 1: maximize lambda_min;
+    stage 2: among ties at stage 1's optimum, maximize log_det) for a
+    fixed active-coupling topology, then decode STAGE 2's solution back
+    to real thetas and report the TRUE achieved lambda_min alongside
+    stage 1's relaxed bound. See module docstring for the full
+    motivation -- in short, decoding stage 1's own (u, v) is unreliable
+    because non-binding couplings' (u_i, v_i) are underdetermined there.
+
+    Parameters
+    ----------
+    system : CouplingSystem
+        Modified in place: every coupling's `active` flag is set to
+        match active_indices, and (on return) active couplings are left
+        at STAGE 2's decoded thetas — same "leaves system at the result"
+        convention as CouplingOptimizer.optimize_theta() + apply_result().
+    active_indices : sequence of int
+        Indices into system.couplings to activate. Every other coupling
+        is deactivated. Must be nonempty and reach target_rank (checked
+        after the fact via the true re-evaluation, not assumed).
+    length_scale : float
+        Forwarded to build_constraint_matrix / CouplingOptimizer — same
+        meaning as elsewhere in this codebase.
+    target_rank : int or None
+        Defaults to system.total_dofs - 6, matching CouplingOptimizer's
+        own default.
+    ref_thetas : (len(system.couplings),) array or None
+        Reference angles calibrate() linearizes K around. Defaults to
+        each coupling's current theta. The decomposition (*) is EXACT
+        (not a local linearization) for any reference, so this choice
+        cannot bias the SDP's answer — it only has to avoid an
+        accidentally rank-deficient reference config, which calibrate()
+        itself doesn't require either.
+    solver : cvxpy solver constant or None
+        Defaults to trying cp.CLARABEL, falling back to cp.SCS if
+        CLARABEL fails or is unavailable — both open-source, no MOSEK
+        license assumed. Used for both stages.
+    stage2_tol : float or None
+        How far below stage 1's t* the stage-2 floor t_floor = t* -
+        stage2_tol is allowed to sit. Defaults to max(1e-9, 1e-7 * t*),
+        mirroring optimize_theta()'s own stage-2 tolerance
+        (CouplingOptimizer._threshold).
+    solver_kwargs : forwarded to Problem.solve() (both stages).
+
+    Returns
+    -------
+    dict with keys:
+        't'                 : float — stage 1's SDP-relaxed upper bound
+                               on lambda_min. UNCHANGED by stage 2 --
+                               still the bound to use for any future
+                               branch-and-bound purpose.
+        'lambda_min'        : float — TRUE lambda_min after stage-2
+                               decode + apply (via
+                               CouplingOptimizer.lambda_min())
+        'log_product'       : float — TRUE log_product at the same
+                               thetas (-inf if rank-deficient)
+        'thetas'            : (n,) ndarray — stage-2-decoded angles
+                               (radians), index-aligned to active_indices
+        'active_indices'    : list[int] — echoed back, sorted
+        'gap'               : float — t - lambda_min (>= 0 expected; see
+                               module docstring — never negative in
+                               principle since t is a valid upper bound)
+        'stage1_status', 'stage2_status' : str — cvxpy problem.status
+                               for each stage
+        'stage2_tol'        : float — the tolerance actually used
+        'u', 'v'            : (n,) ndarrays — stage 2's raw SDP solution
+    """
+    active_indices = sorted(int(i) for i in active_indices)
+    n = len(active_indices)
+    if n == 0:
+        raise ValueError("active_indices is empty")
+
+    for i, c in enumerate(system.couplings):
+        c.active = (i in active_indices)
+
+    if target_rank is None:
+        target_rank = system.total_dofs - 6
+
+    if ref_thetas is None:
+        ref_thetas = np.array([c.theta for c in system.couplings], dtype=float)
+    else:
+        ref_thetas = np.asarray(ref_thetas, dtype=float).copy()
+
+    K0_reduced, Kc_reduced, Ks_reduced = _calibrate_reduced(
+        system, active_indices, length_scale, target_rank, ref_thetas)
+
+    t_star, status1 = _solve_stage1_bound(
+        K0_reduced, Kc_reduced, Ks_reduced, active_indices, target_rank,
+        solver, solver_kwargs)
+
+    if stage2_tol is None:
+        stage2_tol = max(1e-9, 1e-7 * t_star)
+    t_floor = t_star - stage2_tol
+
+    u_val, v_val, status2 = _solve_stage2_logdet(
+        K0_reduced, Kc_reduced, Ks_reduced, active_indices, target_rank,
+        t_floor, solver, solver_kwargs)
+
     thetas = decode_uv_to_theta(u_val, v_val)
 
     # ── Apply decoded thetas and get the TRUE lambda_min/log_product ────
@@ -283,13 +431,15 @@ def sdp_lambda_min(system, active_indices, length_scale=1.0,
     logp = optimizer.log_product()
 
     return dict(
-        t=t_val,
+        t=t_star,
         lambda_min=lam,
         log_product=logp,
         thetas=thetas,
         active_indices=active_indices,
-        gap=t_val - lam,
-        solver_status=problem.status,
+        gap=t_star - lam,
+        stage1_status=status1,
+        stage2_status=status2,
+        stage2_tol=stage2_tol,
         u=u_val,
         v=v_val,
     )

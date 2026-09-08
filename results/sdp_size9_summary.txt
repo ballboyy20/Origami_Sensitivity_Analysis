@@ -1,7 +1,8 @@
-SDP stage-1 relaxation sweep: birds-foot size-9 subsets (220 total)
+SDP two-stage relaxation sweep: birds-foot size-9 subsets (220 total)
+(stage 1: maximize t; stage 2: maximize log_det among ties at t -- decode uses stage 2)
 ==============================================================================
 Subsets evaluated: 220
-Total wall-clock: 29.5s
+Total wall-clock: 631.6s
 
 14 subset(s) had NO full-rank reference found in 300 random theta draws -- recorded with sdp_lambda_min=0, sdp_t=0 (not fed into the SDP at all). This is evidence (not proof) these specific topologies may be structurally rank-deficient for ANY theta, not merely hard for DE to optimize:
   spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  indices=[0, 1, 2, 3, 4, 6, 7, 9, 10]  (DE also failed on this subset)
@@ -19,24 +20,104 @@ Total wall-clock: 29.5s
 Sanity check PASSED: t >= achieved lambda_min - 1e-06 holds for all 220 subsets.
 
 Rounding gap (t - achieved lambda_min) distribution:
-  min=-1.640811e-09  median=2.039769e-03  mean=2.632459e-03  max=1.084983e-02
+  min=-1.522416e-09  median=1.958696e-03  mean=2.589903e-03  max=1.079093e-02
 
 DE-converged subsets (n=150): SDP achieved lambda_min vs. DE's own reported lambda_min
-  SDP strictly better: 3   DE strictly better: 97   tie (within 1e-6): 50
-  (sdp - de) distribution: min=-8.340e-03  median=-1.092e-03  max=3.893e-06
+  SDP strictly better: 3   DE strictly better: 93   tie (within 1e-6): 54
+  (sdp - de) distribution: min=-8.337e-03  median=-9.930e-04  max=3.891e-06
 
 DE-failed subsets (n=70, 'no stage-2 candidate reached the stage-1 optimum'):
   SDP found a plausible non-degenerate result (lambda_min > 1e-06) for 51/70
-  resolved lambda_min: min=0.000006  median=0.000476  max=0.008702
+  resolved lambda_min: min=0.000006  median=0.000645  max=0.008712
   still degenerate/near-zero (19), split by cause:
     no full-rank reference found at all (14) -- evidence these topologies may be structurally rank-deficient for ANY theta, not just hard to optimize
     full-rank reference existed, but decode still landed degenerate (5) -- the topology CAN reach full rank; the SDP's relaxed optimum for these apparently sits where one or more (u_i, v_i) has near-zero magnitude, so its decoded angle is unreliable (see decode_uv_to_theta's docstring on the (0,0) degeneracy) -- these look like a decode-step limitation, not evidence of infeasibility
-    e.g. spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  sdp_t=0.003819  decoded lambda_min=8.243e-07
+    e.g. spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  sdp_t=0.003819  decoded lambda_min=5.478e-07
+
+Stage-2 fix, DE-converged subsets that were SEVERELY broken before (old decode < 10% of DE's own lambda_min, n=33):
+  now above that same 10% threshold: 2/33
+  achieved lambda_min improvement (new - old): min=-2.260e-04  median=2.514e-07  max=3.656e-03
+
+Stage-2 fix, DE-failed subsets previously flagged 'full-rank reference existed but decode landed degenerate' (n=5):
+  spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  t=0.003819  old achieved=8.243e-07  new achieved=0.000001  -> still degenerate
+  spokes=[O-M:3,O-B:2,O-N:2,O-A:2]  t=0.003819  old achieved=8.283e-07  new achieved=0.000001  -> still degenerate
+  spokes=[O-M:2,O-B:2,O-N:3,O-A:2]  t=0.003838  old achieved=1.470e-07  new achieved=0.000000  -> still degenerate
+  spokes=[O-M:2,O-B:3,O-N:2,O-A:2]  t=0.005805  old achieved=3.499e-08  new achieved=0.000000  -> still degenerate
+  spokes=[O-M:2,O-B:2,O-N:2,O-A:3]  t=0.005805  old achieved=2.182e-08  new achieved=0.000000  -> still degenerate
+
+Champion topology (spokes=[O-M:3,O-B:2,O-N:3,O-A:1], indices=[0, 1, 2, 3, 5, 6, 7, 8, 11]) stage-2 decode:
+  bound t*=0.009271  old (stage-1-only) achieved=0.008703  new (stage-2) achieved=0.008712
+  -> stage-2 decode is CLOSER to the bound than the old stage-1-only decode was (old gap=5.680e-04, new gap=5.585e-04)
 
 Best size-9 subset found by this SDP sweep (max achieved lambda_min, log_product tiebreak):
   spokes=[O-M:2,O-B:2,O-N:3,O-A:2]  indices=[1, 2, 3, 5, 6, 7, 8, 9, 11]
-  sdp_t=0.009374  achieved lambda_min=0.008748  log_product=-17.746887
-  thetas (deg)=[100.01, 133.13, 48.3, 87.14, 75.74, 104.27, 178.97, 48.3, 87.14]
+  sdp_t=0.009374  achieved lambda_min=0.008748  log_product=-17.521207
+  thetas (deg)=[93.26, 144.87, 48.2, 87.0, 73.58, 105.71, 0.18, 48.2, 87.01]
 
 Previous champion (exhaustive_subset_summary.txt): spokes=[O-M:3,O-B:2,O-N:3,O-A:1]  lambda_min=0.009259
   -> does NOT beat the previous champion (0.008748 vs 0.009259)
+
+==============================================================================
+ADDENDUM -- root-cause finding: the log_det tie-break mostly does NOT fix the
+degenerate decode, and the original "(u_i,v_i) near (0,0)" diagnosis was WRONG
+==============================================================================
+Only 2/33 severely-broken DE-converged subsets crossed back above 10% of DE's
+own lambda_min, and none of the 5 DE-failed "full-rank reference existed"
+subsets improved at all. Before accepting that as simply "stage 2 mostly
+doesn't help," a follow-up ad hoc investigation (not part of the automated
+sweep -- run by hand against a handful of the 33 severely-broken subsets)
+checked WHY, by inspecting the raw (u_i, v_i) magnitudes stage 1 and stage 2
+each actually return (not just the decoded theta / achieved lambda_min):
+
+  - The original hypothesis (this repo's prior sdp_size9_summary.txt) was that
+    non-binding couplings' (u_i, v_i) sit near the degenerate (0, 0) point,
+    which decode_uv_to_theta() then turns into an arbitrary angle. This is
+    FALSE for essentially every case checked: e.g. champion subset (indices
+    0,1,2,3,5,6,7,8,11) has all 9 magnitudes in [0.98, 1.0]; subset
+    [0,1,2,3,5,6,7,10,11] (one of the 5 "full-rank-ref" DE-failed cases) has
+    magnitudes as low as 0.767 but nothing near 0 -- yet its achieved
+    lambda_min is 5.5e-7, essentially zero. Magnitude-near-zero is NOT the
+    actual failure mode in these cases.
+  - Replacing log_det with an entirely different concave tie-break
+    (cp.tr_inv -- a pure LMI/Schur-complement formulation, no exponential
+    cone, so a different numerical path through the solver) gives the
+    SAME decoded theta and the SAME achieved lambda_min on the champion
+    subset (0.008712 either way). Two unrelated concave objectives landing
+    on the same answer rules out "log_det's specific exp-cone
+    canonicalization is numerically unreliable" as the explanation.
+  - Comparing stage 1's own (u, v) to stage 2's for the same subset shows
+    they are nearly IDENTICAL (e.g. subset [0,1,2,3,5,6,7,10,11]: stage-1
+    magnitudes [0.978, 0.956, 1, 0.852, 1, 1, 1, 1, 0.767], stage-2
+    [0.977, 0.955, 1, 0.852, 1, 1, 1, 1, 0.767]). This is the actual
+    mechanism: stage 2's feasible region is capped at t_floor = t* - tol,
+    a band only ~1e-7*t* wide around stage 1's own optimum. For topologies
+    where stage 1's t*-maximizer is essentially UNIQUE, that band contains
+    only points extremely close to stage 1's own (u, v) -- there is no
+    genuinely different, better-decoding point for log_det (or any other
+    tie-break) to move to. The tie-break can only help when stage 1's
+    optimum is achieved by a genuine FAMILY of tied points, which isn't
+    the case for most of these subsets.
+  - The deeper issue: for many of these subsets, stage 1's t* itself is
+    achieved at a point with one or more (u_i, v_i) meaningfully INSIDE
+    the unit disk (not just infinitesimally, e.g. magnitude 0.77-0.85).
+    That interior point is a mathematical average/blend with no single
+    real theta behind it -- K_reduced(u, v) there is not C(theta)^T C(theta)
+    for any actual theta. t* is a valid bound on it regardless (SDP
+    duality doesn't care), but ANY decode of a point near it -- via angle
+    alone, regardless of which secondary objective chose it -- is decoding
+    a blend, not a real configuration, so a large real-eigenvalue shortfall
+    should be expected. This is a genuine RELAXATION GAP for these specific
+    topologies (the convex relaxation is loose), not a decode-selection-
+    among-ties problem, so no tie-break confined to a tight band around t*
+    can fix it by construction.
+
+Practical implication: sdp_lambda_min's t* remains a sound, valid upper
+bound everywhere (soundness check above still passes). But treat the
+decoded theta / achieved lambda_min as reliable mainly when the reported
+gap is already small (as it is for the two-panel case, and forthe best
+subsets in this sweep) -- a large gap is a signal the relaxation itself is
+loose for that topology, not just that decode got unlucky, and a further
+lexicographic tie-break at fixed t will generally not recover it. Closing
+these large-gap cases would need either a fundamentally tighter relaxation
+(e.g. additional valid cuts) or a genuine nonlinear local polish seeded from
+the SDP's decode -- both out of scope for this task and not yet attempted.
