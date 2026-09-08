@@ -430,6 +430,117 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
 
 
 # ══════════════════════════════════════════════════════════════════════
+# Policy wrapper: reference-search-failure-safe node evaluation
+# ══════════════════════════════════════════════════════════════════════
+#
+# find_full_rank_reference() returning None is only an EMPIRICAL correlate
+# of a node being infeasible (see results/sdp_size9_summary.txt: 14/220
+# birds-foot size-9 subsets never found a reference in 300 random tries,
+# and those also independently correlated with DE's own failures there) --
+# it is NOT a proof. A real branch-and-bound search that treats "no
+# reference found" as "prune this node" risks silently discarding the true
+# optimum whenever the search simply got unlucky rather than the node
+# actually being infeasible -- exactly the failure mode this whole SDP-
+# bound effort exists to avoid (see this module's own docstring and
+# sdp_theta_optimizer.py's module docstring). bound_node() is the single
+# entry point that encodes the agreed policy: such a node is reported
+# UNRESOLVED, never pruned.
+
+def bound_node(system, forced_active, forced_inactive, undecided, k,
+                length_scale=1.0, target_rank=None, base_thetas_deg=None,
+                registry=None, solver=None, max_ref_tries=300, rng=None,
+                **solver_kwargs):
+    """
+    Policy wrapper around find_full_rank_reference() + sdp_topology_bound()
+    for use by a real branch-and-bound search. Never raises for a node
+    that merely couldn't be resolved -- returns a status instead, so the
+    caller is forced to make an explicit decision rather than have an
+    exception implicitly treated as "infeasible, prune".
+
+    Returns a dict with a 'status' key, one of:
+
+      'infeasible'  -- cardinality ALONE already rules out this node
+                       (need more active couplings than there are
+                       undecided slots for, or negative headroom). This
+                       is a hard, decidable fact independent of any SDP
+                       or reference search -- always safe to prune.
+
+      'unresolved'  -- no full-rank reference was found for this node's
+                       largest possible topology (forced_active UNION
+                       undecided) within max_ref_tries random tries, OR
+                       sdp_topology_bound() itself raised once a
+                       reference WAS found (e.g. its gauge-eigenvalue
+                       sanity check failed). 'bound' is None.
+                       *** DO NOT PRUNE a node in this state. *** It must
+                       be revisited (e.g. with a bigger reference-search
+                       budget, or a smarter feasibility search) before a
+                       real B&B can safely decide its fate -- see the
+                       module-level comment above.
+
+      'bounded'     -- a valid reference was found and the SDP solved.
+                       'bound' holds the relaxed upper bound t, safe to
+                       use for pruning (bound <= incumbent => prune).
+
+    Also returns 'reference' (the theta vector used, or None),
+    'forced_active'/'forced_inactive'/'undecided' (echoed back sorted),
+    and for non-'bounded' statuses, 'reason' (a short machine-readable
+    string: 'cardinality', 'no_reference', or the RuntimeError message
+    from sdp_topology_bound for the rarer gauge-eigenvalue-check failure).
+    For 'bounded', also returns 'solver_status'.
+
+    Parameters mirror sdp_topology_bound()'s, plus:
+    base_thetas_deg : reference-search starting point forwarded to
+        find_full_rank_reference (defaults to each coupling's current
+        theta, in degrees, if not given).
+    max_ref_tries : forwarded to find_full_rank_reference as max_tries.
+    rng : numpy.random.Generator or None, forwarded to
+        find_full_rank_reference (defaults to a fresh, unseeded
+        Generator -- pass your own for reproducibility).
+    """
+    forced_active   = sorted(int(i) for i in forced_active)
+    forced_inactive = sorted(int(i) for i in forced_inactive)
+    undecided       = sorted(int(i) for i in undecided)
+
+    n_free_needed = k - len(forced_active)
+    if n_free_needed < 0 or n_free_needed > len(undecided):
+        return dict(status='infeasible', bound=None, reference=None,
+                    reason='cardinality', forced_active=forced_active,
+                    forced_inactive=forced_inactive, undecided=undecided)
+
+    if target_rank is None:
+        target_rank = system.total_dofs - 6
+    if base_thetas_deg is None:
+        base_thetas_deg = np.degrees([c.theta for c in system.couplings])
+    if rng is None:
+        rng = np.random.default_rng()
+
+    reference_indices = sorted(set(forced_active) | set(undecided))
+    ref = find_full_rank_reference(
+        system, reference_indices, target_rank, length_scale=length_scale,
+        base_thetas_deg=base_thetas_deg, rng=rng, max_tries=max_ref_tries)
+    if ref is None:
+        return dict(status='unresolved', bound=None, reference=None,
+                    reason='no_reference', forced_active=forced_active,
+                    forced_inactive=forced_inactive, undecided=undecided)
+
+    try:
+        result = sdp_topology_bound(
+            system, forced_active, forced_inactive, undecided, k,
+            length_scale=length_scale, target_rank=target_rank,
+            ref_thetas=ref, solver=solver, registry=registry,
+            **solver_kwargs)
+    except RuntimeError as e:
+        return dict(status='unresolved', bound=None, reference=ref,
+                    reason=str(e), forced_active=forced_active,
+                    forced_inactive=forced_inactive, undecided=undecided)
+
+    return dict(status='bounded', bound=result['t'], reference=ref,
+                reason=None, forced_active=forced_active,
+                forced_inactive=forced_inactive, undecided=undecided,
+                solver_status=result['solver_status'])
+
+
+# ══════════════════════════════════════════════════════════════════════
 # Standalone smoke check (run directly) -- NOT the full validation
 # battery, see test_sdp_topology_bound.py for that.
 # ══════════════════════════════════════════════════════════════════════

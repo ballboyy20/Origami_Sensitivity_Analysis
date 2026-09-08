@@ -1,0 +1,5186 @@
+[
+ {
+  "depth": 0,
+  "n_undecided": 12,
+  "forced_active": [],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.153780699998606,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.01329716180975487,
+  "gap": 0.004038601497735524,
+  "relative_gap": 0.43620188902292534
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   7
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10965229999965231,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013297160418491837,
+  "gap": 0.00403860010647249,
+  "relative_gap": 0.43620173875517454
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10698620000039227,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.013141438092850611,
+  "gap": 0.004484921947491484,
+  "relative_gap": 0.5180977973333891
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   9
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11356209999939892,
+  "best_achievable": 0.009057623041135636,
+  "reason": null,
+  "bound": 0.013168480114903064,
+  "gap": 0.004110857073767429,
+  "relative_gap": 0.45385605639556553
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   2
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10112019999905897,
+  "best_achievable": 0.004803481387487241,
+  "reason": null,
+  "bound": 0.004930637236071728,
+  "gap": 0.00012715584858448686,
+  "relative_gap": 0.02647160222494452
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   3
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.09858160000112548,
+  "best_achievable": 0.008712358261142182,
+  "reason": null,
+  "bound": 0.01325867899565534,
+  "gap": 0.004546320734513158,
+  "relative_gap": 0.5218243555008653
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   0
+  ],
+  "undecided": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.09802189999936672,
+  "best_achievable": 0.009047682876158519,
+  "reason": null,
+  "bound": 0.01041858422430834,
+  "gap": 0.0013709013481498222,
+  "relative_gap": 0.15151960639140813
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10397069999999076,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.01325870304504912,
+  "gap": 0.004000142733029774,
+  "relative_gap": 0.43204802887516314
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   5
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10979369999949995,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.01328648914376752,
+  "gap": 0.004027928831748174,
+  "relative_gap": 0.43504915408059364
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   3
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10466540000015812,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.01316847805700463,
+  "gap": 0.003909917744985282,
+  "relative_gap": 0.4223029945497548
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   5
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11120200000004843,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.011828100936560193,
+  "gap": 0.0031715847912010663,
+  "relative_gap": 0.3663812020845586
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   6
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10531780000019353,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013297159887405091,
+  "gap": 0.004038599575385745,
+  "relative_gap": 0.436201681393476
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10562100000061037,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013286490802823776,
+  "gap": 0.004027930490804429,
+  "relative_gap": 0.4350493332721957
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   7
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10369319999881554,
+  "best_achievable": 0.009057623041135636,
+  "reason": null,
+  "bound": 0.010371407034400957,
+  "gap": 0.0013137839932653213,
+  "relative_gap": 0.1450473250320429
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [],
+  "forced_inactive": [
+   11
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11030359999858774,
+  "best_achievable": 0.008567656766546717,
+  "reason": null,
+  "bound": 0.011828108253029646,
+  "gap": 0.0032604514864829296,
+  "relative_gap": 0.3805534669892114
+ },
+ {
+  "depth": 1,
+  "n_undecided": 11,
+  "forced_active": [
+   2
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12098610000066401,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013297161792587109,
+  "gap": 0.004038601480567762,
+  "relative_gap": 0.43620188716866704
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   6
+  ],
+  "forced_inactive": [
+   4
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11713840000084019,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.01296224065168892,
+  "gap": 0.003703680339669573,
+  "relative_gap": 0.4000276732940327
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [],
+  "forced_inactive": [
+   2,
+   11
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11288319999948726,
+  "best_achievable": 0.0029421295756891018,
+  "reason": null,
+  "bound": 0.003094700622459698,
+  "gap": 0.0001525710467705963,
+  "relative_gap": 0.05185735122997134
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   2,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13041380000140634,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013286485084507608,
+  "gap": 0.004027924772488261,
+  "relative_gap": 0.43504871564742736
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   4
+  ],
+  "forced_inactive": [
+   5
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12593259999994189,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.01109057710794562,
+  "gap": 0.002434060962586493,
+  "relative_gap": 0.2811825128855591
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [],
+  "forced_inactive": [
+   1,
+   7
+  ],
+  "undecided": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1095339999992575,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.008708125087358708,
+  "gap": 0.000314942880720398,
+  "relative_gap": 0.037523655863363044
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   10
+  ],
+  "forced_inactive": [
+   11
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12318530000084138,
+  "best_achievable": 0.008567656766546717,
+  "reason": null,
+  "bound": 0.01109056919800889,
+  "gap": 0.0025229124314621737,
+  "relative_gap": 0.29446936311841304
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [],
+  "forced_inactive": [
+   8,
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11283980000007432,
+  "best_achievable": 0.004752129805963056,
+  "reason": null,
+  "bound": 0.0048103478639655506,
+  "gap": 5.8218058002494806e-05,
+  "relative_gap": 0.012250940184639268
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [],
+  "forced_inactive": [
+   5,
+   8
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15754820000074687,
+  "best_achievable": 0.0030100534118605747,
+  "reason": null,
+  "bound": 0.003041453699051111,
+  "gap": 3.1400287190536114e-05,
+  "relative_gap": 0.010431803989526872
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   8
+  ],
+  "forced_inactive": [
+   5
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1362375000007887,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.011828102660987062,
+  "gap": 0.003171586515627935,
+  "relative_gap": 0.366381401290202
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   7
+  ],
+  "forced_inactive": [
+   4
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14451539999936358,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.012944265183783851,
+  "gap": 0.003685704871764504,
+  "relative_gap": 0.3980861762038498
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   7
+  ],
+  "forced_inactive": [
+   0
+  ],
+  "undecided": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1491996000004292,
+  "best_achievable": 0.009047682876158519,
+  "reason": null,
+  "bound": 0.010418584712861865,
+  "gap": 0.0013709018367033463,
+  "relative_gap": 0.15151966038904827
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   1,
+   2
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15367910000168195,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013297164911382501,
+  "gap": 0.004038604599363154,
+  "relative_gap": 0.4362022240239974
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   11
+  ],
+  "forced_inactive": [
+   6
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15390099999967788,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.011365151893741631,
+  "gap": 0.0027086357483825044,
+  "relative_gap": 0.312901368506618
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   5
+  ],
+  "forced_inactive": [
+   6
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14869460000045365,
+  "best_achievable": 0.008567656766546717,
+  "reason": null,
+  "bound": 0.011365146219463208,
+  "gap": 0.002797489452916491,
+  "relative_gap": 0.32651745152065054
+ },
+ {
+  "depth": 2,
+  "n_undecided": 10,
+  "forced_active": [
+   10
+  ],
+  "forced_inactive": [
+   1
+  ],
+  "undecided": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14524429999983113,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.008779005511408576,
+  "gap": 0.00038582330477026673,
+  "relative_gap": 0.04596865590087066
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   0,
+   6,
+   7
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15600649999942107,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013297165631943055,
+  "gap": 0.004038605319923708,
+  "relative_gap": 0.43620230185041203
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [],
+  "forced_inactive": [
+   3,
+   6,
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1229628999990382,
+  "best_achievable": 9.867372906050364e-05,
+  "reason": null,
+  "bound": 0.010889600754492263,
+  "gap": 0.01079092702543176,
+  "relative_gap": 109.35967585470598
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [],
+  "forced_inactive": [
+   2,
+   7,
+   10
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1229442999992898,
+  "best_achievable": 0.0016677766355487956,
+  "reason": null,
+  "bound": 0.0016677749610858896,
+  "gap": -1.674462906005314e-09,
+  "relative_gap": -1.0040090922932964e-06
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   3,
+   11
+  ],
+  "forced_inactive": [
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   6,
+   7,
+   8,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16163090000009106,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013039943751527859,
+  "gap": 0.003781383439508512,
+  "relative_gap": 0.40842024160058316
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   2,
+   4,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   3,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.17942580000089947,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.012920351291044619,
+  "gap": 0.004263835145685492,
+  "relative_gap": 0.4925578690188651
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [],
+  "forced_inactive": [
+   3,
+   5,
+   10
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   4,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13187120000111463,
+  "best_achievable": 0.00250608584942155,
+  "reason": null,
+  "bound": 0.007335981410904063,
+  "gap": 0.004829895561482512,
+  "relative_gap": 1.9272666028569372
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   0,
+   4,
+   7
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   2,
+   3,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16053610000017215,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.01313945972421811,
+  "gap": 0.004482943578858983,
+  "relative_gap": 0.5178692563592512
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   6
+  ],
+  "forced_inactive": [
+   5,
+   8
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   7,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1297470000008616,
+  "best_achievable": 0.0030100534118605747,
+  "reason": null,
+  "bound": 0.0030414608691032097,
+  "gap": 3.140745724263504e-05,
+  "relative_gap": 0.010434186024367407
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   3,
+   6
+  ],
+  "forced_inactive": [
+   0
+  ],
+  "undecided": [
+   1,
+   2,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14815470000030473,
+  "best_achievable": 0.009047682876158519,
+  "reason": null,
+  "bound": 0.010418590851871306,
+  "gap": 0.0013709079757127877,
+  "relative_gap": 0.15152033890635766
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   5,
+   9,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.18387540000003355,
+  "best_achievable": 0.008567656766546717,
+  "reason": null,
+  "bound": 0.012368985132549123,
+  "gap": 0.003801328366002407,
+  "relative_gap": 0.44368354960776185
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   0,
+   9
+  ],
+  "forced_inactive": [
+   6
+  ],
+  "undecided": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16163779999988037,
+  "best_achievable": 0.00719114346811892,
+  "reason": null,
+  "bound": 0.011344983552054834,
+  "gap": 0.0041538400839359136,
+  "relative_gap": 0.5776327648518584
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   8,
+   11
+  ],
+  "forced_inactive": [
+   10
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.160286599999381,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.012652846506499216,
+  "gap": 0.0033942861944798695,
+  "relative_gap": 0.366610583080984
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [],
+  "forced_inactive": [
+   0,
+   5,
+   8
+  ],
+  "undecided": [
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1336578999998892,
+  "best_achievable": 0.002836513766812872,
+  "reason": null,
+  "bound": 0.0028664804852441585,
+  "gap": 2.9966718431286444e-05,
+  "relative_gap": 0.010564629998238038
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   4
+  ],
+  "forced_inactive": [
+   1,
+   10
+  ],
+  "undecided": [
+   0,
+   2,
+   3,
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13608550000026298,
+  "best_achievable": 0.004126709075329047,
+  "reason": null,
+  "bound": 0.004437964361493638,
+  "gap": 0.000311255286164591,
+  "relative_gap": 0.07542457694083336
+ },
+ {
+  "depth": 3,
+  "n_undecided": 9,
+  "forced_active": [
+   3
+  ],
+  "forced_inactive": [
+   10,
+   11
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13350910000008298,
+  "best_achievable": 0.006279775000295841,
+  "reason": null,
+  "bound": 0.008707388374919894,
+  "gap": 0.0024276133746240526,
+  "relative_gap": 0.38657648952545076
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   10,
+   11
+  ],
+  "forced_inactive": [
+   5,
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14008600000124716,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.010777712744421662,
+  "gap": 0.0021211965990625345,
+  "relative_gap": 0.24504044854115314
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   0,
+   2,
+   4
+  ],
+  "forced_inactive": [
+   1
+  ],
+  "undecided": [
+   3,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16103599999951257,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.008779005562236172,
+  "gap": 0.00038582335559786234,
+  "relative_gap": 0.045968661956690055
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   2,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   7
+  ],
+  "undecided": [
+   0,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14428620000035153,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.008692758613263556,
+  "gap": 0.0002995764066252467,
+  "relative_gap": 0.035692827732049785
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   0,
+   1,
+   5,
+   9
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   2,
+   3,
+   4,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.17450000000098953,
+  "best_achievable": 0.009057623041135636,
+  "reason": null,
+  "bound": 0.01292855805778501,
+  "gap": 0.0038709350166493735,
+  "relative_gap": 0.4273676437040197
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   6
+  ],
+  "forced_inactive": [
+   1,
+   4,
+   5
+  ],
+  "undecided": [
+   0,
+   2,
+   3,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12214239999957499,
+  "best_achievable": 0.0023243642545020867,
+  "reason": null,
+  "bound": 0.0023497878388719882,
+  "gap": 2.542358436990154e-05,
+  "relative_gap": 0.010937865836070365
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   7
+  ],
+  "forced_inactive": [
+   2,
+   4,
+   6
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   5,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12210959999902116,
+  "best_achievable": 0.0036520211386178577,
+  "reason": null,
+  "bound": 0.003999936407083222,
+  "gap": 0.0003479152684653644,
+  "relative_gap": 0.09526649908632134
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   0,
+   4,
+   6,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   2,
+   3,
+   5,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15854639999997744,
+  "best_achievable": 0.008396143127842197,
+  "reason": null,
+  "bound": 0.012915109863991484,
+  "gap": 0.004518966736149287,
+  "relative_gap": 0.5382193546896643
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   7,
+   10
+  ],
+  "forced_inactive": [
+   9,
+   11
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1317972999986523,
+  "best_achievable": 0.008395641680018459,
+  "reason": null,
+  "bound": 0.011089555460910772,
+  "gap": 0.0026939137808923135,
+  "relative_gap": 0.3208705044313409
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   2
+  ],
+  "forced_inactive": [
+   0,
+   3,
+   11
+  ],
+  "undecided": [
+   1,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12169419999918318,
+  "best_achievable": 0.003128160417386706,
+  "reason": null,
+  "bound": 0.006621256461396885,
+  "gap": 0.003493096044010179,
+  "relative_gap": 1.1166614169129931
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   5
+  ],
+  "forced_inactive": [
+   0,
+   2,
+   3
+  ],
+  "undecided": [
+   1,
+   4,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12094470000010915,
+  "best_achievable": 0.004120011193153312,
+  "reason": null,
+  "bound": 0.0041890995996456985,
+  "gap": 6.908840649238676e-05,
+  "relative_gap": 0.01676898514431193
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   3,
+   5,
+   9
+  ],
+  "forced_inactive": [
+   0
+  ],
+  "undecided": [
+   1,
+   2,
+   4,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14702760000000126,
+  "best_achievable": 0.009047682876158519,
+  "reason": null,
+  "bound": 0.010399803428195043,
+  "gap": 0.0013521205520365242,
+  "relative_gap": 0.14944384883332804
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   10
+  ],
+  "forced_inactive": [
+   2,
+   5,
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   6,
+   7,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11943780000001425,
+  "best_achievable": 0.0008845277101597785,
+  "reason": null,
+  "bound": 0.0029008190164091442,
+  "gap": 0.0020162913062493656,
+  "relative_gap": 2.279511747444462
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   9,
+   11
+  ],
+  "forced_inactive": [
+   4,
+   10
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   6,
+   7,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1332605000006879,
+  "best_achievable": 0.009057623041135636,
+  "reason": null,
+  "bound": 0.011865413451065909,
+  "gap": 0.002807790409930273,
+  "relative_gap": 0.3099919699879931
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   1,
+   6,
+   11
+  ],
+  "forced_inactive": [
+   3
+  ],
+  "undecided": [
+   0,
+   2,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13914789999944333,
+  "best_achievable": 0.008712358261142182,
+  "reason": null,
+  "bound": 0.013253188319369426,
+  "gap": 0.004540830058227243,
+  "relative_gap": 0.5211941385009051
+ },
+ {
+  "depth": 4,
+  "n_undecided": 8,
+  "forced_active": [
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   7
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1894444999998086,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.010200170533498377,
+  "gap": 0.0018069883268600675,
+  "relative_gap": 0.21529239832669067
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   4,
+   10
+  ],
+  "forced_inactive": [
+   1,
+   3,
+   8
+  ],
+  "undecided": [
+   0,
+   2,
+   5,
+   6,
+   7,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1220854999992298,
+  "best_achievable": 0.0023258585640428962,
+  "reason": null,
+  "bound": 0.0023287755424016366,
+  "gap": 2.9169783587403193e-06,
+  "relative_gap": 0.0012541512213321846
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   1,
+   7,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   3
+  ],
+  "undecided": [
+   0,
+   2,
+   4,
+   5,
+   6,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1405125000001135,
+  "best_achievable": 0.008712358261142182,
+  "reason": null,
+  "bound": 0.013253104640084489,
+  "gap": 0.004540746378942306,
+  "relative_gap": 0.5211845338356206
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   3,
+   5
+  ],
+  "forced_inactive": [
+   4,
+   7,
+   9
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   6,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11863569999877654,
+  "best_achievable": 0.0071385814954665365,
+  "reason": null,
+  "bound": 0.010132168212290033,
+  "gap": 0.0029935867168234967,
+  "relative_gap": 0.4193531612302275
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   0,
+   2,
+   4,
+   6,
+   7
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   3,
+   5,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16297409999970114,
+  "best_achievable": 0.008396143127842197,
+  "reason": null,
+  "bound": 0.01312167711087916,
+  "gap": 0.004725533983036963,
+  "relative_gap": 0.5628219899404481
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   0,
+   1,
+   7,
+   9,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.18041180000000168,
+  "best_achievable": 0.006417300248938794,
+  "reason": null,
+  "bound": 0.012599978096127958,
+  "gap": 0.006182677847189164,
+  "relative_gap": 0.9634390798859023
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   3,
+   4,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   1
+  ],
+  "undecided": [
+   0,
+   2,
+   5,
+   6,
+   7,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16385489999993297,
+  "best_achievable": 0.005292454142505428,
+  "reason": null,
+  "bound": 0.008506100654251393,
+  "gap": 0.0032136465117459656,
+  "relative_gap": 0.607212915825972
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   3,
+   7
+  ],
+  "forced_inactive": [
+   0,
+   2,
+   11
+  ],
+  "undecided": [
+   1,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1566348000014841,
+  "best_achievable": 0.0029421295756891018,
+  "reason": null,
+  "bound": 0.0029421296698469886,
+  "gap": 9.415788678260317e-11,
+  "relative_gap": 3.200331064975261e-08
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   4,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   7,
+   10
+  ],
+  "undecided": [
+   0,
+   2,
+   3,
+   5,
+   6,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1321693999998388,
+  "best_achievable": 6.514558330833199e-05,
+  "reason": null,
+  "bound": 0.004144697852319811,
+  "gap": 0.004079552269011479,
+  "relative_gap": 62.62208521033708
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   1,
+   4,
+   6,
+   7,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   2,
+   3,
+   5,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15817380000044068,
+  "best_achievable": 0.008396143127842197,
+  "reason": null,
+  "bound": 0.012130988712985857,
+  "gap": 0.0037348455851436597,
+  "relative_gap": 0.44482871817163894
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   2,
+   3,
+   7
+  ],
+  "forced_inactive": [
+   4,
+   6
+  ],
+  "undecided": [
+   0,
+   1,
+   5,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12923199999931967,
+  "best_achievable": 0.0067332996790928626,
+  "reason": null,
+  "bound": 0.010742681611402946,
+  "gap": 0.0040093819323100835,
+  "relative_gap": 0.5954557384040634
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   3,
+   6
+  ],
+  "forced_inactive": [
+   0,
+   4,
+   10
+  ],
+  "undecided": [
+   1,
+   2,
+   5,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11122600000089733,
+  "best_achievable": 0.009047682876158519,
+  "reason": null,
+  "bound": 0.009374381079361777,
+  "gap": 0.0003266982032032583,
+  "relative_gap": 0.036108494039301296
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   0,
+   2
+  ],
+  "forced_inactive": [
+   1,
+   3,
+   7
+  ],
+  "undecided": [
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1226425000004383,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.008424609638565794,
+  "gap": 3.14274319274839e-05,
+  "relative_gap": 0.003744400056348999
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   2,
+   9
+  ],
+  "forced_inactive": [
+   1,
+   3,
+   6
+  ],
+  "undecided": [
+   0,
+   4,
+   5,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "no_ground_truth",
+  "elapsed_sec": 0.0,
+  "bound": null,
+  "best_achievable": null,
+  "gap": null,
+  "relative_gap": null,
+  "reason": null
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   4,
+   5,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   3,
+   6,
+   7,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1826184999990801,
+  "best_achievable": 0.00839318220663831,
+  "reason": null,
+  "bound": 0.00998334577321884,
+  "gap": 0.001590163566580531,
+  "relative_gap": 0.18945895935904308
+ },
+ {
+  "depth": 5,
+  "n_undecided": 7,
+  "forced_active": [
+   0,
+   3,
+   9
+  ],
+  "forced_inactive": [
+   1,
+   4
+  ],
+  "undecided": [
+   2,
+   5,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14710550000017975,
+  "best_achievable": 0.0023243642545020867,
+  "reason": null,
+  "bound": 0.004322259762494805,
+  "gap": 0.0019978955079927186,
+  "relative_gap": 0.8595449289512058
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   1,
+   3,
+   9
+  ],
+  "forced_inactive": [
+   6,
+   10,
+   11
+  ],
+  "undecided": [
+   0,
+   2,
+   4,
+   5,
+   7,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13151300000026822,
+  "best_achievable": 0.006279775000295841,
+  "reason": null,
+  "bound": 0.006718303891112843,
+  "gap": 0.0004385288908170023,
+  "relative_gap": 0.06983194315024713
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   2,
+   5,
+   7,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   6,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15308600000025763,
+  "best_achievable": 0.0067332996790928626,
+  "reason": null,
+  "bound": 0.011818958024164593,
+  "gap": 0.005085658345071731,
+  "relative_gap": 0.7552995689264926
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   2,
+   6,
+   7,
+   9
+  ],
+  "forced_inactive": [
+   10,
+   11
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12516250000044238,
+  "best_achievable": 0.006728293077844171,
+  "reason": null,
+  "bound": 0.008609452247010882,
+  "gap": 0.0018811591691667113,
+  "relative_gap": 0.2795893620272347
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   2,
+   4,
+   5,
+   7,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   3,
+   6,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15058999999928346,
+  "best_achievable": 0.008395641680018459,
+  "reason": null,
+  "bound": 0.012505067518724117,
+  "gap": 0.004109425838705659,
+  "relative_gap": 0.48947132278001454
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   8
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   4,
+   6,
+   7,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1547632000001613,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.013021362251907292,
+  "gap": 0.003762801939887945,
+  "relative_gap": 0.40641328814406735
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   1,
+   3,
+   6
+  ],
+  "forced_inactive": [
+   5,
+   8
+  ],
+  "undecided": [
+   2,
+   4,
+   7,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12390159999995376,
+  "best_achievable": 0.002837387035944704,
+  "reason": null,
+  "bound": 0.0029855033199453047,
+  "gap": 0.0001481162840006006,
+  "relative_gap": 0.05220164966013722
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   6,
+   10
+  ],
+  "forced_inactive": [
+   1,
+   2,
+   3
+  ],
+  "undecided": [
+   4,
+   5,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11213800000041374,
+  "best_achievable": 0.004794016304989863,
+  "reason": null,
+  "bound": 0.004794015585342172,
+  "gap": -7.196476912649241e-10,
+  "relative_gap": -1.5011373459783128e-07
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   5,
+   7,
+   10
+  ],
+  "forced_inactive": [
+   0,
+   6,
+   11
+  ],
+  "undecided": [
+   1,
+   2,
+   3,
+   4,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12489020000066375,
+  "best_achievable": 0.008567656766546717,
+  "reason": null,
+  "bound": 0.008567655053362419,
+  "gap": -1.7131842975498524e-09,
+  "relative_gap": -1.9995949233624226e-07
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   4,
+   5,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   6
+  ],
+  "undecided": [
+   1,
+   2,
+   3,
+   7,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1844516000001022,
+  "best_achievable": 0.005053455049806643,
+  "reason": null,
+  "bound": 0.008439654652383197,
+  "gap": 0.003386199602576554,
+  "relative_gap": 0.6700761299353237
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.19069670000135375,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.011263320062388726,
+  "gap": 0.0026068039170295994,
+  "relative_gap": 0.30113776411393184
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   3,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   4,
+   7
+  ],
+  "undecided": [
+   1,
+   2,
+   5,
+   6,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1416042999990168,
+  "best_achievable": 0.0071385814954665365,
+  "reason": null,
+  "bound": 0.010194939375798965,
+  "gap": 0.0030563578803324285,
+  "relative_gap": 0.4281463876644701
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   0,
+   4,
+   5,
+   6,
+   7,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   2,
+   3,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1607428000006621,
+  "best_achievable": 0.008395641680018459,
+  "reason": null,
+  "bound": 0.012438381538286093,
+  "gap": 0.004042739858267634,
+  "relative_gap": 0.4815283944155589
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   2,
+   5,
+   6,
+   7,
+   11
+  ],
+  "forced_inactive": [
+   10
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   4,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15004919999955746,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.012508412406051266,
+  "gap": 0.0032498520940319187,
+  "relative_gap": 0.3510105226417331
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   3,
+   4,
+   5,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   1,
+   2,
+   6,
+   7,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16219470000032743,
+  "best_achievable": 0.005292454142505428,
+  "reason": null,
+  "bound": 0.009983346689665704,
+  "gap": 0.004690892547160276,
+  "relative_gap": 0.8863359834308597
+ },
+ {
+  "depth": 6,
+  "n_undecided": 6,
+  "forced_active": [
+   1,
+   6,
+   7
+  ],
+  "forced_inactive": [
+   0,
+   2,
+   3
+  ],
+  "undecided": [
+   4,
+   5,
+   8,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12950979999914125,
+  "best_achievable": 0.004120011193153312,
+  "reason": null,
+  "bound": 0.004189107221026611,
+  "gap": 6.909602787329942e-05,
+  "relative_gap": 0.016770834989022383
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   3,
+   5,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   0,
+   1,
+   7
+  ],
+  "undecided": [
+   2,
+   4,
+   6,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12392599999839149,
+  "best_achievable": 0.005292454142505428,
+  "reason": null,
+  "bound": 0.0052924544702688415,
+  "gap": 3.27763413632276e-10,
+  "relative_gap": 6.193032661348938e-08
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   5,
+   7,
+   8,
+   10
+  ],
+  "forced_inactive": [
+   2,
+   3,
+   6
+  ],
+  "undecided": [
+   0,
+   1,
+   4,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1188754999984667,
+  "best_achievable": 0.00023378262657197262,
+  "reason": null,
+  "bound": 0.004732825588398268,
+  "gap": 0.004499042961826296,
+  "relative_gap": 19.244556483076448
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   1,
+   5,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   0,
+   2,
+   4
+  ],
+  "undecided": [
+   3,
+   6,
+   7,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1220999999986816,
+  "best_achievable": 6.325536976671927e-06,
+  "reason": null,
+  "bound": 0.0040238863563179334,
+  "gap": 0.004017560819341261,
+  "relative_gap": 635.1335600689243
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   1,
+   4,
+   5,
+   7,
+   8
+  ],
+  "forced_inactive": [
+   10,
+   11
+  ],
+  "undecided": [
+   0,
+   2,
+   3,
+   6,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1285252000016044,
+  "best_achievable": 0.006728293077844171,
+  "reason": null,
+  "bound": 0.008387363638075502,
+  "gap": 0.0016590705602313313,
+  "relative_gap": 0.24658119690037614
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   0,
+   3,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   5
+  ],
+  "undecided": [
+   2,
+   4,
+   6,
+   7,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12580180000077235,
+  "best_achievable": 0.005086678548432828,
+  "reason": null,
+  "bound": 0.007054190645871569,
+  "gap": 0.0019675120974387414,
+  "relative_gap": 0.3867970186645506
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   0,
+   1,
+   2,
+   5,
+   6,
+   7,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   3,
+   4,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15024689999881957,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.012648838137188756,
+  "gap": 0.003390277825169409,
+  "relative_gap": 0.3661776465146739
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   1,
+   4,
+   5,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   2,
+   6
+  ],
+  "undecided": [
+   0,
+   3,
+   7,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1290196999998443,
+  "best_achievable": 0.004538465301186039,
+  "reason": null,
+  "bound": 0.004741963420185722,
+  "gap": 0.00020349811899968324,
+  "relative_gap": 0.044838531418650046
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   3,
+   4,
+   7,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   5,
+   6
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1375143000004755,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.010204375464862544,
+  "gap": 0.0015478593195034172,
+  "relative_gap": 0.17880857535663988
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   0,
+   5,
+   6,
+   7,
+   11
+  ],
+  "forced_inactive": [
+   3,
+   4
+  ],
+  "undecided": [
+   1,
+   2,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1289260000012291,
+  "best_achievable": 0.008712358261142182,
+  "reason": null,
+  "bound": 0.01090536064963785,
+  "gap": 0.0021930023884956674,
+  "relative_gap": 0.2517116861776259
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   0,
+   2,
+   3,
+   9
+  ],
+  "forced_inactive": [
+   1,
+   4,
+   6
+  ],
+  "undecided": [
+   5,
+   7,
+   8,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11886450000019977,
+  "best_achievable": 0.0016146109456528486,
+  "reason": null,
+  "bound": 0.0038187964226295934,
+  "gap": 0.0022041854769767446,
+  "relative_gap": 1.365149594031464
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   2,
+   4,
+   5,
+   6,
+   7,
+   9
+  ],
+  "forced_inactive": [
+   10
+  ],
+  "undecided": [
+   0,
+   1,
+   3,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14298200000121142,
+  "best_achievable": 0.006728293077844171,
+  "reason": null,
+  "bound": 0.012390508345174868,
+  "gap": 0.005662215267330697,
+  "relative_gap": 0.8415530063599639
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   3,
+   4,
+   6,
+   7,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   5
+  ],
+  "undecided": [
+   0,
+   1,
+   2,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1367909000000509,
+  "best_achievable": 0.007311379046588719,
+  "reason": null,
+  "bound": 0.009950049360425007,
+  "gap": 0.0026386703138362878,
+  "relative_gap": 0.36089912682989894
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   0,
+   2,
+   3,
+   6,
+   7
+  ],
+  "forced_inactive": [
+   8,
+   10
+  ],
+  "undecided": [
+   1,
+   4,
+   5,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12334609999925306,
+  "best_achievable": 0.0034596447131641102,
+  "reason": null,
+  "bound": 0.0038616380933548947,
+  "gap": 0.00040199338019078447,
+  "relative_gap": 0.11619498923146092
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   1,
+   2,
+   3,
+   6,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   7
+  ],
+  "undecided": [
+   4,
+   5,
+   8,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12822479999886127,
+  "best_achievable": 0.006720640944892099,
+  "reason": null,
+  "bound": 0.008078776712933005,
+  "gap": 0.001358135768040906,
+  "relative_gap": 0.20208426237576824
+ },
+ {
+  "depth": 7,
+  "n_undecided": 5,
+  "forced_active": [
+   0,
+   1,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   3,
+   4,
+   6
+  ],
+  "undecided": [
+   2,
+   5,
+   7,
+   8,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1135829000013473,
+  "best_achievable": 0.0060242274993344705,
+  "reason": null,
+  "bound": 0.006745940188819416,
+  "gap": 0.000721712689484945,
+  "relative_gap": 0.11980169898375793
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8
+  ],
+  "forced_inactive": [
+   10
+  ],
+  "undecided": [
+   1,
+   6,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1861585999995441,
+  "best_achievable": 0.006279775000295841,
+  "reason": null,
+  "bound": 0.012523816300244814,
+  "gap": 0.006244041299948972,
+  "relative_gap": 0.994309716455576
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   2,
+   4,
+   5,
+   7,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   3,
+   6,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15553499999987253,
+  "best_achievable": 0.004521283280933515,
+  "reason": null,
+  "bound": 0.008293121838039437,
+  "gap": 0.0037718385571059217,
+  "relative_gap": 0.8342407061756028
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   1,
+   2,
+   4,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   5
+  ],
+  "undecided": [
+   0,
+   3,
+   6,
+   7
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1477617000000464,
+  "best_achievable": 0.008567656767228876,
+  "reason": null,
+  "bound": 0.01089142545924428,
+  "gap": 0.0023237686920154037,
+  "relative_gap": 0.27122569859518353
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   5,
+   6,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   2,
+   7
+  ],
+  "undecided": [
+   3,
+   4,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1238180000000284,
+  "best_achievable": 0.0014144525944059568,
+  "reason": null,
+  "bound": 0.0014144532841574855,
+  "gap": 6.897515286794637e-10,
+  "relative_gap": 4.876455608391359e-07
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   1,
+   2,
+   5,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   0,
+   4,
+   7
+  ],
+  "undecided": [
+   3,
+   6,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12431889999970736,
+  "best_achievable": 0.006720640944892099,
+  "reason": null,
+  "bound": 0.007941081925549324,
+  "gap": 0.0012204409806572244,
+  "relative_gap": 0.18159592078562065
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   1,
+   4,
+   5,
+   6,
+   7,
+   9
+  ],
+  "forced_inactive": [
+   2,
+   11
+  ],
+  "undecided": [
+   0,
+   3,
+   8,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12825519999933022,
+  "best_achievable": 0.0029421295756891018,
+  "reason": null,
+  "bound": 0.003055508502203309,
+  "gap": 0.00011337892651420729,
+  "relative_gap": 0.03853634709057701
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   9,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.154732499999227,
+  "best_achievable": 0.005991688784986669,
+  "reason": null,
+  "bound": 0.01249357795618686,
+  "gap": 0.006501889171200191,
+  "relative_gap": 1.0851513495647382
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   1,
+   5,
+   6,
+   7,
+   11
+  ],
+  "forced_inactive": [
+   8,
+   9
+  ],
+  "undecided": [
+   2,
+   3,
+   4,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12648280000030354,
+  "best_achievable": 0.0034596447131641102,
+  "reason": null,
+  "bound": 0.004667400839281177,
+  "gap": 0.0012077561261170668,
+  "relative_gap": 0.34909831102641786
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   1,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   2,
+   3,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15167529999962426,
+  "best_achievable": 0.004120011193153312,
+  "reason": null,
+  "bound": 0.008285932619308408,
+  "gap": 0.004165921426155096,
+  "relative_gap": 1.011143230163568
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   1,
+   2,
+   5,
+   10
+  ],
+  "forced_inactive": [
+   3,
+   4,
+   6
+  ],
+  "undecided": [
+   7,
+   8,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12823480000042764,
+  "best_achievable": 0.0060242274993344705,
+  "reason": null,
+  "bound": 0.00674593689603082,
+  "gap": 0.0007217093966963494,
+  "relative_gap": 0.11980115239274756
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   1,
+   2,
+   3,
+   4,
+   6,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   0,
+   5,
+   7,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15369079999982205,
+  "best_achievable": 0.004389746971062341,
+  "reason": null,
+  "bound": 0.008519403677591016,
+  "gap": 0.004129656706528676,
+  "relative_gap": 0.9407505110776985
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   4,
+   5,
+   6,
+   7,
+   10
+  ],
+  "forced_inactive": [
+   2,
+   3,
+   8
+  ],
+  "undecided": [
+   0,
+   1,
+   9,
+   11
+  ],
+  "status": "no_ground_truth",
+  "elapsed_sec": 0.0,
+  "bound": null,
+  "best_achievable": null,
+  "gap": null,
+  "relative_gap": null,
+  "reason": null
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   2,
+   4,
+   5,
+   6,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   8
+  ],
+  "undecided": [
+   1,
+   3,
+   7,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13969779999933962,
+  "best_achievable": 0.004752439903801128,
+  "reason": null,
+  "bound": 0.004846772828801579,
+  "gap": 9.433292500045029e-05,
+  "relative_gap": 0.019849367253439713
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   6,
+   11
+  ],
+  "forced_inactive": [
+   10
+  ],
+  "undecided": [
+   3,
+   7,
+   8,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14028630000029807,
+  "best_achievable": 0.006909295922157405,
+  "reason": null,
+  "bound": 0.011644542084064631,
+  "gap": 0.004735246161907226,
+  "relative_gap": 0.6853442398843818
+ },
+ {
+  "depth": 8,
+  "n_undecided": 4,
+  "forced_active": [
+   0,
+   4,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   2,
+   10
+  ],
+  "undecided": [
+   3,
+   5,
+   6,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11054230000081589,
+  "best_achievable": 0.0013709664828585777,
+  "reason": null,
+  "bound": 0.001370967408971619,
+  "gap": 9.261130412899221e-10,
+  "relative_gap": 6.755183681506935e-07
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   1,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14611929999955464,
+  "best_achievable": 3.2403963248078355e-05,
+  "reason": null,
+  "bound": 0.002349796402975178,
+  "gap": 0.0023173924397270995,
+  "relative_gap": 71.51571003786172
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   2,
+   4,
+   5,
+   6,
+   7,
+   8,
+   10
+  ],
+  "forced_inactive": [
+   3
+  ],
+  "undecided": [
+   1,
+   9,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14195640000070853,
+  "best_achievable": 0.008395641680018459,
+  "reason": null,
+  "bound": 0.012430909678737213,
+  "gap": 0.004035267998718754,
+  "relative_gap": 0.480638425568191
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   1,
+   5,
+   6,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   4,
+   7,
+   11
+  ],
+  "undecided": [
+   2,
+   3,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11227799999869603,
+  "best_achievable": 0.006793544340849582,
+  "reason": null,
+  "bound": 0.0068002530409203826,
+  "gap": 6.708700070800176e-06,
+  "relative_gap": 0.000987511044928457
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   7,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   1,
+   6
+  ],
+  "undecided": [
+   5,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1383358999992197,
+  "best_achievable": 0.0035438425192913575,
+  "reason": null,
+  "bound": 0.006636892782794357,
+  "gap": 0.0030930502635029998,
+  "relative_gap": 0.8727956297904287
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   1,
+   3,
+   5,
+   7,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   2,
+   8
+  ],
+  "undecided": [
+   0,
+   4,
+   6
+  ],
+  "status": "no_ground_truth",
+  "elapsed_sec": 0.0,
+  "bound": null,
+  "best_achievable": null,
+  "gap": null,
+  "relative_gap": null,
+  "reason": null
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   2,
+   4,
+   6,
+   7,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   1,
+   5
+  ],
+  "undecided": [
+   3,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12668359999952372,
+  "best_achievable": 0.00599391135632095,
+  "reason": null,
+  "bound": 0.0070398108177254035,
+  "gap": 0.0010458994614044531,
+  "relative_gap": 0.1744936485090804
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   1,
+   3,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   9
+  ],
+  "undecided": [
+   2,
+   4,
+   5
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14127499999995052,
+  "best_achievable": 0.006728292823747534,
+  "reason": null,
+  "bound": 0.011256626098976983,
+  "gap": 0.004528333275229449,
+  "relative_gap": 0.6730285666590907
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   6,
+   7,
+   8,
+   11
+  ],
+  "forced_inactive": [],
+  "undecided": [
+   4,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14852450000034878,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.009270634697138522,
+  "gap": 1.2074385119175204e-05,
+  "relative_gap": 0.0013041320369755964
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   1,
+   4,
+   5,
+   7,
+   8,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   2
+  ],
+  "undecided": [
+   3,
+   6,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13488539999889326,
+  "best_achievable": 0.0037098075606609698,
+  "reason": null,
+  "bound": 0.004748358484556898,
+  "gap": 0.0010385509238959286,
+  "relative_gap": 0.27994738457832347
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   1,
+   2,
+   3,
+   5,
+   6,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   4,
+   7
+  ],
+  "undecided": [
+   0,
+   10,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13088129999960074,
+  "best_achievable": 0.009057623041135636,
+  "reason": null,
+  "bound": 0.010353277818908846,
+  "gap": 0.0012956547777732107,
+  "relative_gap": 0.14304578274994792
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   2,
+   4,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   3,
+   5
+  ],
+  "undecided": [
+   0,
+   1,
+   6
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13559519999944314,
+  "best_achievable": 0.00599391135632095,
+  "reason": null,
+  "bound": 0.011058959767922302,
+  "gap": 0.005065048411601352,
+  "relative_gap": 0.8450322519801606
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   6,
+   8
+  ],
+  "forced_inactive": [
+   5,
+   7,
+   11
+  ],
+  "undecided": [
+   4,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11559889999989537,
+  "best_achievable": 0.004038420725381288,
+  "reason": null,
+  "bound": 0.004038420625784574,
+  "gap": -9.959671368880985e-11,
+  "relative_gap": -2.4662292629108476e-08
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   6,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   5
+  ],
+  "undecided": [
+   1,
+   7,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1399937999995018,
+  "best_achievable": 0.005086678548432828,
+  "reason": null,
+  "bound": 0.007571450738462766,
+  "gap": 0.0024847721900299385,
+  "relative_gap": 0.4884861833456098
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   6,
+   7,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   4
+  ],
+  "undecided": [
+   5,
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13785470000038913,
+  "best_achievable": 0.009258560312019347,
+  "reason": null,
+  "bound": 0.011972114235896279,
+  "gap": 0.002713553923876932,
+  "relative_gap": 0.29308594775304647
+ },
+ {
+  "depth": 9,
+  "n_undecided": 3,
+  "forced_active": [
+   3,
+   5,
+   6,
+   7,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   0,
+   2,
+   8
+  ],
+  "undecided": [
+   1,
+   4,
+   11
+  ],
+  "status": "no_ground_truth",
+  "elapsed_sec": 0.0,
+  "bound": null,
+  "best_achievable": null,
+  "gap": null,
+  "relative_gap": null,
+  "reason": null
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   1,
+   2,
+   4,
+   6,
+   8,
+   10
+  ],
+  "forced_inactive": [
+   3,
+   5,
+   9
+  ],
+  "undecided": [
+   7,
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11619820000123582,
+  "best_achievable": 0.008396143127842197,
+  "reason": null,
+  "bound": 0.009311447042510716,
+  "gap": 0.000915303914668519,
+  "relative_gap": 0.10901480605223454
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   7,
+   10
+  ],
+  "forced_inactive": [
+   6,
+   8,
+   11
+  ],
+  "undecided": [
+   4,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11292250000042259,
+  "best_achievable": 0.0025456339534923916,
+  "reason": null,
+  "bound": 0.002545636426237446,
+  "gap": 2.4727450542889884e-09,
+  "relative_gap": 9.713670934097159e-07
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0
+  ],
+  "undecided": [
+   5,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13490210000054503,
+  "best_achievable": 0.002836513766812872,
+  "reason": null,
+  "bound": 0.00286649341705048,
+  "gap": 2.997965023760797e-05,
+  "relative_gap": 0.01056918904761507
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   3,
+   5,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   1,
+   4
+  ],
+  "undecided": [
+   2,
+   6
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11430769999969925,
+  "best_achievable": 0.00022151226962394412,
+  "reason": null,
+  "bound": 0.003498566703976955,
+  "gap": 0.003277054434353011,
+  "relative_gap": 14.794008656569613
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   1,
+   2,
+   3,
+   5,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   6,
+   8,
+   10
+  ],
+  "undecided": [
+   0,
+   4
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11076490000050399,
+  "best_achievable": 0.0014024356685752284,
+  "reason": null,
+  "bound": 0.0033096441249684336,
+  "gap": 0.0019072084563932052,
+  "relative_gap": 1.3599258056027546
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   1,
+   2,
+   3,
+   6,
+   7,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   8,
+   9
+  ],
+  "undecided": [
+   4,
+   5
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11414560000048368,
+  "best_achievable": 0.0004088348175802047,
+  "reason": null,
+  "bound": 0.0042608576240732625,
+  "gap": 0.0038520228064930578,
+  "relative_gap": 9.421953906206564
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   1,
+   2,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   3
+  ],
+  "undecided": [
+   4,
+   5
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12611910000123316,
+  "best_achievable": 0.005747030537506878,
+  "reason": null,
+  "bound": 0.007698471727755835,
+  "gap": 0.0019514411902489572,
+  "relative_gap": 0.3395564331028442
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   10
+  ],
+  "undecided": [
+   5,
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13262589999976626,
+  "best_achievable": 0.00133678707752025,
+  "reason": null,
+  "bound": 0.0013367896557306739,
+  "gap": 2.5782104237995207e-09,
+  "relative_gap": 1.928661988999864e-06
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   8
+  ],
+  "undecided": [
+   1,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1301328999998077,
+  "best_achievable": 0.00012549775134868934,
+  "reason": null,
+  "bound": 0.0025387617576492693,
+  "gap": 0.00241326400630058,
+  "relative_gap": 19.229539815382385
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8
+  ],
+  "forced_inactive": [
+   6,
+   11
+  ],
+  "undecided": [
+   9,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.15009810000083235,
+  "best_achievable": 0.006279775000295841,
+  "reason": null,
+  "bound": 0.010507512170096146,
+  "gap": 0.0042277371698003045,
+  "relative_gap": 0.6732306761947897
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   2,
+   3,
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   1
+  ],
+  "undecided": [
+   4,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1431730999993306,
+  "best_achievable": 0.003489960076332166,
+  "reason": null,
+  "bound": 0.005047572173065101,
+  "gap": 0.0015576120967329345,
+  "relative_gap": 0.4463122966065371
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ],
+  "forced_inactive": [
+   2,
+   10,
+   11
+  ],
+  "undecided": [
+   1,
+   9
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12771880000036617,
+  "best_achievable": 0.0015518338030491342,
+  "reason": null,
+  "bound": 0.0015523119546805638,
+  "gap": 4.781516314295714e-07,
+  "relative_gap": 0.00030812038666129776
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   6,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   7,
+   9
+  ],
+  "undecided": [
+   4,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12885060000007797,
+  "best_achievable": 0.0071385814954665365,
+  "reason": null,
+  "bound": 0.010185574061493159,
+  "gap": 0.0030469925660266224,
+  "relative_gap": 0.42683445835305805
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   1,
+   2,
+   4,
+   6,
+   7,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   8,
+   9
+  ],
+  "undecided": [
+   3,
+   5
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12965819999953965,
+  "best_achievable": 0.0031824700024882017,
+  "reason": null,
+  "bound": 0.004631510373967683,
+  "gap": 0.0014490403714794817,
+  "relative_gap": 0.4553194123892936
+ },
+ {
+  "depth": 10,
+  "n_undecided": 2,
+  "forced_active": [
+   0,
+   2,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   1
+  ],
+  "undecided": [
+   3,
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13175760000012815,
+  "best_achievable": 5.968197797874745e-06,
+  "reason": null,
+  "bound": 0.004216936491660201,
+  "gap": 0.004210968293862327,
+  "relative_gap": 705.567817367219
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   6,
+   8
+  ],
+  "undecided": [
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.13025110000126006,
+  "best_achievable": 0.0014024356685752284,
+  "reason": null,
+  "bound": 0.0033096443564038193,
+  "gap": 0.0019072086878285908,
+  "relative_gap": 1.3599259706266418
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   8,
+   9
+  ],
+  "undecided": [
+   0
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11631089999900723,
+  "best_achievable": 0.002325798906279936,
+  "reason": null,
+  "bound": 0.002328779120631995,
+  "gap": 2.9802143520587555e-06,
+  "relative_gap": 0.0012813723250156405
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   6,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   4,
+   10
+  ],
+  "undecided": [
+   8
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1217491000006703,
+  "best_achievable": 0.0033136542601734003,
+  "reason": null,
+  "bound": 0.003313654808020748,
+  "gap": 5.478473477822654e-10,
+  "relative_gap": 1.6533026826811952e-07
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   7,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   5,
+   6,
+   10
+  ],
+  "undecided": [
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.10854880000078992,
+  "best_achievable": 0.00421897534529908,
+  "reason": null,
+  "bound": 0.007050999631431679,
+  "gap": 0.002832024286132599,
+  "relative_gap": 0.6712587901913514
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   2,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   1,
+   7
+  ],
+  "undecided": [
+   3
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1186479000007239,
+  "best_achievable": 0.005292454142505428,
+  "reason": null,
+  "bound": 0.00529245497008418,
+  "gap": 8.275787520550804e-10,
+  "relative_gap": 1.5636956500171162e-07
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   7,
+   8,
+   11
+  ],
+  "forced_inactive": [
+   6,
+   9,
+   10
+  ],
+  "undecided": [
+   2
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16213430000061635,
+  "best_achievable": 0.006023993661230245,
+  "reason": null,
+  "bound": 0.006745939487076719,
+  "gap": 0.0007219458258464736,
+  "relative_gap": 0.11984505071657642
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   2,
+   4,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   3,
+   6
+  ],
+  "undecided": [
+   5
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.16122060000088823,
+  "best_achievable": 0.005951114513932249,
+  "reason": null,
+  "bound": 0.009571309232475867,
+  "gap": 0.003620194718543618,
+  "relative_gap": 0.6083221403433462
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   7,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   6,
+   9
+  ],
+  "undecided": [
+   4
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.151978699999745,
+  "best_achievable": 0.0028806167583636496,
+  "reason": null,
+  "bound": 0.009831545192680017,
+  "gap": 0.006950928434316367,
+  "relative_gap": 2.413000068174595
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   2,
+   3,
+   4,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   5
+  ],
+  "undecided": [
+   1
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12704560000020138,
+  "best_achievable": 0.0039507955450520296,
+  "reason": null,
+  "bound": 0.003950796496973019,
+  "gap": 9.519209890826441e-10,
+  "relative_gap": 2.4094412839834967e-07
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   6,
+   10
+  ],
+  "undecided": [
+   11
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1203709000001254,
+  "best_achievable": 0.006279775000295841,
+  "reason": null,
+  "bound": 0.006718305292158925,
+  "gap": 0.0004385302918630835,
+  "relative_gap": 0.06983216625475026
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   8,
+   9
+  ],
+  "forced_inactive": [
+   2,
+   7,
+   11
+  ],
+  "undecided": [
+   10
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.14949309999974503,
+  "best_achievable": 0.002160623131018722,
+  "reason": null,
+  "bound": 0.002163672208841477,
+  "gap": 3.0490778227549448e-06,
+  "relative_gap": 0.0014112029899991496
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   7,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   2,
+   8
+  ],
+  "undecided": [
+   6
+  ],
+  "status": "no_ground_truth",
+  "elapsed_sec": 0.0,
+  "bound": null,
+  "best_achievable": null,
+  "gap": null,
+  "relative_gap": null,
+  "reason": null
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   8,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   6,
+   10
+  ],
+  "undecided": [
+   0
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.12404069999865897,
+  "best_achievable": 0.00046213026642190585,
+  "reason": null,
+  "bound": 0.006915196491707526,
+  "gap": 0.0064530662252856195,
+  "relative_gap": 13.963738569319839
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   2,
+   3,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   5
+  ],
+  "undecided": [
+   4
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.11712620000071183,
+  "best_achievable": 0.0023243642545020867,
+  "reason": null,
+  "bound": 0.002349796403737153,
+  "gap": 2.543214923506629e-05,
+  "relative_gap": 0.010941550656617817
+ },
+ {
+  "depth": 11,
+  "n_undecided": 1,
+  "forced_active": [
+   0,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   10
+  ],
+  "undecided": [
+   2
+  ],
+  "status": "bounded",
+  "elapsed_sec": 0.1224822000003769,
+  "best_achievable": 0.0013709664828585777,
+  "reason": null,
+  "bound": 0.001370967552029695,
+  "gap": 1.0691711173089341e-09,
+  "relative_gap": 7.798667076671521e-07
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   1,
+   7,
+   9
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11380029999963881,
+  "best_achievable": 0.001918867491437817,
+  "reason": null,
+  "bound": 0.008424614919360907,
+  "gap": 0.00650574742792309,
+  "relative_gap": 3.3904099459459296
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   4,
+   5,
+   7,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   3,
+   6,
+   11
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11049230000026,
+  "best_achievable": 0.0003199089830220879,
+  "reason": null,
+  "bound": 0.00918302983805861,
+  "gap": 0.008863120855036521,
+  "relative_gap": 27.705132789048854
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   3,
+   4,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   2,
+   5,
+   7
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11232380000001285,
+  "best_achievable": 0.0021602874713208503,
+  "reason": null,
+  "bound": 0.002163673336757926,
+  "gap": 3.3858654370755824e-06,
+  "relative_gap": 0.0015673217023313036
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   5,
+   7,
+   11
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11045620000004419,
+  "best_achievable": 0.004038420725381288,
+  "reason": null,
+  "bound": 0.004038421308707542,
+  "gap": 5.83326253619787e-10,
+  "relative_gap": 1.4444415113898568e-07
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   8,
+   10
+  ],
+  "forced_inactive": [
+   7,
+   9,
+   11
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.1360752999989927,
+  "best_achievable": 0.005981329310737353,
+  "reason": null,
+  "bound": 0.007508054750831895,
+  "gap": 0.001526725440094542,
+  "relative_gap": 0.25524851764203127
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   1,
+   2,
+   3,
+   4,
+   6,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   5,
+   7
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.12448460000086925,
+  "best_achievable": 0.0035710245195422078,
+  "reason": null,
+  "bound": 0.007330340389585852,
+  "gap": 0.003759315870043644,
+  "relative_gap": 1.052727543446152
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   4,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   3,
+   5,
+   9
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11532219999935478,
+  "best_achievable": 0.008396143127842197,
+  "reason": null,
+  "bound": 0.009311446482244268,
+  "gap": 0.0009153033544020712,
+  "relative_gap": 0.10901473932320917
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   1,
+   2,
+   3,
+   5,
+   6,
+   7,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   0,
+   4,
+   9
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11253779999969993,
+  "best_achievable": 0.0007499379772526904,
+  "reason": null,
+  "bound": 0.007904259145520759,
+  "gap": 0.007154321168268069,
+  "relative_gap": 9.539883810761369
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   5,
+   6,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   4,
+   7,
+   11
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11084090000076685,
+  "best_achievable": 0.006793544340849582,
+  "reason": null,
+  "bound": 0.0068002531195550725,
+  "gap": 6.708778705490082e-06,
+  "relative_gap": 0.000987522619842222
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   7,
+   9,
+   11
+  ],
+  "forced_inactive": [
+   6,
+   8,
+   10
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.10923670000011043,
+  "best_achievable": 0.0014024356685752284,
+  "reason": null,
+  "bound": 0.003309644248397627,
+  "gap": 0.0019072085798223987,
+  "relative_gap": 1.3599258936133467
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   1,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   0,
+   2,
+   11
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.11008140000012645,
+  "best_achievable": 0.0029421295756891018,
+  "reason": null,
+  "bound": 0.0029421305759837996,
+  "gap": 1.00029469776719e-09,
+  "relative_gap": 3.3999002152476654e-07
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   4,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   2,
+   3,
+   5
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.10888169999998354,
+  "best_achievable": 0.0019389596349513258,
+  "reason": null,
+  "bound": 0.003074793851656757,
+  "gap": 0.0011358342167054312,
+  "relative_gap": 0.5857957000399053
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   7,
+   8,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   5,
+   6,
+   9
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.10511880000012752,
+  "best_achievable": 0.008656516145359127,
+  "reason": null,
+  "bound": 0.009183029953285592,
+  "gap": 0.0005265138079264646,
+  "relative_gap": 0.060822829771851765
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6,
+   9,
+   10,
+   11
+  ],
+  "forced_inactive": [
+   5,
+   7,
+   8
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.10712880000028235,
+  "best_achievable": 0.0007419245690624981,
+  "reason": null,
+  "bound": 0.0007419255883654015,
+  "gap": 1.019302903366992e-09,
+  "relative_gap": 1.3738632549330337e-06
+ },
+ {
+  "depth": 12,
+  "n_undecided": 0,
+  "forced_active": [
+   0,
+   1,
+   2,
+   3,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "forced_inactive": [
+   4,
+   5,
+   11
+  ],
+  "undecided": [],
+  "status": "bounded",
+  "elapsed_sec": 0.10389179999947373,
+  "best_achievable": 0.0027002704821474386,
+  "reason": null,
+  "bound": 0.002700271482218681,
+  "gap": 1.0000712423983982e-09,
+  "relative_gap": 3.70359654342136e-07
+ }
+]
