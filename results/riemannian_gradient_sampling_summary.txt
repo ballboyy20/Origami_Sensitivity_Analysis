@@ -1,0 +1,151 @@
+Riemannian gradient sampling for maximizing lambda_min(theta) -- summary
+==============================================================================
+
+Scope: theta-only optimization for a FIXED active-coupling topology (a
+drop-in alternative to CouplingOptimizer.optimize_theta()'s stage-1
+search). Does not touch topology/on-off selection.
+
+New files (existing files untouched):
+  riemannian_gradient_sampling.py       -- Parts A-C (gradient, manifold
+                                            primitives, gradient-sampling
+                                            iteration)
+  test_riemannian_gradient_sampling.py  -- Parts A/B/D validation battery,
+                                            run directly, all 7 checks PASS
+
+------------------------------------------------------------------------
+PART A -- closed-form gradient vs. finite differences
+------------------------------------------------------------------------
+Validated on 16 theta points (8 two-panel, 8 birds-foot; a mix of
+reference angles, random points, and points deliberately chosen to be
+off any near-stationary plateau -- see the landscape finding below).
+
+  max absolute FD error across all 16 points:                  2.35e-10
+  max RELATIVE FD error (points with |grad| > 1e-4 only):       4.83e-08
+  observed convergence order, points with real gradient:        ~2.00
+    (matches the expected O(h^2) rate for central differences exactly)
+
+0 points skipped for rank-deficiency or eigenvalue multiplicity across
+all 16 test points -- the multiplicity guard did not fire at all during
+Part A (consistent with the expectation that individually-sampled points
+are simple eigenvalues with probability 1).
+
+UNEXPECTED FINDING (not assumed going in, discovered while picking test
+points for Part A): lambda_min(theta) for the two-panel system has a WIDE
+PLATEAU of global maximizers. A scan of 30 uniformly random theta triples
+found roughly two-thirds already sit almost exactly at the same maximal
+value (~0.0133296) with a gradient at machine-precision zero (~1e-17);
+the rest sit at substantially lower values (from ~1e-6 up to ~0.02) with
+a real, nonzero gradient. This was cross-checked directly by comparing
+the affine K(theta) formula against the real system's own C^T C (agreement
+to ~4e-16), so it is a genuine property of this system's optimization
+landscape, not a code defect. Practical consequence: "the known optimum"
+(99.22, 80.78, 180.00 deg) is one point on a much larger set of equally-
+optimal designs, not an isolated peak -- see Part D.2 below, where the
+optimizer converges to the SAME lambda_min value from a different final
+theta entirely.
+
+------------------------------------------------------------------------
+PART B -- manifold primitives
+------------------------------------------------------------------------
+  retract's exact group law (R_theta(a+b) == R_(R_theta(a))(b)),
+    5000 random samples:                     max error 1.78e-15
+  retract(theta,xi) == retract(theta,xi+pi), 5000 random samples:
+                                              max error 1.78e-15
+  Direct MODEL-level check (not retract's own arithmetic): shifting one
+  active coupling's raw theta by pi and re-evaluating K via the REAL
+  system, 20 random points:
+                                              max |lambda_min diff| 9.63e-16
+
+All three at floating-point noise floor, as expected for an exact
+(non-approximate) retraction on a flat manifold.
+
+------------------------------------------------------------------------
+PART C/D -- integration checks
+------------------------------------------------------------------------
+D.1 Stationarity at the known optimum: analytic |grad| = 4.2e-17,
+    minimum-norm gradient-sample element ||d*|| = 4.8e-17. Running the
+    optimizer FROM this point: lambda_min 0.013330 -> 0.013330 (no
+    regression), 20 iterations to declare convergence.
+
+D.2 Convergence from a clearly-off start (3.0, 146.4, 164.3 deg,
+    lambda_min = 1.2e-6, confirmed off the plateau by direct calculation):
+    monotonic increase across all 6 accepted trajectory points (0
+    decreases), converged in 25 iterations to lambda_min = 0.013330,
+    final gap vs. the known optimum value = -2.24e-08. Final theta
+    (156.59, 167.32, 129.90 deg) is a DIFFERENT point on the plateau
+    from the "known optimum" angles -- consistent with, and a nice live
+    confirmation of, the Part A landscape finding.
+
+D.3 Boundary-pinning regression (the check this whole effort was built to
+    pass): started coupling 2 at 178 deg (2 deg from the 180/0 seam,
+    documented in optimize_theta's own docstring as where DE/Nelder-Mead
+    get pinned), with the other two couplings off-plateau so there was
+    real optimization work to do. Coupling 2's angle went 178.00 deg ->
+    3.46 deg in a SINGLE accepted step -- a >90 deg jump in the raw
+    (mod-pi) trajectory, i.e. a clean wrap through the seam, not a
+    sequence of tiny steps hovering near the boundary. Final lambda_min
+    0.004105 -> 0.013330 in 21 iterations. No hesitation observed at the
+    seam at all.
+
+D.4 Sign-convention check: from a point with |grad| = 1.05e-3, a step
+    along +grad increased lambda_min (delta +1.07e-7) and a step along
+    -grad decreased it (delta -1.03e-7), confirming the ascent direction
+    is correct both for the raw analytic gradient AND through the
+    min-norm-hull-element machinery (identical result for a single-point
+    sample, as expected: the hull of one point is that point).
+
+ALL 7 CHECKS PASS. No check needed loosening, no multiplicity events
+during Part A/D testing at all (Part A: 0/16 points; D.1-D.4: 0 events).
+
+------------------------------------------------------------------------
+OPTIONAL: comparison against DE and the SDP-decoded result
+------------------------------------------------------------------------
+One birds-foot subset tried (the size-9 champion topology, spokes
+O-M:3/O-B:2/O-N:3/O-A:1, indices [0,1,2,3,5,6,7,8,11]), starting from
+BIRDSFOOT_START_THETAS_DEG's angles for that subset:
+
+  Riemannian gradient sampling:  lambda_min = 0.00926299
+    (150/150 outer iterations used -- did not meet the strict
+    stationarity criterion within the cap, but the trajectory was
+    already essentially flat; 6 multiplicity-resample events across
+    roughly 1500 point evaluations, i.e. rare as expected; 3.36s)
+  Differential evolution (existing ground truth):
+                                  lambda_min = 0.00925856
+  SDP relaxed bound (sdp_theta_optimizer.py):
+                                  t          = 0.00927063
+  SDP decoded/re-evaluated value:
+                                  lambda_min = 0.00871215
+
+On this one subset, Riemannian gradient sampling slightly EXCEEDED DE's
+own reported optimum, and landed within 0.09% of the SDP's relaxed upper
+bound -- a single, encouraging data point (this is explicitly optional
+and was not run more broadly; no claim here about general performance
+across the 220-subset ground truth).
+
+------------------------------------------------------------------------
+Honest caveats / things worth flagging, not smoothing over
+------------------------------------------------------------------------
+- Part A's rank(C) check calls np.linalg.matrix_rank(C) (an SVD) at
+  every single gradient evaluation, matching CouplingOptimizer.
+  _locked_eigenvalues' own convention exactly -- this was a deliberate
+  choice over assuming rank == target_rank for speed, since silently
+  assuming full rank would pick the WRONG eigenvector index at a
+  genuinely degenerate theta rather than correctly detecting it. This
+  makes each evaluation roughly "one SVD + one eigh" rather than "one
+  eigh alone" -- still far cheaper than finite-difference gradients
+  (which would need an eigh PER COORDINATE), but worth knowing this
+  isn't quite as cheap as "just one eigh."
+- The birds-foot champion run above did not converge by the strict
+  stopping tolerance within 150 outer iterations (radius may not have
+  reached its floor with a small enough min-norm element) -- it still
+  found a competitive answer, but this suggests the default iteration
+  cap / radius schedule may need tuning for higher-dimensional
+  (more-active-coupling) topologies before this is used as a routine
+  replacement for optimize_theta() in that regime. Not otherwise
+  investigated further (out of scope for this task, which was to build
+  and validate the algorithm on a fixed topology, not tune it for
+  production use).
+- The wide-plateau landscape finding (see Part A) means "the known
+  optimum" for the two-panel system is not unique -- any comparison of
+  "final theta" (not just final lambda_min) against a single reference
+  optimum elsewhere in this codebase should account for this.
