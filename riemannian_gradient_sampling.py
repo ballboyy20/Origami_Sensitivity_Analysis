@@ -384,7 +384,28 @@ def optimize_theta_riemannian(system, active_indices, length_scale=1.0,
     history = {'theta': [], 'lambda_min': [], 'radius': [], 'min_norm_grad': []}
     n_multiplicity_events = 0
 
-    lam0, grad0, _ = evaluate(theta)
+    # The initial point is not exempt from the same rare degeneracy every
+    # OTHER evaluation in this function already resamples around (sampling
+    # loop, line search below) -- a caller-supplied or randomly-drawn
+    # theta_init can land exactly on a multiplicity too (observed in
+    # practice running many random multi-start restarts across many
+    # topologies -- rare per point, but not rare enough to skip handling
+    # over hundreds of restarts). Perturb slightly and retry rather than
+    # letting this propagate as an unhandled crash.
+    for _attempt in range(max_resample_tries):
+        try:
+            lam0, grad0, _ = evaluate(theta)
+            break
+        except MultiplicityError:
+            n_multiplicity_events += 1
+            theta = retract(theta, rng.uniform(-1e-3, 1e-3, size=n))
+    else:
+        raise MultiplicityError(
+            f"theta_init remained at an eigenvalue multiplicity after "
+            f"{max_resample_tries} small perturbations -- this is far "
+            f"beyond the 'rare' rate documented in this module's docstring "
+            f"and warrants investigation, not a larger retry budget.")
+
     history['theta'].append(theta.copy())
     history['lambda_min'].append(lam0)
 

@@ -1,0 +1,29 @@
+bound_and_evaluate.py full sweep (birds-foot, all 220 size-9 subsets)
+==============================================================================
+n_restarts=5
+Evaluated: 206/220  (14 skipped -- no full-rank reference found in 300 tries; 0 errored)
+Total wall-clock: 2846s using 3 workers
+
+Soundness check PASSED: t >= achieved - 1e-06 holds for all 206 evaluated subsets.
+
+Certification gap (t - achieved) distribution:
+  min=-3.027e-10  median=8.549e-06  mean=5.901e-04  max=6.723e-03
+
+Restart spread (max - min achieved across 5 restarts):
+  min=4.459e-10  median=8.954e-06  max=3.970e-03
+  subsets with spread > 1e-4 (restarts meaningfully disagreed): 29/206
+
+vs. DE ground truth (n=150 DE-converged, 56 DE-failed):
+  Riemannian better: 20   DE better: 19   tie (within 1e-6): 111
+  (riemannian - de) distribution: min=-3.385e-05  median=5.807e-09  max=9.569e-04
+  Of 56 subsets DE itself failed to converge on, Riemannian multi-start produced a non-degenerate result for 56
+    resolved lambda_min: min=0.001172  median=0.004194  max=0.009263
+
+vs. OLD (unreliable) SDP decode (n=206):
+  (riemannian - old_sdp_decode) distribution: min=-3.091e-06  median=1.621e-03  max=8.870e-03
+  Riemannian better in 143/206
+
+Best size-9 subset found (max achieved lambda_min):
+  subset=[0, 1, 2, 3, 5, 6, 7, 8, 11]  t=0.009271  achieved=0.009263
+Previous champion (results/exhaustive_subset_summary.txt): lambda_min=0.009259
+  -> MATCHES/does not beat the previous champion

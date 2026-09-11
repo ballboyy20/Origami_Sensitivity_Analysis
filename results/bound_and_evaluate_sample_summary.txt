@@ -1,0 +1,24 @@
+bound_and_evaluate.py sample validation (birds-foot size-9 subsets)
+==============================================================================
+Sample size: 22/25 attempted (rest skipped: no full-rank reference found), n_restarts=5
+0 subset(s) needed a fallback (non-default) reference
+Total wall-clock: 598.2s (mean 27.2s/subset)
+
+Soundness check PASSED: t >= achieved - 1e-06 holds for all 22 sampled subsets.
+
+Certification gap (t - achieved) distribution:
+  min=4.731e-10  median=2.228e-05  mean=3.136e-04  max=2.832e-03
+
+Restart spread (max - min achieved across 5 restarts) distribution:
+  min=2.755e-09  median=2.507e-06  max=6.316e-04
+  subsets with spread > 1e-4 (restarts meaningfully disagreed): 1/25
+
+vs. DE ground truth (n=17 comparable, 8 DE-failed):
+  Riemannian better: 2   DE better: 3   tie (within 1e-6): 12
+  (riemannian - de) distribution: min=-3.330e-06  median=-1.005e-07  max=3.194e-06
+
+vs. OLD (unreliable) SDP decode (n=22):
+  (riemannian - old_sdp_decode) distribution: min=-6.635e-07  median=1.436e-03  max=5.084e-03
+  Riemannian better in 19/22
+
+Extrapolated full-220-subset sweep at this rate: ~5982s (~99.7 min) serially -- consider process-pool parallelism (as exhaustive_subset_baseline.py uses) before running the full sweep.
