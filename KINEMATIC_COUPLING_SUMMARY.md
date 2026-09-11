@@ -188,35 +188,83 @@ state (or use `python -u`) before concluding a long-running job crashed.
    at full 220-subset scale, two real bugs found and fixed in the
    process.
 
-2. **Decide whether 5 restarts is enough.** The 14% meaningful-disagreement
-   rate found above is the natural next thing to pin down before trusting
-   this as the primary evaluation method — e.g. rerun the 29 disagreeing
-   subsets with more restarts and see whether the achieved value keeps
-   improving or has genuinely converged.
+2. **(Just completed)** ~~Decide whether 5 restarts is enough~~ — reran
+   the 29 disagreeing subsets at n_restarts=7 (`bound_and_evaluate_restart_check.py`).
+   **27/29 (93%) had already converged at n_restarts=5** (improvement
+   < 1e-6); only 2/29 improved, and only slightly (max 1.1e-5). The
+   restart *spread* itself stays wide even at n=7 (23/29 still > 1e-4),
+   but this does **not** translate into a better best-found value — it
+   reflects genuinely different local optima of varying quality on a
+   nonconvex landscape, not undersampling. **Conclusion: n_restarts=5 is
+   already sufficient to trust the achieved value; no need to raise the
+   default.** Soundness held throughout (0 violations).
+   One methodology lesson from building this check: `riemannian_multistart`
+   shares one RNG object across all restarts, so requesting more restarts
+   shifts every restart's internal sampling path, not just appending new
+   ones — caught and corrected the experiment's framing before trusting
+   results (verified directly on one subset). Worth fixing properly
+   (independent child RNG per restart) if this pipeline becomes more
+   central later — not urgent now given the result above.
+   Raw results: `results/bound_and_evaluate_restart_check_results.{json,csv}`,
+   `results/bound_and_evaluate_restart_check_summary.txt`.
 
-3. **Reconsider whether full custom B&B is worth building at m=12.** The
-   depth-tightness data says the bound doesn't prune well until near the
-   leaves at this problem size. With Riemannian evaluation now validated
-   and fast, "near-brute-force with Riemannian replacing DE at each leaf"
-   is probably simpler and competitive with a B&B tree whose bound won't
-   cut much here. Revisit B&B only if targeting larger patterns where
-   brute force stops being an option at all — and if so, use
-   Ahipaşaoğlu's variable-bound-tightening branching order, not a naive
-   branch order.
+3. **(Just completed — strong result)** ~~Reconsider whether full custom
+   B&B is worth building at m=12~~ — tried **forward (bound-guided)
+   greedy** instead (`forward_greedy_topology.py`) as an alternative to
+   both brute force and B&B. Backward elimination (`prune_couplings()`,
+   already in this codebase) only reached 48.8% of the known champion
+   (0.004521 vs 0.009259) — but that's a genuinely different algorithm
+   from forward (additive) greedy, and the classical (1−1/e)
+   approximation guarantee (Nemhauser, Wolsey & Fisher 1978) applies to
+   forward greedy, not backward elimination. **Forward greedy found the
+   *exact* known champion topology** (`[0,1,2,3,5,6,7,8,11]`, spokes
+   O-M:3,O-B:2,O-N:3,O-A:1) — **100.0% of the exhaustively-verified
+   optimum**, in 7 seconds and 72 bound evaluations, vs. hours of
+   exhaustive search. Method: since the true objective is identically
+   zero for any subset smaller than k=9 (target_rank=18 needs ≥9
+   couplings to reach full rank at all), each step scores candidates by
+   `sdp_topology_bound.py`'s certified bound (best-case completion) —
+   an admissible look-ahead heuristic, not a literal textbook application
+   of the (1−1/e) theorem's hypotheses (stated honestly in the script's
+   own docstring). Also the first real exercise of `sdp_topology_bound`'s
+   shared-`registry` parameter (built earlier, never tested until now) —
+   verified to give identical bounds to the non-shared path before being
+   trusted here.
+   **Caveat**: this is one data point (one m=12, k=9 instance) — a
+   striking first result, not yet evidence this generalizes to larger
+   patterns. The natural next check is whether forward greedy still
+   tracks close to optimal as m grows, where exhaustive ground truth
+   won't be available to confirm against directly.
+   Raw results: `results/forward_greedy_topology_results.json`,
+   `results/forward_greedy_topology_summary.txt`.
 
 4. **Investigate the plateau finding as a result, not a curiosity.**
    If many θ configurations share the optimal λ_min, the real design
    question shifts to the secondary (log_product) criterion's behavior
    across that plateau — already computed elsewhere in this codebase,
    never characterized against this finding. Possible genuine
-   contribution (connects to Lewis's partly-smooth-function theory).
+   contribution (connects to Lewis's partly-smooth-function theory). The
+   forward-greedy trace above is a small supporting data point: many
+   candidates were within numerical noise of each other's bound score in
+   the early steps (a tight cluster at ~0.013297), consistent with a wide
+   region of near-equally-good partial choices.
 
-5. **(Ambitious/optional)** Tighten the SDP bound with a higher moment-
-   relaxation level (Lasserre-hierarchy-style) if the 44%-loose root
-   bound becomes a real blocker for a future B&B effort.
+5. **Test forward greedy at larger scale, without exhaustive ground
+   truth to check against.** Since brute-force comparison won't be
+   available once m grows, this means either (a) trusting the certified
+   bound's gap at the final greedy answer as the optimality certificate
+   (already reported: 7.5e-6 here), and/or (b) layering local search
+   (swap-based refinement, e.g. Fedorov-exchange-style) on top of the
+   greedy result as a cheap correctness booster before trusting it fully
+   at scale.
 
-**Recommendation if picking one**: #2 (restart-count validation) is
-cheap and directly de-risks trusting today's integration as the primary
-method going forward. #3 is the next architecturally significant
-decision, but should wait until #2 gives a clearer picture of how
-reliable "achieved" values from this pipeline really are.
+6. **(Ambitious/optional)** Tighten the SDP bound with a higher moment-
+   relaxation level (Lasserre-hierarchy-style) if bound looseness becomes
+   a real blocker at larger scale — the forward-greedy bound-guidance
+   above would only get MORE useful from a tighter bound, not less.
+
+**Recommendation if picking one**: forward bound-guided greedy just
+produced the strongest practical result of this whole project (exact
+champion, seconds not hours) — the highest-value next step is #5, testing
+whether this holds up at larger scale where the answer isn't already
+known, since that's the actual target application.

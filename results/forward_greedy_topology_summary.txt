@@ -1,0 +1,33 @@
+Forward (bound-guided) greedy topology construction -- birds-foot, choose 9 of 12
+==============================================================================
+
+Method: at each step, score every remaining candidate by the CERTIFIED bound (bound_node, best-case completion) achievable by adding it -- NOT the raw objective, which is identically zero for any subset smaller than k=9 here (target_rank=18 needs >= 9 couplings to reach full rank at all). See module docstring for the honest caveat this implies about how literally the classical (1-1/e) greedy guarantee applies here.
+
+Final active set: [0, 1, 2, 3, 5, 6, 7, 8, 11]
+Spoke distribution: [O-M:3,O-B:2,O-N:3,O-A:1]
+Greedy construction time: 7.0s (0 unresolved-reference events)
+
+Certified bound at final set:  t = 0.009271
+Achieved lambda_min (Riemannian, 5 restarts): 0.009263
+Certification gap: 7.472e-06
+
+Comparison:
+  Known size-9 champion (exhaustive search): 0.009259  spokes=[O-M:3,O-B:2,O-N:3,O-A:1]
+  Backward greedy (prune_couplings, already in this codebase): 0.004521  spokes=[O-M:3,O-B:3,O-N:1,O-A:2]
+  Forward (bound-guided) greedy (this run): 0.009263
+
+Forward greedy reaches 100.0% of the known champion (backward greedy reached 48.8%)
+Forward greedy vs. backward greedy: 204.9% (better)
+
+Classical worst-case floor for monotone-submodular forward greedy: 63.2% (1-1/e) -- NOTE this floor's hypotheses do not strictly apply here (bound-guided proxy objective, not direct evaluation -- see caveat above); shown for context, not as a guarantee this run must satisfy.
+
+Step-by-step trace:
+  step 1: chose coupling 8 (spoke O-N), bound=0.013297
+  step 2: chose coupling 6 (spoke O-N), bound=0.013297
+  step 3: chose coupling 2 (spoke O-M), bound=0.013297
+  step 4: chose coupling 1 (spoke O-M), bound=0.013297
+  step 5: chose coupling 7 (spoke O-N), bound=0.013297
+  step 6: chose coupling 0 (spoke O-M), bound=0.013297
+  step 7: chose coupling 5 (spoke O-B), bound=0.013286
+  step 8: chose coupling 3 (spoke O-B), bound=0.012765
+  step 9: chose coupling 11 (spoke O-A), bound=0.009271

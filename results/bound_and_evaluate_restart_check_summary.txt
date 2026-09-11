@@ -1,0 +1,19 @@
+bound_and_evaluate.py restart-count check (the 29 subsets with spread > 1e-04 at n_restarts=5)
+==============================================================================
+Rerun at n_restarts=7 using the same per-subset seed as the original sweep. NOT a strict 'same 5 plus 2 more' superset (the shared-RNG design means restart outcomes diverge once more restarts are requested, even though starting points nominally match -- see module docstring) -- treat this as an independently-seeded 7-restart run, related to but not literally extending the original 5.
+Evaluated: 29/29
+Total wall-clock: 745s using 3 workers
+
+Soundness check PASSED: t >= achieved - 1e-06 holds for all 29 rerun subsets.
+
+Improvement (new_achieved - old_achieved) from adding 2 more restarts (5 -> 7):
+  min=-5.850e-06  median=6.214e-08  max=1.086e-05
+  subsets that genuinely improved (> 1e-06): 2/29
+  subsets that had already converged at n_restarts=5: 27/29
+
+Restart spread: n=5 median=2.721e-04  n=7 median=1.436e-04
+  still show spread > 1e-04 at n_restarts=7: 23/29
+
+Subsets with a genuine improvement (sorted, largest first):
+  subset=[0, 2, 3, 4, 5, 6, 7, 9, 11]  old=0.002513  new=0.002524  improvement=1.086e-05  t=0.002539
+  subset=[1, 2, 3, 4, 5, 6, 8, 9, 11]  old=0.006721  new=0.006722  improvement=1.408e-06  t=0.007941
