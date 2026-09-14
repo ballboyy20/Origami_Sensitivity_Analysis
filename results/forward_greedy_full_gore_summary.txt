@@ -1,0 +1,35 @@
+Forward (bound-guided) greedy topology construction -- FULL flasher gore (inter-gore couplings included), choose 23 of 27
+==============================================================================
+
+TEST OF THE ALGORITHM AT LARGER SCALE, NOT A FINAL PHYSICAL RESULT: this gore includes real duplicate panels for ONE neighboring gore so the inter-gore creases the original single-gore file omitted can be represented, but that is one arbitrary boundary condition on what is properly a rotationally-periodic problem -- see KINEMATIC_COUPLING_SUMMARY.md sec 5.4 / roadmap item 7 (full-assembly evaluation or cyclic-symmetry/Bloch-wave reduction are the two rigorous next steps for a trustworthy physical number).
+
+Structurally-mandatory couplings forced active up front: [6, 7, 8] (['P0-P5'])
+Final active set (23 of 27): [0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+Spoke distribution: [P0-P1:3,P0-P4:1,P0-P5:3,P1-P6:3,P1-P2:2,P1-P3:2,P2-P7:3,P3-P4:3,P6-P7:3]
+Greedy construction time: 1068.6s (k ended at 23 after 2 bump(s) past the structural minimum 21)
+
+Certified bound at final set:  t = 0.005242
+Achieved lambda_min (Riemannian, 5 restarts): 0.005185
+Certification gap: 5.719e-05 (1.10% of achieved value)
+
+Step-by-step trace (includes any k-bump extension steps):
+  chose coupling 26 (spoke P6-P7), bound=0.007095
+  chose coupling 14 (spoke P1-P2), bound=0.007095
+  chose coupling 20 (spoke P2-P7), bound=0.007095
+  chose coupling 1 (spoke P0-P1), bound=0.007095
+  chose coupling 9 (spoke P1-P6), bound=0.007095
+  chose coupling 11 (spoke P1-P6), bound=0.007095
+  chose coupling 23 (spoke P3-P4), bound=0.007095
+  chose coupling 0 (spoke P0-P1), bound=0.007095
+  chose coupling 2 (spoke P0-P1), bound=0.007095
+  chose coupling 24 (spoke P6-P7), bound=0.007095
+  chose coupling 18 (spoke P2-P7), bound=0.007095
+  chose coupling 19 (spoke P2-P7), bound=0.007094
+  chose coupling 10 (spoke P1-P6), bound=0.007095
+  chose coupling 12 (spoke P1-P2), bound=0.007095
+  chose coupling 25 (spoke P6-P7), bound=0.007093
+  chose coupling 22 (spoke P3-P4), bound=0.007091
+  chose coupling 21 (spoke P3-P4), bound=0.007070
+  chose coupling 16 (spoke P1-P3), bound=-0.000000
+  chose coupling 3 (spoke P0-P4), bound=-0.000000
+  chose coupling 17 (spoke P1-P3), bound=0.005240

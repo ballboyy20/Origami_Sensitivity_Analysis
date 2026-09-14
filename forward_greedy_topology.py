@@ -81,14 +81,19 @@ BACKWARD_GREEDY_SPOKES     = 'O-M:3,O-B:3,O-N:1,O-A:2'
 
 def forward_greedy(system, m, k, target_rank, length_scale=1.0,
                     base_thetas_deg=None, registry=None, rng=None,
-                    max_ref_tries=MAX_REF_TRIES, verbose=True):
+                    max_ref_tries=MAX_REF_TRIES, verbose=True,
+                    forced_active_start=None):
     """
-    Bound-guided forward greedy: start from an empty active set, repeatedly
-    add whichever remaining candidate yields the highest CERTIFIED bound
-    (via bound_node(), best-case completion assumption) once added, until
-    k couplings are active. See module docstring for why the bound, not
-    the raw (identically-zero-until-k) objective, is used to score
-    candidates.
+    Bound-guided forward greedy: start from an empty active set (or, if
+    `forced_active_start` is given, from that set pre-seeded active --
+    for candidates that are STRUCTURALLY mandatory, not merely good, e.g.
+    a leaf panel's only incident crease, which the bound's best-case-
+    completion optimism has no way to recognize as non-optional at early
+    steps), repeatedly add whichever remaining candidate yields the
+    highest CERTIFIED bound (via bound_node(), best-case completion
+    assumption) once added, until k couplings are active. See module
+    docstring for why the bound, not the raw (identically-zero-until-k)
+    objective, is used to score candidates.
 
     A candidate whose addition makes bound_node() report 'unresolved'
     (no full-rank reference found within max_ref_tries -- see bound_node's
@@ -99,9 +104,11 @@ def forward_greedy(system, m, k, target_rank, length_scale=1.0,
     silently dropped.
 
     Returns dict: 'active' (list[int], the final k-element set, in the
-    order chosen), 'trace' (list of per-step dicts: step index, chosen
-    candidate, its bound score, and every candidate's score that step),
-    'n_unresolved_events' (diagnostic count).
+    order chosen -- forced_active_start entries first, in the order
+    given), 'trace' (list of per-step dicts: step index, chosen
+    candidate, its bound score, and every candidate's score that step --
+    forced-start entries do NOT appear in trace, since they were never
+    scored), 'n_unresolved_events' (diagnostic count).
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -110,12 +117,12 @@ def forward_greedy(system, m, k, target_rank, length_scale=1.0,
                       else np.array([c.theta for c in system.couplings]))
         registry = build_coupling_registry(system, ref_thetas, list(range(m)), length_scale)
 
-    active = []
-    remaining = list(range(m))
+    active = list(forced_active_start) if forced_active_start else []
+    remaining = [i for i in range(m) if i not in active]
     trace = []
     n_unresolved = 0
 
-    for step in range(k):
+    for step in range(k - len(active)):
         scores = {}
         for candidate in remaining:
             trial_active = sorted(active + [candidate])

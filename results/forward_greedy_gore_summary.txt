@@ -1,0 +1,26 @@
+Forward (bound-guided) greedy topology construction -- flasher gore, choose 15 of 18
+==============================================================================
+
+Method: identical algorithm to forward_greedy_topology.py (birds-foot) -- score every remaining candidate by the CERTIFIED bound achievable by adding it, not the raw objective (identically zero below the structural minimum k=30//2=15). See that file's module docstring for the full caveat about how literally the classical (1-1/e) greedy guarantee applies here.
+
+No exhaustive ground truth exists at this scale (m=18) -- unlike birds-foot, there is no known champion to compare against. The only optimality evidence is the certified-bound gap below (KINEMATIC_COUPLING_SUMMARY.md step 5).
+
+Final active set: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17]
+Spoke distribution: [P0-P1:3,P0-P4:2,P0-P5:3,P1-P2:3,P1-P3:3,P3-P4:1]
+Greedy construction time: 46.7s (0 unresolved-reference events)
+
+Certified bound at final set:  t = 0.012966
+Achieved lambda_min (Riemannian, 5 restarts): 0.012351
+Certification gap: 6.153e-04
+  (gap as % of achieved value: 4.98% -- the smaller this is, the closer this greedy result is provably to the true optimum for THIS active set, though not necessarily to the global optimum over all C(18,15) subsets)
+
+Step-by-step trace:
+  step 1: chose coupling 12 (spoke P1-P3), bound=0.013292
+  step 2: chose coupling 14 (spoke P1-P3), bound=0.013292
+  step 3: chose coupling 5 (spoke P0-P4), bound=0.013292
+  step 4: chose coupling 13 (spoke P1-P3), bound=0.013292
+  step 5: chose coupling 1 (spoke P0-P1), bound=0.013288
+  step 6: chose coupling 0 (spoke P0-P1), bound=0.013283
+  step 7: chose coupling 2 (spoke P0-P1), bound=0.013275
+  step 8: chose coupling 4 (spoke P0-P4), bound=0.013260
+  step 9: chose coupling 17 (spoke P3-P4), bound=0.012965
