@@ -5,7 +5,7 @@ Method: at each step, score every remaining candidate by the CERTIFIED bound (bo
 
 Final active set: [0, 1, 2, 3, 5, 6, 7, 8, 11]
 Spoke distribution: [O-M:3,O-B:2,O-N:3,O-A:1]
-Greedy construction time: 7.0s (0 unresolved-reference events)
+Greedy construction time: 19.0s (0 unresolved-reference events)
 
 Certified bound at final set:  t = 0.009271
 Achieved lambda_min (Riemannian, 5 restarts): 0.009263

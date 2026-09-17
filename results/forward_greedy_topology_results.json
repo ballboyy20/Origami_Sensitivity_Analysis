@@ -19,7 +19,7 @@
  "t": 0.00927063453659366,
  "lambda_min": 0.009263162191166747,
  "gap": 7.472345426912455e-06,
- "greedy_elapsed_sec": 6.993654699996114,
+ "greedy_elapsed_sec": 18.99527109999326,
  "n_unresolved_events": 0,
  "trace": [
   {
