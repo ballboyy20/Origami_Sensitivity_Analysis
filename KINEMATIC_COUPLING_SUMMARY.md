@@ -13,7 +13,7 @@ the *minimal* set of couplings joining panels in an origami array, to
 maximize λ_min(K), K = CᵀC — in a way that survives peer review: built on
 established optimization methods, validated soundly, honestly reported.
 
-Last updated: 2026-09-14.
+Last updated: 2026-10-13.
 
 ---
 
@@ -238,16 +238,15 @@ state (or use `python -u`) before concluding a long-running job crashed.
    Raw results: `results/forward_greedy_topology_results.json`,
    `results/forward_greedy_topology_summary.txt`.
 
-4. **Investigate the plateau finding as a result, not a curiosity.**
-   If many θ configurations share the optimal λ_min, the real design
-   question shifts to the secondary (log_product) criterion's behavior
-   across that plateau — already computed elsewhere in this codebase,
-   never characterized against this finding. Possible genuine
-   contribution (connects to Lewis's partly-smooth-function theory). The
-   forward-greedy trace above is a small supporting data point: many
-   candidates were within numerical noise of each other's bound score in
-   the early steps (a tight cluster at ~0.013297), consistent with a wide
-   region of near-equally-good partial choices.
+4. **(Started this session — see §6)** ~~Investigate the plateau finding
+   as a result, not a curiosity.~~ Stage-2 log_product polish now exists
+   for the Riemannian pipeline (`log_product_polish.py`). Key finding:
+   the two-panel plateau does **not** carry over to the birds-foot
+   champion — its optimum is a **double eigenvalue** sitting on a long,
+   nearly-flat (but not flat) ridge, so a strict lexicographic stage 2 is
+   a no-op there. Still open: whether the gore-scale systems look like
+   two-panel (plateau) or birds-foot (ridge), and what λ_min tolerance
+   to adopt for stage 2 as a design policy.
 
 5. **(Done this session)** ~~Test forward greedy at larger scale, without
    exhaustive ground truth to check against~~ — done for both a single
@@ -493,3 +492,127 @@ arbitrary boundary condition, not the periodic-problem-correct answer.
 Roadmap item 7 (full-assembly evaluation vs. cyclic-symmetry/Bloch-wave
 reduction) is still open and still the recommended next step for a
 trustworthy physical number.
+
+---
+
+## 6. Stage-2 log_product Polish on the Riemannian Pipeline (this session)
+
+**Why**: `coupling_optimizer.py`'s DE pipeline had a stage 2 (maximize
+log_product = Σ log(locked eigenvalues) subject to λ_min ≥ λ* − tol) to
+choose among λ_min-tied designs. The Riemannian pipeline
+(`riemannian_multistart` → `bound_and_evaluate`) had no equivalent — it
+kept whichever restart had the highest λ_min, so every reported θ
+(birds-foot champion, gore results) was an arbitrary point of the optimal
+set, not a deliberately chosen one. Topology selection is unaffected —
+log_product is −∞ on partial (rank-deficient) sets, so it can't guide
+greedy; stage 2 only picks the θ to build for a given topology.
+
+### 6.1 Method (`log_product_polish.py`)
+
+- **Smooth objective via the fixed gauge subspace.** Because the 6-dim
+  rigid-body null space is θ-independent (§1), one basis P for its
+  complement, computed once, gives Kr(θ) = PᵀK(θ)P whose spectrum is
+  exactly the locked eigenvalues at every full-rank θ. log_product =
+  log det Kr is smooth there, with exact gradient
+  tr(Kr⁻¹ ∂Kr/∂θᵢ) from the existing K0/Kc/Ks calibration.
+- **Constraint handled at eigenvalue multiplicity.** Each step solves a
+  small trust-region SDP: maximize ∇log_product·d subject to the
+  first-order model of the eigenvalue cluster near the threshold staying
+  ⪰ threshold (Overton's model of a multiple eigenvalue; cluster chosen
+  by a Weyl bound so nothing that could cross at first order is
+  omitted), ‖d‖ ≤ Δ. Steps are accepted only if the TRUE λ_min and
+  log_product check out; retraction is θ+d mod π.
+- **Integration**: `bound_and_evaluate(..., polish=False)` (opt-in,
+  existing outputs unchanged) + `polish_tied_restarts()`, which polishes
+  every restart tied with the best λ_min, sharing one calibration.
+- **Validation** (`test_log_product_polish.py`, 12/12 pass, all checked
+  against the REAL system via `CouplingOptimizer._locked_eigenvalues`,
+  not the reduced model): reduced spectrum matches to 2e-15 at random θ
+  far from the reference; gradient matches finite differences to 5e-7;
+  every accepted step and final point feasible on the real system.
+
+### 6.2 Results
+
+**Two-panel (test case)**: plateau confirmed and exploited — log_product
+−4.88 → −1.99 (product ×18) at exactly unchanged λ_min, θ moving up to
+84°. Stage 2 does real work here.
+
+**Birds-foot champion** (`polish_birdsfoot_champion.py`; reproduces
+forward greedy's evaluation, λ* = 0.00926316, 5 restarts):
+
+- **The optimum is a double eigenvalue, not a plateau.** Two smallest
+  locked eigenvalues 0.00926316 / 0.00926321 (relative gap 4.9e-6); the
+  third is 23% higher — the Cox–Overton structure. At the strict
+  tolerance (rel 1e-7, matching `coupling_optimizer.py`) the polish moves
+  θ by 0.000° and gains 1.3e-5 in log_product: **strict lexicographic
+  stage 2 is a no-op here.**
+- **But a long, nearly-flat ridge exists.** The 5 restarts end up to 20°
+  apart in θ with λ_min within 2e-4 (relative) of each other and
+  log_product spread of ~0.05 (~5% in the product). Strictly maximizing
+  λ_min picked a restart that is mid-pack on log_product.
+- **Trade-off is steep, ~100:1.** Allowing λ_min to drop buys log_product
+  (best restart): 0.01% → product ×1.011; 0.1% → ×1.106; 1% → ×2.38,
+  and the second-weakest eigenvalue separates from the weakest
+  (λ₂ 0.009263 → 0.010524 at 1%) — exactly the fragility stage 2 was
+  meant to address.
+- **Loosened tie tolerance — restarts don't merge.** Polishing every
+  restart within rel 1e-4 (4/5 tied) or 1e-3 (5/5 tied) moves each by
+  ≤0.1° / ≤0.9°; they stay 2.5–20° apart. Every polish ends with λ_min
+  exactly on the threshold (constraint binding), and each gains about the
+  same (≈+0.01 at 1e-4, ≈+0.1 at 1e-3) — i.e. the gain is λ_min budget
+  being spent, not travel along the ridge. Final ranking largely
+  inherits each restart's starting log_product. Best: ×1.022 vs. the
+  strict design at 1e-4 (−0.01% λ_min), ×1.124 at 1e-3 (−0.1%).
+- **Caveat**: every birds-foot polish stopped on the trust-region floor,
+  not a certified KKT point — the linear model of the coalesced
+  eigenvalue pair keeps over-predicting gain (some runs crawled 400–500
+  iterations). Final points are feasible and on the constraint; treat
+  them as "no further progress found," not proven stationary.
+
+### 6.3 Interpretation
+
+For birds-foot, the useful stage 2 is **selection among many ridge
+points**, not polishing one: the polish is local, and restart choice
+matters about as much as the polish itself. Two decisions this leaves
+open: (a) adopt an explicit small λ_min tolerance (e.g. 1e-4 or 1e-3
+relative) as design policy, since at strict tolerance stage 2 does
+nothing on this topology; (b) sample the ridge more densely (more
+restarts) before polishing.
+
+Raw results: `results/polish_birdsfoot_champion_{results.json,summary.txt}`.
+
+### 6.4 Denser ridge sampling: 20 restarts
+
+`N_RESTARTS=20 python polish_birdsfoot_champion.py` (results:
+`results/polish_birdsfoot_champion_r20_{results.json,summary.txt}`; the
+5-restart files are untouched). Stage-1 λ* = 0.00926314 (vs 0.00926316
+at 5 restarts — same optimum; restarts differ from the 5-run because
+`riemannian_multistart` shares one RNG, see §4 item 2).
+
+- **The ridge is essentially one-dimensional.** Across 20 restarts, the
+  θ spread (max−min) per coupling is ≤3° for 8 of 9 couplings (most
+  <1°) but **19° for coupling 2** — the O-M spoke's mid-thickness
+  contact. The near-optimal set is, to first approximation, "everything
+  else fixed, slide the O-M mid-thickness groove angle."
+- **λ_min and log_product trade off along it.** Coupling 2's angle
+  correlates +0.86 with λ_min and −0.64 with log_product. The strict
+  λ_min-maximizing restart has the 2nd-*worst* log_product of all 20 —
+  pure λ_min maximization drives to the end of the ridge that is worst
+  for overall stiffness. All 20 restarts lie within 3.5e-4 (relative)
+  of λ*; still only one is strictly tied at 1e-7.
+- **More restarts help, modestly.** Best polished design vs. the strict
+  design: ×1.039 at rel_tol 1e-4 (vs ×1.022 with 5 restarts) and ×1.140
+  at 1e-3 (vs ×1.124). The same restart (7) wins at both tolerances;
+  its main difference from the strict design is coupling 2 at ≈10°
+  instead of ≈17.5°.
+- Polish behavior unchanged: each run moves ≤0.1° (1e-4) / ≤0.9°
+  (1e-3), ends on the constraint, stops on the trust-region floor.
+  Cost: ~4.5 min for evaluation + polish at 20 restarts (vs ~40 s at 5).
+
+**Updated interpretation**: since the ridge is ~1-D and its direction is
+known, sampling it with more random restarts is an inefficient way to
+explore it. A cheaper, more direct option: sweep coupling 2's angle
+along the ridge and re-optimize the other 8 at each value (a 1-D
+continuation), which would map the full λ_min-vs-log_product trade-off
+curve for this topology. Whether gore-scale topologies also show a
+low-dimensional ridge is untested.

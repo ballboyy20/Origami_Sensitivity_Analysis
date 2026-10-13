@@ -205,13 +205,66 @@ def riemannian_multistart(system, active_indices, length_scale=1.0,
 # The split-responsibility entry point
 # ══════════════════════════════════════════════════════════════════════
 
+def polish_tied_restarts(system, active_indices, all_results, length_scale=1.0,
+                         target_rank=None, polish_kwargs=None):
+    """
+    Stage-2 log_product polish (log_product_polish.py) applied to EVERY
+    restart tied with the best lambda_min (within the polish threshold),
+    not just the best one -- tied restarts can sit in different parts of
+    the optimal set with different log_product, and comparing them is
+    part of what the polish is for. One shared ReducedKModel (calibration
+    + gauge basis) is reused across all of them.
+
+    Returns dict:
+        'best'      : the polish result with the highest final log_product
+        'per_start' : list of (restart_index, polish result) for each tied
+                      restart, in restart order
+        'threshold' : the lambda_min floor every polish was held to
+    """
+    from log_product_polish import polish_log_product, ReducedKModel
+
+    polish_kwargs = dict(polish_kwargs or {})
+    lam_best = max(r['lambda_min'] for r in all_results)
+    rel_tol = polish_kwargs.get('rel_tol', 1e-7)
+    abs_tol = polish_kwargs.get('abs_tol', 1e-9)
+    threshold = lam_best - max(abs_tol, rel_tol * abs(lam_best))
+
+    best_start = max(all_results, key=lambda r: r['lambda_min'])
+    model = ReducedKModel(system, active_indices, best_start['theta'],
+                          target_rank, length_scale)
+
+    per_start = []
+    for idx, r in enumerate(all_results):
+        if r['lambda_min'] < threshold:
+            continue
+        p = polish_log_product(system, active_indices, r['theta'],
+                               lambda_star=lam_best, target_rank=target_rank,
+                               length_scale=length_scale, model=model,
+                               **polish_kwargs)
+        per_start.append((idx, p))
+
+    best = max((p for _, p in per_start), key=lambda p: p['log_product'])
+    active = sorted(int(i) for i in active_indices)
+    for k, i in enumerate(active):   # leave system at the reported winner
+        system.couplings[i].set_theta(float(best['theta'][k]))
+    return dict(best=best, per_start=per_start, threshold=threshold)
+
+
 def bound_and_evaluate(system, active_indices, length_scale=1.0,
                         target_rank=None, ref_thetas=None, n_restarts=5,
-                        rng=None, solver=None, riemannian_kwargs=None):
+                        rng=None, solver=None, riemannian_kwargs=None,
+                        polish=False, polish_kwargs=None):
     """
     Certified upper bound (SDP stage 1 only) + achieved value
     (Riemannian multi-start) for one FIXED topology -- the full split-
     responsibility evaluation described in this module's docstring.
+
+    polish=True additionally runs the stage-2 log_product tie-break
+    (polish_tied_restarts, above) on every restart tied with the best
+    lambda_min, and adds a 'polish' key (polish_tied_restarts' return
+    dict). Off by default -- 'lambda_min', 'theta' and 'gap' always
+    report the stage-1 (pre-polish) result either way, so existing
+    callers and saved results are unaffected.
 
     Returns dict:
         't'                      : float -- certified upper bound
@@ -236,7 +289,7 @@ def bound_and_evaluate(system, active_indices, length_scale=1.0,
                                    target_rank, ref_thetas, n_restarts, rng,
                                    riemannian_kwargs)
 
-    return dict(
+    out = dict(
         t=bound['t'],
         stage1_status=bound['stage1_status'],
         lambda_min=evald['lambda_min'],
@@ -246,6 +299,11 @@ def bound_and_evaluate(system, active_indices, length_scale=1.0,
         n_start_failures=evald['n_start_failures'],
         active_indices=active_indices,
     )
+    if polish:
+        out['polish'] = polish_tied_restarts(
+            system, active_indices, evald['all_results'], length_scale,
+            target_rank, polish_kwargs)
+    return out
 
 
 if __name__ == "__main__":

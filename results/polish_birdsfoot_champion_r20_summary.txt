@@ -1,0 +1,126 @@
+Stage-2 log_product polish -- birds-foot size-9 champion [0, 1, 2, 3, 5, 6, 7, 8, 11] (spokes O-M:3,O-B:2,O-N:3,O-A:1)
+==============================================================================
+Certified bound t = 0.009271; stage-1 achieved lambda_min = 0.00926314 (gap 7.491e-06) -- reproduces forward_greedy_topology.py's evaluation.
+bound_and_evaluate + polish: 270.0s; tolerance sweep: 16.3s
+
+1. Restarts (stage 1) and stage-2 polish of each tied restart
+   threshold = 0.00926314 (lambda* - 1e-7*lambda*)
+   restart 0: lambda_min=0.00926221  log_product=-19.956739  (not tied -- not polished)
+   restart 1: lambda_min=0.00925993  log_product=-19.962604  (not tied -- not polished)
+   restart 2: lambda_min=0.00926235  log_product=-19.971983  (not tied -- not polished)
+   restart 3: lambda_min=0.00926314  log_product=-19.983880  -> polished log_product=-19.983867 (+1.25e-05), max move 0.000 deg, trust_region_floor
+   restart 4: lambda_min=0.00926231  log_product=-19.955267  (not tied -- not polished)
+   restart 5: lambda_min=0.00926304  log_product=-19.964124  (not tied -- not polished)
+   restart 6: lambda_min=0.00926228  log_product=-19.965331  (not tied -- not polished)
+   restart 7: lambda_min=0.00926278  log_product=-19.952926  (not tied -- not polished)
+   restart 8: lambda_min=0.00926265  log_product=-19.987479  (not tied -- not polished)
+   restart 9: lambda_min=0.00926246  log_product=-19.955558  (not tied -- not polished)
+   restart 10: lambda_min=0.00926154  log_product=-19.967121  (not tied -- not polished)
+   restart 11: lambda_min=0.00926232  log_product=-19.962847  (not tied -- not polished)
+   restart 12: lambda_min=0.00926283  log_product=-19.961960  (not tied -- not polished)
+   restart 13: lambda_min=0.00926304  log_product=-19.972868  (not tied -- not polished)
+   restart 14: lambda_min=0.00926270  log_product=-19.957160  (not tied -- not polished)
+   restart 15: lambda_min=0.00926301  log_product=-19.972986  (not tied -- not polished)
+   restart 16: lambda_min=0.00926256  log_product=-19.962245  (not tied -- not polished)
+   restart 17: lambda_min=0.00926219  log_product=-19.960879  (not tied -- not polished)
+   restart 18: lambda_min=0.00926171  log_product=-19.966229  (not tied -- not polished)
+   restart 19: lambda_min=0.00926202  log_product=-19.967013  (not tied -- not polished)
+   only 1 restart tied with the best -- no tie-break comparison possible
+
+   Final (polished) design:
+     lambda_min  0.00926314 -> 0.00926314
+     log_product -19.983880 -> -19.983867  (product of locked eigs x1.000012)
+     theta (deg) start  [ 55.28, 133.81,  17.47,  56.33,  77.75,  28.02, 138.71, 166.58,  15.97]
+     theta (deg) final  [ 55.28, 133.81,  17.47,  56.33,  77.75,  28.02, 138.71, 166.58,  15.97]
+     spokes             ['O-M', 'O-M', 'O-M', 'O-B', 'O-B', 'O-N', 'O-N', 'O-N', 'O-A']
+
+2. Smallest 6 locked eigenvalues at theta* (multiplicity structure)
+   0.00926314  0.00926319  0.01135538  0.01330914  0.04592761  0.06594233
+   relative gaps to lambda_min: 4.71e-06  2.26e-01  4.37e-01  3.96e+00  6.12e+00
+   eigenvalues within 1e-4 (relative) of lambda_min: 2
+
+3. Tolerance sweep (best stage-1 restart; how much log_product a deliberate lambda_min sacrifice buys)
+    rel_tol    lambda_min  lam loss %   log_product  d log_prod  prod ratio     lambda_2  max move  stop
+      1e-07    0.00926314      0.0000    -19.983867      0.0000      1.0000   0.00926319     0.00d  trust_region_floor
+      1e-05    0.00926305      0.0010    -19.982878      0.0010      1.0010   0.00926590     0.01d  trust_region_floor
+      1e-04    0.00926222      0.0100    -19.972717      0.0112      1.0112   0.00929180     0.10d  max_iters
+      1e-03    0.00925388      0.1000    -19.882760      0.1011      1.1064   0.00951463     0.91d  trust_region_floor
+      1e-02    0.00917051      1.0000    -19.114222      0.8697      2.3861   0.01052586     7.50d  trust_region_floor
+
+4. Loosened tie tolerance: polish EVERY restart within the band (max_iters=1000; 232.1s)
+   rel_tol=1e-04  threshold=0.00926222  (14/20 restarts tied)
+     restart 2: lambda_min 0.00926235 -> 0.00926222  log_product -19.971983 -> -19.970528  lambda_2 0.00926640  move  0.01d  trust_region_floor (27 it)
+     restart 3: lambda_min 0.00926314 -> 0.00926222  log_product -19.983880 -> -19.972459  lambda_2 0.00929208  move  0.10d  trust_region_floor (387 it)
+     restart 4: lambda_min 0.00926231 -> 0.00926222  log_product -19.955267 -> -19.954318  lambda_2 0.00926492  move  0.01d  trust_region_floor (27 it)
+     restart 5: lambda_min 0.00926304 -> 0.00926222  log_product -19.964124 -> -19.954071  lambda_2 0.00928847  move  0.09d  trust_region_floor (427 it)
+     restart 6: lambda_min 0.00926228 -> 0.00926222  log_product -19.965331 -> -19.964669  lambda_2 0.00926412  move  0.01d  trust_region_floor (29 it)
+     restart 7: lambda_min 0.00926278 -> 0.00926222  log_product -19.952926 -> -19.945907  lambda_2 0.00928038  move  0.06d  trust_region_floor (517 it)
+     restart 8: lambda_min 0.00926265 -> 0.00926222  log_product -19.987479 -> -19.981084  lambda_2 0.00927791  move  0.05d  trust_region_floor (557 it)
+     restart 9: lambda_min 0.00926246 -> 0.00926222  log_product -19.955558 -> -19.951950  lambda_2 0.00927094  move  0.03d  trust_region_floor (641 it)
+     restart 11: lambda_min 0.00926232 -> 0.00926222  log_product -19.962847 -> -19.961784  lambda_2 0.00926526  move  0.01d  trust_region_floor (29 it)
+     restart 12: lambda_min 0.00926283 -> 0.00926222  log_product -19.961960 -> -19.953764  lambda_2 0.00928289  move  0.07d  trust_region_floor (609 it)
+     restart 13: lambda_min 0.00926304 -> 0.00926222  log_product -19.972868 -> -19.962295  lambda_2 0.00928942  move  0.09d  trust_region_floor (445 it)
+     restart 14: lambda_min 0.00926270 -> 0.00926222  log_product -19.957160 -> -19.951018  lambda_2 0.00927795  move  0.05d  trust_region_floor (359 it)
+     restart 15: lambda_min 0.00926301 -> 0.00926222  log_product -19.972986 -> -19.962617  lambda_2 0.00928878  move  0.09d  trust_region_floor (469 it)
+     restart 16: lambda_min 0.00926256 -> 0.00926222  log_product -19.962245 -> -19.956675  lambda_2 0.00927481  move  0.04d  trust_region_floor (685 it)
+     pairwise max theta separation AFTER polish (deg):
+       2:   0.00   5.64   5.83   2.42   3.27   2.66   4.51   4.13   4.07   1.64   3.12   2.36   2.87   2.48
+       3:   5.64   0.00  11.47   3.85   8.91   7.28   1.85   9.76   9.71   5.83   2.52   7.23   2.77   8.12
+       4:   5.83  11.47   0.00   7.61   2.56   4.19  10.34   1.70   1.76   5.63   8.95   4.24   8.70   3.35
+       5:   2.42   3.85   7.61   0.00   5.05   3.42   2.73   5.91   5.85   1.98   1.33   3.38   1.09   4.27
+       6:   3.27   8.91   2.56   5.05   0.00   2.10   7.78   1.29   0.80   3.07   6.39   1.80   6.14   0.79
+       7:   2.66   7.28   4.19   3.42   2.10   0.00   6.15   2.49   2.43   1.44   4.75   0.93   4.51   1.39
+       8:   4.51   1.85  10.34   2.73   7.78   6.15   0.00   8.64   8.58   4.71   1.62   6.11   1.64   7.00
+       9:   4.13   9.76   1.70   5.91   1.29   2.49   8.64   0.00   0.89   3.93   7.24   2.53   7.00   1.64
+       11:   4.07   9.71   1.76   5.85   0.80   2.43   8.58   0.89   0.00   3.87   7.19   2.47   6.94   1.59
+       12:   1.64   5.83   5.63   1.98   3.07   1.44   4.71   3.93   3.87   0.00   3.31   1.40   3.07   2.29
+       13:   3.12   2.52   8.95   1.33   6.39   4.75   1.62   7.24   7.19   3.31   0.00   4.71   0.31   5.60
+       14:   2.36   7.23   4.24   3.38   1.80   0.93   6.11   2.53   2.47   1.40   4.71   0.00   4.47   1.10
+       15:   2.87   2.77   8.70   1.09   6.14   4.51   1.64   7.00   6.94   3.07   0.31   4.47   0.00   5.36
+       16:   2.48   8.12   3.35   4.27   0.79   1.39   7.00   1.64   1.59   2.29   5.60   1.10   5.36   0.00
+     winner: restart 7, log_product -19.945907 (x1.0387 vs strict-tie design), lambda_min 0.00926222 (0.0100% below lambda*)
+     winner theta (deg) [ 55.33, 134.39,  10.17,  56.26,  77.70,  27.40, 137.97, 166.10,  16.05]
+   rel_tol=1e-03  threshold=0.00925388  (20/20 restarts tied)
+     restart 0: lambda_min 0.00926221 -> 0.00925388  log_product -19.956739 -> -19.856781  lambda_2 0.00949414  move  0.83d  trust_region_floor (25 it)
+     restart 1: lambda_min 0.00925993 -> 0.00925388  log_product -19.962604 -> -19.893174  lambda_2 0.00945929  move  0.68d  trust_region_floor (33 it)
+     restart 2: lambda_min 0.00926235 -> 0.00925388  log_product -19.971983 -> -19.871440  lambda_2 0.00950107  move  0.85d  trust_region_floor (25 it)
+     restart 3: lambda_min 0.00926314 -> 0.00925388  log_product -19.983880 -> -19.882760  lambda_2 0.00951463  move  0.91d  trust_region_floor (27 it)
+     restart 4: lambda_min 0.00926231 -> 0.00925388  log_product -19.955267 -> -19.855295  lambda_2 0.00949523  move  0.84d  trust_region_floor (25 it)
+     restart 5: lambda_min 0.00926304 -> 0.00925388  log_product -19.964124 -> -19.863488  lambda_2 0.00951105  move  0.90d  trust_region_floor (25 it)
+     restart 6: lambda_min 0.00926228 -> 0.00925388  log_product -19.965331 -> -19.865000  lambda_2 0.00949773  move  0.84d  trust_region_floor (25 it)
+     restart 7: lambda_min 0.00926278 -> 0.00925388  log_product -19.952926 -> -19.852695  lambda_2 0.00950502  move  0.88d  trust_region_floor (27 it)
+     restart 8: lambda_min 0.00926265 -> 0.00925388  log_product -19.987479 -> -19.886434  lambda_2 0.00950797  move  0.88d  trust_region_floor (27 it)
+     restart 9: lambda_min 0.00926246 -> 0.00925388  log_product -19.955558 -> -19.855325  lambda_2 0.00950081  move  0.86d  trust_region_floor (27 it)
+     restart 10: lambda_min 0.00926154 -> 0.00925388  log_product -19.967121 -> -19.889201  lambda_2 0.00947193  move  0.76d  trust_region_floor (29 it)
+     restart 11: lambda_min 0.00926232 -> 0.00925388  log_product -19.962847 -> -19.862578  lambda_2 0.00949761  move  0.84d  trust_region_floor (25 it)
+     restart 12: lambda_min 0.00926283 -> 0.00925388  log_product -19.961960 -> -19.861360  lambda_2 0.00950821  move  0.89d  trust_region_floor (25 it)
+     restart 13: lambda_min 0.00926304 -> 0.00925388  log_product -19.972868 -> -19.871995  lambda_2 0.00951280  move  0.90d  trust_region_floor (27 it)
+     restart 14: lambda_min 0.00926270 -> 0.00925388  log_product -19.957160 -> -19.856728  lambda_2 0.00950404  move  0.87d  trust_region_floor (27 it)
+     restart 15: lambda_min 0.00926301 -> 0.00925388  log_product -19.972986 -> -19.872141  lambda_2 0.00951302  move  0.90d  trust_region_floor (25 it)
+     restart 16: lambda_min 0.00926256 -> 0.00925388  log_product -19.962245 -> -19.861787  lambda_2 0.00950209  move  0.86d  trust_region_floor (27 it)
+     restart 17: lambda_min 0.00926219 -> 0.00925388  log_product -19.960879 -> -19.860814  lambda_2 0.00949429  move  0.83d  trust_region_floor (25 it)
+     restart 18: lambda_min 0.00926171 -> 0.00925388  log_product -19.966229 -> -19.866416  lambda_2 0.00948810  move  0.80d  trust_region_floor (23 it)
+     restart 19: lambda_min 0.00926202 -> 0.00925388  log_product -19.967013 -> -19.866835  lambda_2 0.00949281  move  0.82d  trust_region_floor (25 it)
+     pairwise max theta separation AFTER polish (deg):
+       0:   0.00   7.17   6.04  11.62   0.42   7.81   2.82   4.43  10.50   1.97   2.49   2.03   5.85   9.13   4.47   8.88   3.59   0.57   2.53   2.45
+       1:   7.17   0.00  13.21  18.78   7.46  14.97   9.98  11.59  17.66   9.14   7.13   9.19  13.02  16.29  11.63  16.05  10.76   7.40   8.65   9.62
+       2:   6.04  13.21   0.00   5.58   5.75   2.31   3.23   2.56   4.46   4.07   6.07   4.01   1.66   3.09   2.29   2.84   2.45   5.81   4.55   3.59
+       3:  11.62  18.78   5.58   0.00  11.33   3.81   8.80   7.19   1.86   9.65  11.65   9.59   5.76   2.49   7.15   2.73   8.02  11.38  10.13   9.16
+       4:   0.42   7.46   5.75  11.33   0.00   7.52   2.53   4.14  10.21   1.68   2.61   1.74   5.56   8.84   4.18   8.59   3.30   0.65   2.62   2.16
+       5:   7.81  14.97   2.31   3.81   7.52   0.00   4.99   3.38   2.69   5.84   7.84   5.78   1.95   1.32   3.34   1.08   4.21   7.57   6.32   5.35
+       6:   2.82   9.98   3.23   8.80   2.53   4.99   0.00   2.00   7.68   1.24   2.85   0.79   3.04   6.31   1.71   6.07   0.78   2.58   1.33   0.62
+       7:   4.43  11.59   2.56   7.19   4.14   3.38   2.00   0.00   6.07   2.46   4.46   2.40   1.43   4.70   0.92   4.45   1.36   4.19   3.04   2.57
+       8:  10.50  17.66   4.46   1.86  10.21   2.69   7.68   6.07   0.00   8.53  10.53   8.47   4.64   1.62   6.03   1.62   6.90  10.26   9.01   8.04
+       9:   1.97   9.14   4.07   9.65   1.68   5.84   1.24   2.46   8.53   0.00   2.33   0.85   3.88   7.16   2.50   6.91   1.62   1.73   2.37   1.86
+       10:   2.49   7.13   6.07  11.65   2.61   7.84   2.85   4.46  10.53   2.33   0.00   2.06   5.88   9.16   4.50   8.91   3.62   1.99   1.52   2.48
+       11:   2.03   9.19   4.01   9.59   1.74   5.78   0.79   2.40   8.47   0.85   2.06   0.00   3.83   7.10   2.44   6.86   1.57   1.79   1.54   1.03
+       12:   5.85  13.02   1.66   5.76   5.56   1.95   3.04   1.43   4.64   3.88   5.88   3.83   0.00   3.27   1.39   3.03   2.26   5.62   4.37   3.40
+       13:   9.13  16.29   3.09   2.49   8.84   1.32   6.31   4.70   1.62   7.16   9.16   7.10   3.27   0.00   4.66   0.30   5.53   8.89   7.64   6.67
+       14:   4.47  11.63   2.29   7.15   4.18   3.34   1.71   0.92   6.03   2.50   4.50   2.44   1.39   4.66   0.00   4.41   1.06   4.23   2.98   2.28
+       15:   8.88  16.05   2.84   2.73   8.59   1.08   6.07   4.45   1.62   6.91   8.91   6.86   3.03   0.30   4.41   0.00   5.29   8.65   7.40   6.43
+       16:   3.59  10.76   2.45   8.02   3.30   4.21   0.78   1.36   6.90   1.62   3.62   1.57   2.26   5.53   1.06   5.29   0.00   3.36   2.11   1.36
+       17:   0.57   7.40   5.81  11.38   0.65   7.57   2.58   4.19  10.26   1.73   1.99   1.79   5.62   8.89   4.23   8.65   3.36   0.00   1.97   2.22
+       18:   2.53   8.65   4.55  10.13   2.62   6.32   1.33   3.04   9.01   2.37   1.52   1.54   4.37   7.64   2.98   7.40   2.11   1.97   0.00   0.97
+       19:   2.45   9.62   3.59   9.16   2.16   5.35   0.62   2.57   8.04   1.86   2.48   1.03   3.40   6.67   2.28   6.43   1.36   2.22   0.97   0.00
+     winner: restart 7, log_product -19.852695 (x1.1402 vs strict-tie design), lambda_min 0.00925388 (0.1000% below lambda*)
+     winner theta (deg) [ 55.67, 134.06,  10.11,  56.22,  77.86,  28.06, 137.32, 166.13,  16.86]

@@ -1,0 +1,61 @@
+Stage-2 log_product polish -- birds-foot size-9 champion [0, 1, 2, 3, 5, 6, 7, 8, 11] (spokes O-M:3,O-B:2,O-N:3,O-A:1)
+==============================================================================
+Certified bound t = 0.009271; stage-1 achieved lambda_min = 0.00926316 (gap 7.472e-06) -- reproduces forward_greedy_topology.py's evaluation.
+bound_and_evaluate + polish: 37.8s; tolerance sweep: 6.8s
+
+1. Restarts (stage 1) and stage-2 polish of each tied restart
+   threshold = 0.00926316 (lambda* - 1e-7*lambda*)
+   restart 0: lambda_min=0.00926277  log_product=-19.962276  (not tied -- not polished)
+   restart 1: lambda_min=0.00926121  log_product=-19.975310  (not tied -- not polished)
+   restart 2: lambda_min=0.00926303  log_product=-19.967063  (not tied -- not polished)
+   restart 3: lambda_min=0.00926316  log_product=-19.978497  -> polished log_product=-19.978484 (+1.25e-05), max move 0.000 deg, trust_region_floor
+   restart 4: lambda_min=0.00926313  log_product=-20.011479  (not tied -- not polished)
+   only 1 restart tied with the best -- no tie-break comparison possible
+
+   Final (polished) design:
+     lambda_min  0.00926316 -> 0.00926316
+     log_product -19.978497 -> -19.978484  (product of locked eigs x1.000013)
+     theta (deg) start  [ 55.22, 133.86,  16.63,  56.27,  77.67,  27.92, 138.54, 166.14,  15.97]
+     theta (deg) final  [ 55.22, 133.86,  16.63,  56.27,  77.67,  27.92, 138.54, 166.14,  15.97]
+     spokes             ['O-M', 'O-M', 'O-M', 'O-B', 'O-B', 'O-N', 'O-N', 'O-N', 'O-A']
+
+2. Smallest 6 locked eigenvalues at theta* (multiplicity structure)
+   0.00926316  0.00926321  0.01136213  0.01330916  0.04592143  0.06598295
+   relative gaps to lambda_min: 4.85e-06  2.27e-01  4.37e-01  3.96e+00  6.12e+00
+   eigenvalues within 1e-4 (relative) of lambda_min: 2
+
+3. Tolerance sweep (best stage-1 restart; how much log_product a deliberate lambda_min sacrifice buys)
+    rel_tol    lambda_min  lam loss %   log_product  d log_prod  prod ratio     lambda_2  max move  stop
+      1e-07    0.00926316      0.0000    -19.978484      0.0000      1.0000   0.00926321     0.00d  trust_region_floor
+      1e-05    0.00926307      0.0010    -19.977496      0.0010      1.0010   0.00926592     0.01d  trust_region_floor
+      1e-04    0.00926224      0.0100    -19.967350      0.0111      1.0112   0.00929179     0.10d  max_iters
+      1e-03    0.00925390      0.1000    -19.877521      0.1010      1.1062   0.00951411     0.91d  trust_region_floor
+      1e-02    0.00917053      1.0000    -19.110428      0.8681      2.3823   0.01052372     7.51d  trust_region_floor
+
+4. Loosened tie tolerance: polish EVERY restart within the band (max_iters=1000; 24.3s)
+   rel_tol=1e-04  threshold=0.00926224  (4/5 restarts tied)
+     restart 0: lambda_min 0.00926277 -> 0.00926224  log_product -19.962276 -> -19.956646  lambda_2 0.00927834  move  0.06d  trust_region_floor (29 it)
+     restart 2: lambda_min 0.00926303 -> 0.00926224  log_product -19.967063 -> -19.956532  lambda_2 0.00928892  move  0.09d  trust_region_floor (529 it)
+     restart 3: lambda_min 0.00926316 -> 0.00926224  log_product -19.978497 -> -19.967030  lambda_2 0.00929214  move  0.10d  trust_region_floor (429 it)
+     restart 4: lambda_min 0.00926313 -> 0.00926224  log_product -20.011479 -> -20.000642  lambda_2 0.00929072  move  0.10d  trust_region_floor (363 it)
+     pairwise max theta separation AFTER polish (deg):
+       0:   0.00   2.90   5.45  10.89
+       2:   2.90   0.00   2.54   7.98
+       3:   5.45   2.54   0.00   5.44
+       4:  10.89   7.98   5.44   0.00
+     winner: restart 2, log_product -19.956532 (x1.0222 vs strict-tie design), lambda_min 0.00926224 (0.0100% below lambda*)
+     winner theta (deg) [ 55.23, 134.11,  14.07,  56.28,  77.72,  28.03, 138.52, 166.29,  16.05]
+   rel_tol=1e-03  threshold=0.00925390  (5/5 restarts tied)
+     restart 0: lambda_min 0.00926277 -> 0.00925390  log_product -19.962276 -> -19.861712  lambda_2 0.00950676  move  0.88d  trust_region_floor (27 it)
+     restart 1: lambda_min 0.00926121 -> 0.00925390  log_product -19.975310 -> -19.901199  lambda_2 0.00945983  move  0.72d  trust_region_floor (39 it)
+     restart 2: lambda_min 0.00926303 -> 0.00925390  log_product -19.967063 -> -19.866339  lambda_2 0.00951238  move  0.90d  trust_region_floor (25 it)
+     restart 3: lambda_min 0.00926316 -> 0.00925390  log_product -19.978497 -> -19.877521  lambda_2 0.00951411  move  0.91d  trust_region_floor (27 it)
+     restart 4: lambda_min 0.00926313 -> 0.00925390  log_product -20.011479 -> -19.910202  lambda_2 0.00951365  move  0.90d  trust_region_floor (27 it)
+     pairwise max theta separation AFTER polish (deg):
+       0:   0.00   9.69   2.87   5.38  10.75
+       1:   9.69   0.00  12.56  15.08  20.44
+       2:   2.87  12.56   0.00   2.51   7.88
+       3:   5.38  15.08   2.51   0.00   5.36
+       4:  10.75  20.44   7.88   5.36   0.00
+     winner: restart 0, log_product -19.861712 (x1.1239 vs strict-tie design), lambda_min 0.00925390 (0.1000% below lambda*)
+     winner theta (deg) [ 55.60, 134.08,  11.09,  56.26,  77.91,  28.97, 138.38, 166.64,  16.84]
