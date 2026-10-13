@@ -73,6 +73,7 @@ point; it's a large set of equally-good designs. Report the optimal
 | Topology-level SDP bound (`sdp_topology_bound.py`) | Sound, but loose mid-tree. | Zero violations (root, 98 random intermediate nodes). Bound does **not** tighten monotonically with B&B depth — stays loose from root through ~10 of 12 decisions, only collapsing near leaves. For m=12, naive B&B likely won't beat brute force; may still help at much larger scale. |
 | Riemannian gradient sampling (`riemannian_gradient_sampling.py`) | Validated, now integrated. | Literature-grounded (Hosseini & Uschmajew's Riemannian generalization of Burke-Lewis-Overton). Crossed the 0/π seam cleanly in tests (178.00° → 3.46° in one step). Matched/beat DE on real subsets. |
 | Split-responsibility integration (`bound_and_evaluate.py`) | **Done, validated at full scale (this session).** | See §3. |
+| Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 vs. real system); opt-in. | Two-panel: big gain on the plateau. Birds-foot: optimum is a double eigenvalue on a ~1-D ridge — strict stage 2 is a no-op, a small λ_min tolerance buys +4–14%. See §6. |
 
 ---
 
@@ -238,15 +239,33 @@ state (or use `python -u`) before concluding a long-running job crashed.
    Raw results: `results/forward_greedy_topology_results.json`,
    `results/forward_greedy_topology_summary.txt`.
 
-4. **(Started this session — see §6)** ~~Investigate the plateau finding
-   as a result, not a curiosity.~~ Stage-2 log_product polish now exists
-   for the Riemannian pipeline (`log_product_polish.py`). Key finding:
-   the two-panel plateau does **not** carry over to the birds-foot
-   champion — its optimum is a **double eigenvalue** sitting on a long,
-   nearly-flat (but not flat) ridge, so a strict lexicographic stage 2 is
-   a no-op there. Still open: whether the gore-scale systems look like
-   two-panel (plateau) or birds-foot (ridge), and what λ_min tolerance
-   to adopt for stage 2 as a design policy.
+4. **(In progress, 2026-10-13 — see §6)** ~~Investigate the plateau
+   finding as a result, not a curiosity.~~ Stage-2 log_product polish now
+   exists for the Riemannian pipeline (`log_product_polish.py`, opt-in
+   via `bound_and_evaluate(..., polish=True)`). Key findings on the
+   birds-foot champion: the two-panel plateau does **not** carry over —
+   the optimum is a **double eigenvalue** at the end of a nearly-flat,
+   essentially **1-D ridge along one coupling's angle** (coupling 2, O-M
+   mid-thickness), along which λ_min and log_product trade off. Strict
+   lexicographic stage 2 is a no-op; a 0.01–0.1% λ_min tolerance buys
+   +4–14% in the product of locked eigenvalues.
+   **Where to pick up** (in suggested order):
+   - (a) **1-D continuation along the ridge**: sweep coupling 2's angle,
+     re-optimize the other 8 at each value (Riemannian, warm-started from
+     the previous point), and plot λ_min vs. log_product along it — maps
+     the whole trade-off curve for this topology directly instead of
+     sampling it with random restarts (§6.4). Strong candidate for a
+     paper figure.
+   - (b) **Decide a stage-2 λ_min tolerance as design policy** (e.g.
+     1e-4 or 1e-3 relative) — the continuation curve from (a) is the
+     natural evidence for choosing it.
+   - (c) **Check whether gore-scale topologies (m=18, m=27) show a
+     plateau (like two-panel) or a low-dimensional ridge (like
+     birds-foot)** — run `polish_tied_restarts` on the §5 results.
+   - Minor, if the polish becomes central: it stops on the trust-region
+     floor rather than a certified KKT point on birds-foot (§6.2 caveat);
+     and `riemannian_multistart`'s shared RNG (item 2) means changing
+     n_restarts changes every restart, not just appends new ones.
 
 5. **(Done this session)** ~~Test forward greedy at larger scale, without
    exhaustive ground truth to check against~~ — done for both a single
@@ -301,6 +320,8 @@ champion, seconds not hours) — the highest-value next step is finishing
 #7's decision (full assembly vs. Bloch reduction), since without it the
 gore-scale numbers in §5 aren't yet known to represent the actual target
 application's λ_min, only a lower or upper bound on it of unknown size.
+For the θ-selection side specifically (smaller, self-contained), item
+4(a) — the ridge continuation — is the natural next piece of work.
 
 ---
 
@@ -495,7 +516,13 @@ trustworthy physical number.
 
 ---
 
-## 6. Stage-2 log_product Polish on the Riemannian Pipeline (this session)
+## 6. Stage-2 log_product Polish on the Riemannian Pipeline (2026-10-13)
+
+**Files**: `log_product_polish.py` (method), `bound_and_evaluate.py`
+(`polish=` flag + `polish_tied_restarts()`), `test_log_product_polish.py`
+(validation — run first if picking this back up),
+`polish_birdsfoot_champion.py` (experiment; `N_RESTARTS` env var,
+default 5 reproduces forward greedy's evaluation exactly).
 
 **Why**: `coupling_optimizer.py`'s DE pipeline had a stage 2 (maximize
 log_product = Σ log(locked eigenvalues) subject to λ_min ≥ λ* − tol) to
