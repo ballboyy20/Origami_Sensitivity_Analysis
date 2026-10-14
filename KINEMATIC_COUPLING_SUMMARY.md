@@ -32,12 +32,14 @@ validated soundly, and reported honestly.
   small λ_min sacrifice is allowed (§7.5).
 - **Physical answer for the assembled flasher: not yet available.** Gore
   tests are algorithm stress tests with one arbitrary boundary
-  condition; full-assembly vs. cyclic-symmetry evaluation is undecided
-  (§8, item 4).
+  condition, and the full-gore result is over-constrained (46 rows for
+  42 DOFs), so it isn't a valid design under the exact-constraint
+  requirement (§8.2).
 
-**Recommended next step**: swap-based local search after greedy,
-validated against the two-panel 6-site exhaustive ground truth (§8,
-item 1).
+**Roadmap** (§8): swap search after greedy → generalize the coupling
+model (flat / V-groove / tetrahedral, any face orientation) →
+branch-and-bound selection under an exact row budget → couplings on
+arms.
 
 ---
 
@@ -55,6 +57,10 @@ under-constrained designs can never beat fully constrained ones. Each
 coupling gives 2 rows, so at least k = target_rank / 2 couplings are
 needed.
 
+**Exact constraint.** Designs must be exactly constrained: total
+rows = target_rank with C at full rank, so no row is redundant
+(decided 2026-10-13, §8.1). Over-constrained designs are out of scope.
+
 **Standard candidate sites.** 3 per crease: 20% and 80% along the crease
 on the top face, and the midpoint on the **bottom face** (z = top − t).
 (Earlier docstrings called the third one "mid-thickness"; that was
@@ -67,7 +73,7 @@ wrong and has been fixed, see §7.6.)
 | Birds-foot | 4 (star around one hub) | 12 | 9 | `interactive_optimizer.build_birdsfoot_system` | exhaustive (220 size-9 subsets) |
 | Birds-foot, 6 sites/spoke | 4 | 24 | 9 | `birdsfoot_six_sites.py` | none (≈1.3M subsets) |
 | Single flasher gore | 6 (two-hub tree) | 18 | 15 | `flasher_gore_system.py` (DXF) | none |
-| Full gore + neighbor panels | 8 | 27 | 21 (23 needed) | `full_flasher_gore_system.py` (DXF) | none |
+| Full gore + neighbor panels | 8 | 27 | 21 (greedy's set needed 23: over-constrained, §8.2) | `full_flasher_gore_system.py` (DXF) | none |
 
 Best known values: two-panel 0.013330; birds-foot 0.009263
 (`[0,1,2,3,5,6,7,8,11]`, spokes O-M:3, O-B:2, O-N:3, O-A:1).
@@ -147,7 +153,8 @@ Which of these the gore-scale systems show is untested.
   sites through the thickness gave nothing at minimum k on two-panel, and
   greedy's worst choices on birds-foot were "stacked pairs" (top and
   bottom contacts at the same point along the crease) (§7.6–§7.7).
-- **More couplings help a lot.** Two-panel, best λ_min by k: 0.0133
+- **More couplings help a lot — but that's out of scope** under the
+  exact-constraint requirement (§8.2). Two-panel, best λ_min by k: 0.0133
   (k=3), 0.0200 (k=4), 0.0240 (k=5), 0.0300 (k=6) (§7.6).
 - **Pure λ_min maximization can pick a fragile design.** On the
   birds-foot ridge, the strict λ_min maximizer had the 2nd-worst
@@ -196,7 +203,7 @@ request):
 - **Stage-2 polish**: SQP / trust-region treatment of a semidefinite
   (eigenvalue) constraint, with Overton's first-order model of a multiple
   eigenvalue.
-- **Periodic structures** (for §8 item 4): cyclic-symmetry / Bloch-wave
+- **Periodic structures** (for §8.5): cyclic-symmetry / Bloch-wave
   reduction (Thomas 1979 and successors).
 
 Each piece of the pipeline has a named, citable precedent.
@@ -352,7 +359,10 @@ units vs. ~80 units between genuinely distinct vertices).
 (3 forced couplings).
 
 - k = 21 and 22 couldn't reach full rank; each retry extended the same
-  set by one greedy step. Settled at **k = 23 of 27**.
+  set by one greedy step. Settled at **k = 23 of 27**. Note: 23
+  V-grooves = 46 rows for target_rank 42, so this design is
+  **over-constrained** and invalid under the exact-constraint
+  requirement adopted later (§8.2).
 - t = 0.005242, achieved λ_min = **0.005185**, gap 1.10%. Spokes P0-P1:3,
   P0-P4:1, P0-P5:3, P1-P6:3, P1-P2:2, P1-P3:2, P2-P7:3, P3-P4:3, P6-P7:3.
 - Greedy 1068.6 s (vs. 46.7 s at m=18), partly from the two extra
@@ -364,7 +374,7 @@ units vs. ~80 units between genuinely distinct vertices).
 **Limitation**: one neighbor gore's panels are one arbitrary boundary
 condition on a rotationally periodic problem. Adding more neighbor
 detail doesn't converge to the assembled λ_min. These are algorithm
-stress tests, not physical answers (§8 item 4).
+stress tests, not physical answers (§8.5).
 
 ### 7.5 Stage-2 log_product polish (2026-10-13)
 
@@ -417,7 +427,7 @@ set. Topology choice is unaffected: log_product is −∞ for partial sets.
 **Interpretation**: on birds-foot, the useful stage 2 is choosing among
 ridge points, not polishing one. Since the ridge is ~1-D and its
 direction is known, a 1-D continuation along it would map the whole
-trade-off more efficiently than random restarts (§8 item 2).
+trade-off more efficiently than random restarts (§8.5).
 
 Results: `results/polish_birdsfoot_champion_{results.json,summary.txt}`
 and `..._r20_{results.json,summary.txt}`.
@@ -511,48 +521,159 @@ root bound).
 
 ---
 
-## 8. Open Questions and Next Steps
+## 8. Roadmap (agreed 2026-10-13)
 
-In suggested order.
+### 8.1 Goals and requirements
 
-1. **Make greedy reliable (highest priority for placement work).**
-   - Add swap-based local search after greedy (Fedorov-exchange style):
-     try replacing each chosen coupling with each unchosen one, keep any
-     swap that raises λ_min or the certified bound. Validate on the
-     two-panel 6-site case (exhaustive ground truth, §7.6), then rerun
-     birds-foot 24 sites (§7.7), where it can reach the old champion.
-   - Better tie-breaking: lookahead for tied candidates, or penalize a
-     site at an along-crease position already used.
-   - Start from the old champion and allow swaps, to answer directly
-     whether mirrored sites can beat 0.009263 (upper limit 0.014676).
-   - Then try sites spread *along* the crease (e.g. 5%/95%, or a denser
-     grid) rather than mirrored through the thickness (§3).
-2. **Map the λ_min vs. log_product trade-off on the birds-foot ridge.**
-   Sweep the O-M bottom-face coupling's angle, re-optimize the other 8 at
-   each value (warm-started), and plot λ_min vs. log_product. Use it to
-   choose a stage-2 λ_min tolerance (e.g. 1e-4 or 1e-3 relative) as
-   design policy. Good paper-figure candidate.
-3. **Check whether the gores show a plateau or a ridge**: run
-   `polish_tied_restarts` on the §7.4 results.
-4. **Get a physical λ_min for the assembled flasher** (needed before gore
-   numbers mean anything physically). Two options, not mutually
-   exclusive:
-   - *Evaluate the full assembly directly* (all N gores): correct by
-     construction, but cost grows with N, and greedy runtime already grew
-     >20× from m=18 to m=27.
-   - *Cyclic-symmetry / Bloch-wave reduction*: solve one gore under a
-     swept inter-sector phase (N conditions); the global λ_min is the
-     minimum over the sweep. Exact and cheap per solve, but needs the
-     constraint-row machinery generalized to complex, phase-shifted
-     couplings.
-5. **Check the cut condition (§3)** as an explanation for the full-gore
-   k-bumps; if it holds, use it to seed or filter greedy.
-6. **Is the certified gap enough evidence at larger scale?** At the
-   gores there is no exhaustive check; swap search (item 1) would add a
-   second line of evidence.
-7. **Optional: tighten the SDP bound** (higher moment-relaxation level,
-   Lasserre-style). A tighter bound for partial sets would directly fix
-   greedy's flat-score problem.
-8. **Housekeeping**: independent child RNG per restart (§6.3); a
-   `requirements.txt`; the polish's trust-region-floor stopping on
-   birds-foot (§7.5) if the polish becomes central.
+Three goals:
+
+- **A. Reliable active-set selection** that works at every scale
+  (two-panel, birds-foot, gore). Preferably a branch-and-bound (B&B) that
+  prunes efficiently.
+- **B. Multiple coupling types**: the optimizer chooses, per site, among
+  a flat (1 constraint row), a V-groove (2 rows) and a tetrahedral
+  socket (3 rows), as in a Kelvin coupling (1 + 2 + 3 = 6).
+- **C. Couplings in other planes, on arms**: still a fixed list of
+  candidate locations, but contacts may sit on rigid arms reaching across
+  to the neighboring panel, with mating faces at any orientation.
+
+Decisions (2026-10-13):
+
+- **Exactly constrained designs only.** Total constraint rows =
+  target_rank and C has full rank (so no redundant rows). This replaces
+  "choose k couplings": with mixed types, the budget is rows, not
+  couplings.
+- **Every site may host every type** (for now).
+- **Arms only ever connect adjacent panels**, so candidate panel pairs
+  are still the crease graph's edges.
+- **Mating faces may be at any orientation**, including parallel to the
+  panel (e.g. an arm landing on the neighbor's top face).
+- **Arm length is a fixed list of candidates for now.** A continuous
+  length variable is a later possibility (see 8.6).
+
+### 8.2 Consequences for existing results
+
+- **The full-gore result (§7.4) is over-constrained.** 8 panels give
+  target_rank 42; the k-bumps settled at 23 V-grooves = 46 rows, i.e. 4
+  redundant rows. It is not a valid design under the exact-constraint
+  requirement. Open question: does any exactly constrained 21-V-groove
+  set reach full rank, or does the full gore need mixed types?
+  (Greedy's particular 21-set failing doesn't settle it.)
+- **"More couplings help" (§3, §7.6, k = 4–6)** is out of scope:
+  those designs are over-constrained.
+- Still valid: two-panel (3 V = 6 rows), birds-foot (9 V = 18 rows),
+  single gore (15 V = 30 rows), and both 6-site experiments (k at the
+  minimum).
+
+### 8.3 Structural facts the plan relies on
+
+- **Row counting under exact constraint.** For any cut of the crease
+  graph splitting the panels into sides with n₁ and n₂ panels, rows
+  inside side 1 can't exceed 6(n₁ − 1) (more would be redundant) and must
+  be at least that (bridge rows can't see side 1's internal motion). So
+  **rows crossing every cut ≥ 6**. This is necessary, not sufficient.
+  The leaf rule (§3) is the special case of a one-panel side.
+- **Bridge creases decouple.** A crease whose removal disconnects the
+  graph gets *exactly* 6 rows, and those rows alone must lock that panel
+  pair. So row allocation splits into independent subproblems per bridge
+  and per loop-containing component. (λ_min itself still couples them,
+  since it's an eigenvalue of the whole K.)
+- **Flats and symmetric tetrahedrals have no angle.** A V-groove's K
+  depends on θ through w(θ)w(θ)ᵀ. A flat contributes ffᵀ; a tetrahedral
+  socket with three evenly spaced normals is isotropic in the face plane.
+  Both are constant (Kc = Ks = 0), so the affine structure (§2.1), the
+  fixed gauge subspace (§2.3), the per-coupling registry and the SDP all
+  carry over unchanged, and the angle stage runs only over V-grooves.
+- **Arms already work kinematically.** `get_interpolation_matrix` uses
+  r = p − centroid, so a contact on a rigid arm is just a point far from
+  the centroid. What's hard-coded is `_compute_groove_normals`, which
+  assumes a vertical mating face and uses +Z as the reference direction
+  (it breaks outright for a face parallel to the panel).
+
+### 8.4 Plan, in order
+
+**Phase 0 — swap search after greedy (quick).**
+- Fedorov-exchange-style local search: try replacing each chosen
+  coupling with each unchosen one; keep any swap that improves λ_min (or
+  the certified bound). For mixed types, a swap must keep the row count
+  exact.
+- Validate on the two-panel 6-site case (exhaustive truth, §7.6), then
+  birds-foot 24 sites (§7.7): it should reach the old champion.
+- Needed regardless: it supplies the starting incumbent that makes B&B
+  prune.
+
+**Phase 1 — generalize the coupling model (goal B + groundwork for C).**
+- A contact = a set of unit normals at a point, built in a local frame
+  (face normal + explicit in-plane reference vector), with a type:
+  flat (1 normal), V-groove (2, rotated by θ), tetrahedral (3, evenly
+  spaced, fixed tilt).
+- Replace the +Z assumption with an explicit reference vector so faces
+  can have any orientation.
+- **Open decision: stiffness per row.** Today every row has unit weight
+  (K = CᵀC), which implicitly says a flat contact is as stiff as a groove
+  wall, and treats arms as perfectly rigid. Use K = CᵀWC with a weight per
+  row (contact stiffness, and later arm compliance in series:
+  w = 1/(1/k_contact + 1/k_arm)). Decide before comparing types or arm
+  geometries, or the optimizer will just reflect the unit-weight
+  assumption.
+- Validation: per-type rows against hand-derived values; the affine
+  structure test (`test_K_theta_structure.py`) extended to mixed types;
+  rank and gauge checks on a Kelvin coupling (should give exactly 6
+  independent rows).
+
+**Phase 2 — reliable selection by branch-and-bound (goal A).**
+- Formulation: one choice per site from {none, flat, V, tet}; exact row
+  budget Σ rows = target_rank. In the SDP relaxation: z_flat + z_V +
+  z_tet ≤ 1 per site, Σ (rows × z) = target_rank.
+- Pruning levers, in expected order of payoff:
+  1. Incumbent from greedy + swap (Phase 0).
+  2. Cheap combinatorial pruning before any SDP solve: the cut
+     condition and bridge decomposition (8.3). Also resolves today's
+     "unresolved node" ambiguity.
+  3. Symmetry breaking (two-panel and birds-foot have mirror
+     symmetries; §7.6 found tied mirror-image optima).
+  4. Depth-first search branching on the most fractional z, to find good
+     incumbents early.
+  5. At leaves, use the certified bound (near-exact for complete sets) as
+     a filter; run Riemannian only where the bound beats the incumbent.
+  6. Only if still too slow: tighter relaxations (valid inequalities;
+     Lasserre-style).
+- Design the bound to accept a *list* of K matrices (objective = min
+  λ_min over them): it costs nothing now and is exactly what the
+  cyclic-symmetry reduction needs later (8.5).
+- Validation ladder, with exhaustive ground truth at each scale:
+  two-panel 6 sites → birds-foot 12 sites (220 subsets known) → full gore
+  (choosing 4 of 27 to drop is only 17,550 subsets, feasible overnight) →
+  the same systems with mixed types.
+
+**Phase 3 — arms and other planes (goal C).**
+- Mostly candidate generation once Phases 1–2 exist: arm candidates are
+  just more sites with their own points and face frames.
+- Needs `draw_hinge_layout` generalized beyond vertical faces.
+- Watch-outs: with rigid arms, rotational stiffness grows roughly with
+  arm length², so the optimizer will always prefer the longest arm
+  unless arm compliance is in the row weights; and `length_scale`
+  (rotation vs. translation weighting) becomes a first-order effect.
+
+### 8.5 Still open from earlier work
+
+- **Physical λ_min for the assembled flasher**: full assembly vs.
+  cyclic-symmetry (Bloch-wave) reduction — solve one gore under a swept
+  inter-sector phase; global λ_min = minimum over the sweep. Phase 2's
+  list-of-K bound prepares for this.
+- **Birds-foot ridge trade-off**: 1-D continuation along the O-M
+  bottom-face coupling's angle, then choose a stage-2 λ_min tolerance as
+  design policy (§7.5).
+- **Gore plateau vs. ridge**: run `polish_tied_restarts` on the gore
+  results (re-run once an exactly constrained full-gore design exists).
+- **Housekeeping**: independent child RNG per restart (§6.3); a
+  `requirements.txt`; the polish's trust-region-floor stopping on
+  birds-foot (§7.5).
+
+### 8.6 Later
+
+- **Continuous arm length / contact position.** Note that K is quadratic
+  in contact position (C is linear in r), so the affine-in-θ structure
+  and the per-coupling SDP registry don't cover it. It would need
+  gradient-based optimization over positions, separate from the current
+  machinery.
