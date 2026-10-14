@@ -6,7 +6,8 @@ geometry (dxf_to_panels.load_gore_geometry's panels/creases), factored out
 of flasher_gore_system.py so full_flasher_gore_system.py doesn't duplicate
 it. Mirrors the recipe interactive_optimizer.py uses for birds-foot:
 3 KinematicCouplings per interior crease (20%/80% along the top face, 1 at
-mid-thickness), non-degenerate spread-out starting angles.
+the midpoint on the bottom face, z = top - thickness), non-degenerate
+spread-out starting angles.
 """
 import numpy as np
 

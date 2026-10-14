@@ -1,0 +1,50 @@
+Two-panel, 6 candidate contact sites (3 original + 3 mirrored through mid-thickness z=-t/2)
+==============================================================================
+  site 0: p1 (y.2 top)    at (1.00, 0.20, +0.00)  start theta 17 deg
+  site 1: p2 (y.8 top)    at (1.00, 0.80, +0.00)  start theta 84 deg
+  site 2: p3 (y.5 bot)    at (1.00, 0.50, -0.10)  start theta 151 deg
+  site 3: p1' (y.2 bot)   at (1.00, 0.20, -0.10)  start theta 51 deg
+  site 4: p2' (y.8 bot)   at (1.00, 0.80, -0.10)  start theta 118 deg
+  site 5: p3' (y.5 top)   at (1.00, 0.50, +0.00)  start theta 129 deg
+
+1. Exhaustive ground truth (42 subsets, k=3..6; 26.6s)
+   k=3: 18/20 full-rank; best lambda_min=0.013330 at [0, 1, 2] {p1, p2, p3}; rank-deficient: [[0, 1, 5], [2, 3, 4]]
+   k=4: 15/15 full-rank; best lambda_min=0.020000 at [0, 2, 3, 5] {p1, p3, p1', p3'}
+   k=5: 6/6 full-rank; best lambda_min=0.023998 at [0, 1, 3, 4, 5] {p1, p2, p1', p2', p3'}
+   k=6: 1/1 full-rank; best lambda_min=0.030000 at [0, 1, 2, 3, 4, 5] {p1, p2, p3, p1', p2', p3'}
+   soundness: max (achieved - certified bound) = 1.14e-09 (PASS)
+
+   All k=3 subsets, ranked:
+     [0, 1, 2]    {p1, p2, p3}           lambda_min=0.013330  bound=0.013330  <- original design
+     [3, 4, 5]    {p1', p2', p3'}        lambda_min=0.013330  bound=0.013330
+     [1, 3, 4]    {p2, p1', p2'}         lambda_min=0.009923  bound=0.009923
+     [0, 1, 3]    {p1, p2, p1'}          lambda_min=0.009923  bound=0.009923
+     [0, 1, 4]    {p1, p2, p2'}          lambda_min=0.009923  bound=0.009923
+     [0, 3, 4]    {p1, p1', p2'}         lambda_min=0.009923  bound=0.009923
+     [0, 2, 5]    {p1, p3, p3'}          lambda_min=0.009707  bound=0.009707
+     [2, 3, 5]    {p3, p1', p3'}         lambda_min=0.009707  bound=0.009707
+     [2, 4, 5]    {p3, p2', p3'}         lambda_min=0.009707  bound=0.009707
+     [1, 2, 5]    {p2, p3, p3'}          lambda_min=0.009707  bound=0.009707
+     [0, 2, 3]    {p1, p3, p1'}          lambda_min=0.009680  bound=0.009680
+     [1, 4, 5]    {p2, p2', p3'}         lambda_min=0.009680  bound=0.009680
+     [0, 3, 5]    {p1, p1', p3'}         lambda_min=0.009680  bound=0.009680
+     [1, 2, 4]    {p2, p3, p2'}          lambda_min=0.009680  bound=0.009680
+     [1, 2, 3]    {p2, p3, p1'}          lambda_min=0.003242  bound=0.003242
+     [0, 2, 4]    {p1, p3, p2'}          lambda_min=0.003242  bound=0.003242
+     [0, 4, 5]    {p1, p2', p3'}         lambda_min=0.003242  bound=0.003242
+     [1, 3, 5]    {p2, p1', p3'}         lambda_min=0.003242  bound=0.003242
+     [0, 1, 5]    {p1, p2, p3'}          rank-deficient (no full-rank theta found)
+     [2, 3, 4]    {p3, p1', p2'}         rank-deficient (no full-rank theta found)
+
+   Best k=3: [0, 1, 2] {p1, p2, p3} lambda_min=0.013330  vs. original [0, 1, 2]: 0.013330  (x1.000)
+   k=3 subsets within 1e-4 (relative) of the best: 2
+
+2. Forward greedy, k=3 (0.3s, 0 unresolved events)
+   chose [1, 2, 5] {p2, p3, p3'}: lambda_min=0.009707 = 72.8% of exhaustive best
+   step 1: chose site 2 (bound 0.015000); scores 2:0.01500, 5:0.01500, 3:0.01500, 1:0.01500, 0:0.01500, 4:0.01500
+   step 2: chose site 5 (bound 0.015000); scores 5:0.01500, 1:0.01500, 0:0.01500, 4:0.01333, 3:0.01333
+   step 3: chose site 1 (bound 0.009707); scores 1:0.00971, 4:0.00971, 0:0.00971, 3:0.00971
+
+3. Stage-2 log_product polish (rel_tol 1e-7)
+   best k=3  [0, 1, 2]    lambda_min 0.013330  log_product -4.0973 -> -1.9899  theta(deg) [99.2, 80.8, 180.0]  locked eigs [0.0133, 0.3600, 0.3700, 2.6333, 4.8717, 6.0017]
+   original  [0, 1, 2]    lambda_min 0.013330  log_product -4.0973 -> -1.9899  theta(deg) [99.2, 80.8, 180.0]  locked eigs [0.0133, 0.3600, 0.3700, 2.6333, 4.8717, 6.0017]

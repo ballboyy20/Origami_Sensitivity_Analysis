@@ -142,7 +142,7 @@ def _spoke_face_normal(far_point, panel_A, panel_B):
 def _spoke_contact_points(far_point):
     """3 contact points along the O->far_point spoke, mirroring the
     two-panel recipe: 20%/80% along the top face, plus the midpoint
-    through the panel thickness."""
+    on the bottom face (z = -t)."""
     return [
         _bfO + 0.2 * (far_point - _bfO),
         _bfO + 0.8 * (far_point - _bfO),

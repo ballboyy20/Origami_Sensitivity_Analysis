@@ -508,7 +508,7 @@ def _test_two_panel_sanity():
 
     thetas_deg = np.degrees(result['thetas']) % 180.0
     # Coupling construction order is CONTACT_POINTS = (p1, p2, p3) =
-    # (y=0.2, y=0.8, y=0.5-through-thickness) -- NOT sorted by the
+    # (y=0.2 top, y=0.8 top, y=0.5 bottom face) -- NOT sorted by the
     # "x=0.2, 0.5, 0.8" phrasing used to describe the bisector angles, so
     # the expected values are reordered to match index order 0, 1, 2.
     expected_deg = np.array([99.22, 80.78, 180.00]) % 180.0

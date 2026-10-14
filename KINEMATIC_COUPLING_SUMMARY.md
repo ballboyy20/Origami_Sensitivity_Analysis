@@ -74,6 +74,7 @@ point; it's a large set of equally-good designs. Report the optimal
 | Riemannian gradient sampling (`riemannian_gradient_sampling.py`) | Validated, now integrated. | Literature-grounded (Hosseini & Uschmajew's Riemannian generalization of Burke-Lewis-Overton). Crossed the 0/π seam cleanly in tests (178.00° → 3.46° in one step). Matched/beat DE on real subsets. |
 | Split-responsibility integration (`bound_and_evaluate.py`) | **Done, validated at full scale (this session).** | See §3. |
 | Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 vs. real system); opt-in. | Two-panel: big gain on the plateau. Birds-foot: optimum is a double eigenvalue on a ~1-D ridge — strict stage 2 is a no-op, a small λ_min tolerance buys +4–14%. See §6. |
+| Contact-location choice, two-panel, 6 sites (`two_panel_six_sites.py`) | Exhaustive ground truth done. | Mirrored-through-thickness sites don't help at k=3 (original design still optimal); they help at k≥4 (×1.5 at k=4). **First forward-greedy miss** (72.8%): partial-node bound flat across all candidates. See §7. |
 
 ---
 
@@ -246,7 +247,7 @@ state (or use `python -u`) before concluding a long-running job crashed.
    birds-foot champion: the two-panel plateau does **not** carry over —
    the optimum is a **double eigenvalue** at the end of a nearly-flat,
    essentially **1-D ridge along one coupling's angle** (coupling 2, O-M
-   mid-thickness), along which λ_min and log_product trade off. Strict
+   bottom-face midpoint), along which λ_min and log_product trade off. Strict
    lexicographic stage 2 is a no-op; a 0.01–0.1% λ_min tolerance buys
    +4–14% in the product of locked eigenvalues.
    **Where to pick up** (in suggested order):
@@ -353,7 +354,7 @@ polygons, no crease/boundary distinction). New reusable module:
 - **`flasher_gore_system.py`** — builds the `CouplingSystem` from that
   extracted geometry the same way `build_birdsfoot_system` does: 3
   KinematicCouplings per interior crease (20%/80% along the top face, 1
-  at mid-thickness), giving **m=18** candidates (6 creases x 3) vs.
+  at the midpoint on the bottom face), giving **m=18** candidates (6 creases x 3) vs.
   birds-foot's m=12. Panel connectivity is a two-hub tree (panels 0 and 1
   each border 3 other panels), structurally different from birds-foot's
   single-hub star.
@@ -618,9 +619,9 @@ at 5 restarts — same optimum; restarts differ from the 5-run because
 
 - **The ridge is essentially one-dimensional.** Across 20 restarts, the
   θ spread (max−min) per coupling is ≤3° for 8 of 9 couplings (most
-  <1°) but **19° for coupling 2** — the O-M spoke's mid-thickness
-  contact. The near-optimal set is, to first approximation, "everything
-  else fixed, slide the O-M mid-thickness groove angle."
+  <1°) but **19° for coupling 2** — the O-M spoke's bottom-face
+  midpoint contact. The near-optimal set is, to first approximation, "everything
+  else fixed, slide the O-M bottom-face groove angle."
 - **λ_min and log_product trade off along it.** Coupling 2's angle
   correlates +0.86 with λ_min and −0.64 with log_product. The strict
   λ_min-maximizing restart has the 2nd-*worst* log_product of all 20 —
@@ -643,3 +644,94 @@ along the ridge and re-optimize the other 8 at each value (a 1-D
 continuation), which would map the full λ_min-vs-log_product trade-off
 curve for this topology. Whether gore-scale topologies also show a
 low-dimensional ridge is untested.
+
+---
+
+## 7. Contact-Location Choice: Two Panels, 6 Candidate Sites (2026-10-13)
+
+**Question**: does giving the optimizer more candidate contact
+*locations* per crease (not just angles) improve λ_min? First test on the
+two-panel system, where m is small enough for exhaustive ground truth.
+
+**Files**: `two_panel_six_sites.py` (experiment + figure). Results:
+`results/two_panel_six_sites_{results.json,summary.txt,3d_before_after.png}`.
+
+### 7.1 Setup
+
+The existing 3 sites plus each mirrored through the panels'
+mid-thickness plane z = −t/2 (panels span z ∈ [−t, 0], t = 0.1):
+
+| site | point | | site | mirror |
+|---|---|---|---|---|
+| 0 | p1 (y=.2, top) | | 3 | p1′ (y=.2, bottom) |
+| 1 | p2 (y=.8, top) | | 4 | p2′ (y=.8, bottom) |
+| 2 | p3 (y=.5, bottom) | | 5 | p3′ (y=.5, top) |
+
+**Correction found while setting this up**: the third contact of the
+standard 3-per-crease recipe (two-panel p3, and every birds-foot/gore
+crease) sits on the **bottom face** (z = top − t), not at mid-thickness
+as several docstrings and earlier sections of this doc said. Fixed in
+`interactive_optimizer.py`, `gore_system_common.py`,
+`sdp_theta_optimizer.py`, and §5/§6 here. No numbers change; only the
+description was wrong. Consequence for this test: p3's mirror is a new
+top-face point, not a duplicate.
+
+The original design [0,1,2] is one of the candidate subsets, so the
+comparison is direct.
+
+### 7.2 Results (exhaustive: all 42 subsets, k = 3..6, ~28 s)
+
+- **k=3: the original design is still optimal.** {p1,p2,p3} and its
+  mirror image {p1′,p2′,p3′} tie at λ_min = 0.013330. Every mixed
+  top/bottom set is worse: next tier 0.00992 (−26%), worst feasible
+  0.00324. Mirroring through a thin plate adds little leverage (0.1 of
+  thickness vs. 0.6 of edge length).
+- **Collinear triples are rank-deficient, as predicted**: {p1,p2,p3′}
+  (top edge) and {p3,p1′,p2′} (bottom edge). Three contacts on one line
+  leave rotation about it free. A useful built-in sanity check.
+- **More couplings do help**: best λ_min by k is 0.0133 (k=3), 0.0200
+  (k=4, ×1.50, sites {p1,p3,p1′,p3′}), 0.0240 (k=5), 0.0300 (k=6, ×2.25).
+  Extra locations pay off only if the coupling count is allowed to grow.
+- **Soundness**: max (achieved − certified bound) = 1.1e-9 across all 40
+  feasible subsets. The bound is essentially exact at every complete
+  subset here.
+- **Stage-2 polish** on the chosen design behaves as in §6.2's two-panel
+  case: log_product −4.10 → −1.99 at unchanged λ_min.
+
+### 7.3 First forward-greedy failure
+
+Forward greedy at k=3 picked {p3, p3′, p2}: λ_min 0.009707, **72.8% of
+the exhaustive optimum**. This is its first miss (birds-foot: exact
+champion; gores: no ground truth).
+
+Cause: at steps 1 and 2 the partial-node SDP bound scored *every*
+candidate at exactly 0.0150 (all six at step 1; three of five at step 2),
+so the choice came down to tie order. It committed early to p3 and p3′,
+which stack at the same y. The bound is exact at complete subsets but
+flat across partial ones: the same "loose mid-tree" behavior recorded
+in §1's table, which didn't hurt on birds-foot but did here.
+
+Possible fixes, not yet tried: break bound ties with a lookahead (score
+by the best two-step completion), or by the SDP's relaxed z / spread of
+chosen sites; or follow greedy with swap-based local search (already
+listed as an open idea in §4 item 5).
+
+### 7.4 Figure
+
+`results/two_panel_six_sites_3d_before_after.png`: left, all 6 sites
+active at their start angles (λ_min 0.0300, already the k=6 optimum);
+right, the chosen k=3 design at polished angles with the 3 unused sites
+marked removed, weakest locked mode overlaid on both. Since the chosen
+design is the original one, the "after" panel is the original two-panel
+optimum.
+
+### 7.5 Where to pick up
+
+1. **Spread sites along the edge, not through the thickness** (e.g. add
+   y = 0.05 / 0.95, or a denser grid along y), since edge length is where
+   the leverage is.
+2. **Fix greedy's tie-breaking** (7.3) and recheck on this case, where
+   ground truth is available.
+3. Then repeat on birds-foot with 6 sites per crease (m = 24, k = 9:
+   C(24,9) ≈ 1.3M subsets, so no exhaustive ground truth; greedy plus the
+   certified bound would be the only evidence).
