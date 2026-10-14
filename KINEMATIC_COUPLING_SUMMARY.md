@@ -75,6 +75,7 @@ point; it's a large set of equally-good designs. Report the optimal
 | Split-responsibility integration (`bound_and_evaluate.py`) | **Done, validated at full scale (this session).** | See §3. |
 | Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 vs. real system); opt-in. | Two-panel: big gain on the plateau. Birds-foot: optimum is a double eigenvalue on a ~1-D ridge — strict stage 2 is a no-op, a small λ_min tolerance buys +4–14%. See §6. |
 | Contact-location choice, two-panel, 6 sites (`two_panel_six_sites.py`) | Exhaustive ground truth done. | Mirrored-through-thickness sites don't help at k=3 (original design still optimal); they help at k≥4 (×1.5 at k=4). **First forward-greedy miss** (72.8%): partial-node bound flat across all candidates. See §7. |
+| Contact-location choice, birds-foot, 6 sites/spoke (`birdsfoot_six_sites.py`) | Done (greedy only; no exhaustive). | **Forward greedy got worse with more options**: 0.005106 = 55% of the old 3-site champion, which is itself one of the 24-site subsets. Certified: the greedy set's own bound (0.008397) is below the old champion. Same flat-bound/tie failure as two-panel. See §8. |
 
 ---
 
@@ -237,6 +238,13 @@ state (or use `python -u`) before concluding a long-running job crashed.
    patterns. The natural next check is whether forward greedy still
    tracks close to optimal as m grows, where exhaustive ground truth
    won't be available to confirm against directly.
+   **Update (§7, §8): it does not generalize reliably.** With 6 candidate
+   sites per crease, forward greedy missed on two-panel (72.8% of the
+   exhaustive optimum) and on birds-foot (55% of the old champion, which
+   was available to it). Cause in both: the partial-node bound is flat
+   across many candidates, so early choices come down to tie order.
+   Greedy needs a correction step (swap search or tie-breaking) before
+   it can be trusted as the topology method.
    Raw results: `results/forward_greedy_topology_results.json`,
    `results/forward_greedy_topology_summary.txt`.
 
@@ -315,9 +323,13 @@ state (or use `python -u`) before concluding a long-running job crashed.
    runtime growth, which is itself evidence for taking the full-assembly
    option's cost seriously before committing to it over Bloch reduction.
 
-**Recommendation if picking one**: forward bound-guided greedy just
-produced the strongest practical result of this whole project (exact
-champion, seconds not hours) — the highest-value next step is finishing
+**Recommendation if picking one**: forward bound-guided greedy produced
+the strongest practical result of this project on birds-foot with 3 sites
+per crease (exact champion, seconds not hours), but §7–§8 show it fails
+when candidates are near-duplicates. Before relying on it for anything
+larger, add a swap-based local search after greedy (§8.6 item 1; cheap,
+and testable against §7's exhaustive ground truth). Beyond that, the
+highest-value next step is finishing
 #7's decision (full assembly vs. Bloch reduction), since without it the
 gore-scale numbers in §5 aren't yet known to represent the actual target
 application's λ_min, only a lower or upper bound on it of unknown size.
@@ -732,6 +744,116 @@ optimum.
    the leverage is.
 2. **Fix greedy's tie-breaking** (7.3) and recheck on this case, where
    ground truth is available.
-3. Then repeat on birds-foot with 6 sites per crease (m = 24, k = 9:
-   C(24,9) ≈ 1.3M subsets, so no exhaustive ground truth; greedy plus the
-   certified bound would be the only evidence).
+3. ~~Then repeat on birds-foot with 6 sites per crease~~ — done, see §8.
+   Greedy failed there too.
+
+---
+
+## 8. Contact-Location Choice: Birds-Foot, 6 Sites per Spoke (2026-10-13)
+
+**Question**: with more candidate locations to choose from, does forward
+greedy match or beat its 3-site birds-foot result (the exact exhaustive
+champion, λ_min 0.009263)?
+
+**Files**: `birdsfoot_six_sites.py` (experiment + 3 figures). Results:
+`results/birdsfoot_six_sites_{results.json,summary.txt,3d_before_after.png,hinges.png,convergence.png}`.
+
+### 8.1 Setup
+
+- Same site construction as §7, applied to every spoke: the original 3
+  (20% top, 80% top, 50% bottom) plus each mirrored through z = −t/2.
+  m = 24 candidates, k = 9 (target_rank 18). Index 6s + j: j = 0–2
+  original, j = 3–5 mirror of j − 3.
+- Start angles: originals keep `BIRDSFOOT_START_THETAS_DEG`; mirrors get
+  +47° (mod 180) so none starts parallel to its original.
+- The old champion [0,1,2,3,5,6,7,8,11] maps to [0,1,2,6,8,12,13,14,20],
+  so it is one of the candidate subsets: the 24-site optimum is ≥ 0.009263.
+- No exhaustive ground truth (C(24,9) ≈ 1.3M subsets). Evidence used
+  instead: the root certified bound (any 9-of-24 design), each set's own
+  certified bound, and per-step tie counts.
+- Both designs evaluated with the same pipeline: certified bound +
+  5-restart Riemannian + strict stage-2 polish. Seed 17, as in
+  `forward_greedy_topology.py`.
+
+### 8.2 Results
+
+| design | λ_min | own bound t | gap | log_product |
+|---|---|---|---|---|
+| old 3-site champion (re-evaluated in the 24-site system) | 0.009263 | 0.009271 | 0.08% | −19.98 |
+| new forward greedy over 24 sites | **0.005106** | 0.008397 | 64% | −22.19 |
+
+- **Greedy got worse: 55% of the old champion.** This is certified, not
+  an optimizer artifact: the greedy set's own upper bound (0.008397) is
+  below what the old champion actually achieves, so no choice of angles
+  could rescue that set. (The 64% gap means the bound is loose for that
+  set, but that doesn't affect this conclusion.)
+- **The old champion reproduces exactly** in the 24-site system
+  (0.009263, gap 0.08%), so the extra candidates didn't change anything
+  for that subset — greedy just didn't find it.
+- **Root bound for any 9-of-24 design: 0.014676.** The true 24-site
+  optimum lies between 0.009263 and 0.014676. Whether mirrored sites can
+  beat the old champion at all is still **unknown**.
+- Greedy took 19 s, needed no k-bump (the k=9 set reached full rank),
+  and used 3 mirrored sites out of 9. Spokes O-M:3, O-B:1, O-N:3, O-A:2.
+- One SDP solve warned "solution may be inaccurate". The ~10% margin
+  between 0.0084 and 0.0093 makes it very unlikely to matter.
+
+### 8.3 Why greedy failed (same mechanism as §7.3)
+
+Candidates tied for the best bound score (within 1e-6), and the bound
+chosen, at each step:
+
+| step | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| tied | 12/24 | 7/23 | 4/22 | 1/21 | 4/20 | 1/19 | 2/18 | 1/17 | 1/16 |
+| bound | 0.014676 | 0.014676 | 0.014676 | 0.014676 | 0.014476 | 0.014196 | 0.013704 | 0.012887 | 0.008397 |
+
+The bound stays at the root value for 4 steps, so the first choices come
+down to tie order. Greedy committed early to **stacked pairs**: the 50%
+bottom site and its mirrored 50% top site on both O-M (sites 2, 5) and
+O-N (14, 17), i.e. two couplings at the same point along the spoke. The
+bound only reflects the cost at the last step (0.0129 → 0.0084). The
+hinge figure's bottom row shows the new design clustered at 20–50% along
+O-M and O-N, versus the old champion's spread to 20%/80%.
+
+### 8.4 What we learned
+
+1. **Forward greedy is only as good as its bound is informative.** It
+   worked on 3-site birds-foot because the bound happened to separate
+   candidates; adding near-duplicate sites flattens it and greedy
+   degrades. More options made the *search* worse even though they
+   can't make the *optimum* worse.
+2. **Stacking two contacts at the same along-edge position wastes a
+   coupling** (seen on both two-panel and birds-foot). Thickness gives
+   little leverage compared with spread along the edge.
+3. The partial-node SDP bound's looseness mid-tree (§1 table) is now a
+   demonstrated practical problem for greedy, not just a B&B-efficiency
+   concern.
+
+### 8.5 Figures
+
+- `birdsfoot_six_sites_3d_before_after.png` — three panels: all 24
+  candidates at start angles (λ_min 0.02995) / old 3-site champion /
+  new greedy result, weakest locked mode overlaid on each.
+- `birdsfoot_six_sites_hinges.png` — one hinge layout per spoke, old
+  champion (top row) vs. new greedy (bottom row): active grooves with θ,
+  unused sites as ×.
+- `birdsfoot_six_sites_convergence.png` — bound chosen per greedy step,
+  with lines for the new achieved value, the old champion, and the root
+  bound.
+
+### 8.6 Where to pick up
+
+1. **Swap-based local search after greedy** (Fedorov-exchange style; also
+   §4 item 5(b)): repeatedly try replacing one chosen coupling with one
+   unchosen one and keep any swap that raises λ_min (or the certified
+   bound). Cheap. Validate it first on §7's two-panel case, where
+   exhaustive ground truth exists, then rerun here — it can reach the old
+   champion from the greedy set.
+2. **Better tie-breaking in greedy**: lookahead for tied candidates, or
+   penalize picking a site at an along-edge position already used.
+3. **Start from the old champion and allow swaps** to answer the open
+   question directly: can mirrored sites beat 0.009263? (Upper limit
+   0.014676.)
+4. Then try sites spread along the edge (§7.5 item 1) rather than
+   mirrored through the thickness.
