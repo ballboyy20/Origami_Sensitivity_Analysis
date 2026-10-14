@@ -1,676 +1,433 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. This document is unrelated to
-`README.md` (which describes a different, earlier sensitivity-analysis
-framework in this repo — `SensitivityModel`, `HingeElement`, etc.). This
-document tracks the coupling-*placement*-and-*orientation* optimization
-work: `RigidBodyModel.py`, `coupling_optimizer.py`, and everything built
-on top of them.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-10-13.
 
-**Goal**: optimize the placement (which of *m* candidate kinematic-coupling
-sites are active) and orientation (groove angle θ per active coupling) of
-the *minimal* set of couplings joining panels in an origami array, to
-maximize λ_min(K), K = CᵀC — in a way that survives peer review: built on
-established optimization methods, validated soundly, honestly reported.
+This document tracks the coupling *placement* and *orientation*
+optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
+everything built on them). It is unrelated to `README.md`, which
+describes an earlier sensitivity-analysis framework on another branch
+(`SensitivityModel`, `HingeElement`, etc.).
 
-Last updated: 2026-10-13.
+**Goal**: choose which of *m* candidate kinematic-coupling sites are
+active, and the groove angle θ of each active coupling, for the
+*minimal* set of couplings joining the panels of an origami array, to
+maximize λ_min(K), K = CᵀC — using established optimization methods,
+validated soundly, and reported honestly.
 
 ---
 
-## 1. What We've Learned About the Problem
+## Status at a Glance
 
-### The mathematical structure is unusually clean
+- **Angle optimization for a fixed set of couplings: solved.**
+  Riemannian gradient sampling (best of 5 restarts) gives the achieved
+  λ_min; the SDP relaxation gives a certified upper bound. Validated on
+  all 220 birds-foot size-9 subsets with zero soundness violations
+  (§7.1).
+- **Choosing *which* couplings: partly solved.** Forward bound-guided
+  greedy found the exact birds-foot champion, but fails when candidate
+  sites are near-duplicates (55–73% of optimum, §7.6–§7.7). It needs a
+  correction step (swap search) before it can be trusted.
+- **Choosing among equally good angles: tool built, policy open.**
+  Stage-2 log_product polish works, but on birds-foot it only helps if a
+  small λ_min sacrifice is allowed (§7.5).
+- **Physical answer for the assembled flasher: not yet available.** Gore
+  tests are algorithm stress tests with one arbitrary boundary
+  condition; full-assembly vs. cyclic-symmetry evaluation is undecided
+  (§8, item 4).
 
-For a fixed active-coupling set, exactly (validated to ~1e-15):
+**Recommended next step**: swap-based local search after greedy,
+validated against the two-panel 6-site exhaustive ground truth (§8,
+item 1).
+
+---
+
+## 1. Problem and Test Systems
+
+**Model.** Each panel is rigid (6 DOFs). Each `KinematicCoupling` is a
+sphere in a 90° V-groove on the shared mating face; it contributes 2
+constraint rows (one per groove wall, normals n1, n2) to C. The groove's
+sliding axis lies in the mating face, rotated by θ. K = CᵀC.
+
+**Objective.** λ_min is the smallest *locked* eigenvalue of K: the
+(d − rank C)-th eigenvalue, skipping the 6 whole-assembly rigid-body
+modes. Any set below the target rank (`total_dofs − 6`) scores 0, so
+under-constrained designs can never beat fully constrained ones. Each
+coupling gives 2 rows, so at least k = target_rank / 2 couplings are
+needed.
+
+**Standard candidate sites.** 3 per crease: 20% and 80% along the crease
+on the top face, and the midpoint on the **bottom face** (z = top − t).
+(Earlier docstrings called the third one "mid-thickness"; that was
+wrong and has been fixed, see §7.6.)
+
+| System | Panels | Candidates m | Minimum k | Source | Ground truth |
+|---|---|---|---|---|---|
+| Two-panel | 2 | 3 | 3 | `interactive_optimizer.build_system` | trivial |
+| Two-panel, 6 sites | 2 | 6 | 3 | `two_panel_six_sites.py` | exhaustive (42 subsets) |
+| Birds-foot | 4 (star around one hub) | 12 | 9 | `interactive_optimizer.build_birdsfoot_system` | exhaustive (220 size-9 subsets) |
+| Birds-foot, 6 sites/spoke | 4 | 24 | 9 | `birdsfoot_six_sites.py` | none (≈1.3M subsets) |
+| Single flasher gore | 6 (two-hub tree) | 18 | 15 | `flasher_gore_system.py` (DXF) | none |
+| Full gore + neighbor panels | 8 | 27 | 21 (23 needed) | `full_flasher_gore_system.py` (DXF) | none |
+
+Best known values: two-panel 0.013330; birds-foot 0.009263
+(`[0,1,2,3,5,6,7,8,11]`, spokes O-M:3, O-B:2, O-N:3, O-A:1).
+
+---
+
+## 2. What We Know About the Math
+
+### 2.1 K(θ) is exactly affine in (cos 2θᵢ, sin 2θᵢ), with no cross terms
+
+For a fixed active set, exactly (validated to ~1e-15):
 
 ```
 K(theta) = K0 + sum_i [ cos(2*theta_i)*Kc_i + sin(2*theta_i)*Ks_i ]
 ```
 
-with **no cross terms** between couplings, and each coupling's own
-contribution separately affine and additive (isolated per-coupling
-calibration matches joint calibration to the same precision). This is
-provable from the constraint-row physics (K = CᵀC is a Gram matrix over
-row-blocks that are physically independent per coupling), not a
-curve-fit — it's the foundation everything below relies on.
+Each coupling's contribution is separately affine and additive:
+calibrating one coupling in isolation gives the same Kc_i, Ks_i as a
+joint calibration. This follows from the physics (K is a Gram matrix
+over row blocks that belong to one coupling each), not a curve fit.
+Everything below relies on it: exact gradients, the per-coupling SDP
+registry, and the reduced model used by the polish.
 
-Two structural facts followed from taking this seriously:
+### 2.2 θ lives on a circle of period π
 
-- **θ lives on a circle of period π, not an interval.** `u(θ+π) = -u(θ)`,
-  the groove faces swap, K is exactly unchanged. This is the literal
-  cause of the boundary-pinning failure documented in `optimize_theta`'s
-  own docstring (DE/Nelder-Mead getting stuck near 0°/180°) — a category
-  error (box-constrained optimizer on a manifold-valued variable), not a
-  tuning problem.
-- **The "locked eigenvalue" gauge null space is topology-independent.**
-  The 6-dimensional rigid-body null space of K is the *same fixed
-  subspace* for any coupling subset that reaches full rank, since it
-  comes from whole-assembly rigid motion, not from which couplings are
-  active. This is what makes the SDP bound's gauge projection valid
-  across every node of a branch-and-bound tree without recomputation.
+u(θ + π) = −u(θ), the groove walls swap, and K is exactly unchanged.
+Treating θ as a box-bounded interval is what caused DE/Nelder-Mead to
+pin solutions near 0°/180° (documented in `optimize_theta`'s
+docstring): a modeling error, not a tuning problem. The fixes are the
+periodic embedding in `coupling_optimizer.py` and the mod-π retraction
+in the Riemannian code.
 
-### λ_min is nonsmooth exactly where it matters
+### 2.3 The rigid-body null space is the same for every full-rank design
 
-Optimal designs generically sit at eigenvalue multiplicities (established
-theory: Cox & Overton proved the analogous strongest-column problem has a
-provably double least eigenvalue at its optimum). This is why DE/Nelder-Mead
-struggle here — documented, well-understood behavior in the broader
-eigenvalue-optimization literature, not specific to kinematic couplings.
+The 6-dim gauge null space of K comes from whole-assembly rigid motion,
+so it is the same fixed subspace for any coupling subset and any θ that
+reaches full rank. One projection basis P is therefore valid across a
+whole branch-and-bound tree, and PᵀK(θ)P has exactly the locked
+eigenvalues as its spectrum everywhere.
 
-**Most surprising finding of the whole exploration**: the two-panel
-system's λ_min landscape has a *wide plateau of global maximizers* —
-roughly two-thirds of randomly sampled θ triples already sit at the exact
-same maximal λ_min with a numerically-zero gradient, cross-checked
-directly against the real system. "The optimal design" is not a unique
-point; it's a large set of equally-good designs. Report the optimal
-*value*, not a single θ point, as the primary finding.
+### 2.4 λ_min is nonsmooth exactly where optima sit
 
-### What each optimization approach taught us
+Optimal designs generically sit at eigenvalue multiplicities (Cox &
+Overton proved the analogous strongest-column problem has a double least
+eigenvalue at its optimum). This is why DE/Nelder-Mead struggle and why
+gradient sampling is the right tool.
 
-| Piece | Status | Key finding |
+### 2.5 The set of optimal angles can be a plateau or a ridge
+
+- **Two-panel: a wide plateau.** About two-thirds of random θ triples sit
+  at the same maximal λ_min with numerically zero gradient. "The optimal
+  design" is a large set; report the optimal *value*.
+- **Birds-foot champion: a double eigenvalue on a ~1-D ridge** (§7.5).
+  The two smallest locked eigenvalues coincide (relative gap 4.9e-6), and
+  the near-optimal set is essentially one coupling's angle sliding
+  (O-M bottom-face midpoint, 19° of spread vs. ≤3° for the others).
+  λ_min and log_product trade off along it.
+
+Which of these the gore-scale systems show is untested.
+
+---
+
+## 3. What We Know About Good Designs
+
+- **Leaf panels force couplings.** A panel attached by only one crease
+  needs all 3 of that crease's couplings (exactly 6 rows for 6 relative
+  DOFs). Detected automatically by
+  `gore_system_common.mandatory_leaf_couplings()` (§7.4).
+- **The structural minimum k isn't always enough.** On the full gore,
+  k = 21 and 22 could not reach full rank at any θ; 23 was needed
+  (§7.4). The leaf rule is a special case of a cut condition (couplings
+  crossing any cut must supply ≥ 6 independent rows), which may explain
+  this but hasn't been checked.
+- **Three collinear contacts can't constrain rotation about their line.**
+  Such subsets are rank-deficient at every θ (§7.6).
+- **Spread along the crease beats depth through the panel.** Mirroring
+  sites through the thickness gave nothing at minimum k on two-panel, and
+  greedy's worst choices on birds-foot were "stacked pairs" (top and
+  bottom contacts at the same point along the crease) (§7.6–§7.7).
+- **More couplings help a lot.** Two-panel, best λ_min by k: 0.0133
+  (k=3), 0.0200 (k=4), 0.0240 (k=5), 0.0300 (k=6) (§7.6).
+- **Pure λ_min maximization can pick a fragile design.** On the
+  birds-foot ridge, the strict λ_min maximizer had the 2nd-worst
+  log_product of 20 restarts; giving up 0.1% of λ_min buys +14% in the
+  product of locked eigenvalues (§7.5).
+
+---
+
+## 4. What We Know About the Methods
+
+| Method | Status | Key finding |
 |---|---|---|
-| Per-topology SDP relaxation (`sdp_theta_optimizer.py`) | Bound: sound. Decode: unreliable. | Zero violations across 220 subsets, but decoding the relaxed solution is fundamentally unreliable for many topologies — the relaxed optimum often sits *inside* the unit disk (no real θ behind it), confirmed via two different secondary tie-break objectives converging to the same poor decode. |
-| Topology-level SDP bound (`sdp_topology_bound.py`) | Sound, but loose mid-tree. | Zero violations (root, 98 random intermediate nodes). Bound does **not** tighten monotonically with B&B depth — stays loose from root through ~10 of 12 decisions, only collapsing near leaves. For m=12, naive B&B likely won't beat brute force; may still help at much larger scale. |
-| Riemannian gradient sampling (`riemannian_gradient_sampling.py`) | Validated, now integrated. | Literature-grounded (Hosseini & Uschmajew's Riemannian generalization of Burke-Lewis-Overton). Crossed the 0/π seam cleanly in tests (178.00° → 3.46° in one step). Matched/beat DE on real subsets. |
-| Split-responsibility integration (`bound_and_evaluate.py`) | **Done, validated at full scale (this session).** | See §3. |
-| Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 vs. real system); opt-in. | Two-panel: big gain on the plateau. Birds-foot: optimum is a double eigenvalue on a ~1-D ridge — strict stage 2 is a no-op, a small λ_min tolerance buys +4–14%. See §6. |
-| Contact-location choice, two-panel, 6 sites (`two_panel_six_sites.py`) | Exhaustive ground truth done. | Mirrored-through-thickness sites don't help at k=3 (original design still optimal); they help at k≥4 (×1.5 at k=4). **First forward-greedy miss** (72.8%): partial-node bound flat across all candidates. See §7. |
-| Contact-location choice, birds-foot, 6 sites/spoke (`birdsfoot_six_sites.py`) | Done (greedy only; no exhaustive). | **Forward greedy got worse with more options**: 0.005106 = 55% of the old 3-site champion, which is itself one of the 24-site subsets. Certified: the greedy set's own bound (0.008397) is below the old champion. Same flat-bound/tie failure as two-panel. See §8. |
+| DE / Nelder-Mead (`coupling_optimizer.py`) | Superseded for evaluation. | Boundary pinning (§2.2) and nonsmoothness (§2.4); failed to converge on 56 of 206 birds-foot subsets. |
+| Backward greedy pruning (`CouplingOptimizer.prune_couplings`) | Superseded. | Reached 48.8% of the birds-foot champion. |
+| Per-topology SDP relaxation (`sdp_theta_optimizer.py`) | Bound sound; decode unreliable. | Zero violations on 220 subsets, but the relaxed optimum often sits inside the unit disk (no real θ behind it); two different tie-break objectives gave the same poor decode. Now used for the bound only. |
+| Topology-level SDP bound (`sdp_topology_bound.py`) | Sound; loose for partial sets. | Zero violations (root + 98 random nodes). Stays loose through ~10 of 12 decisions, tight only near leaves; nearly exact at complete subsets. Looseness flattens greedy's scores (§7.6–§7.7). |
+| Riemannian gradient sampling (`riemannian_gradient_sampling.py`) | Validated; the achieved-value method. | Hosseini & Uschmajew's manifold version of Burke–Lewis–Overton. Crosses the 0/π seam cleanly; recovered all 56 subsets DE failed on; statistically tied with DE elsewhere. |
+| Split-responsibility pipeline (`bound_and_evaluate.py`) | Validated at full scale. | SDP for the certified bound, Riemannian for the achieved value (§6, §7.1). |
+| Forward bound-guided greedy (`forward_greedy_topology.py`) | Works on birds-foot; unreliable in general. | Exact birds-foot champion in seconds (§7.3). Misses with near-duplicate sites: 72.8% (two-panel) and 55% (birds-foot 24 sites), because tied bound scores leave early choices to tie order. Can't see mandatory couplings without forcing (§7.4). |
+| Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 checks vs. real system); opt-in. | Big gain on the two-panel plateau; no-op on birds-foot at strict tolerance, +4–14% with a 0.01–0.1% λ_min tolerance (§7.5). |
 
 ---
 
-## 2. Literature Grounding
+## 5. Literature Grounding
 
-The problem splits into two established literatures (full citations in
-session history / on request):
+The problem splits into two established literatures (full citations on
+request):
 
-- **Continuous stage (θ optimization on the torus)**: nonsmooth eigenvalue
-  optimization (Overton, Cox & Overton, Lewis on partly-smooth functions)
-  + Riemannian gradient sampling (Hosseini & Uschmajew, SIAM J. Optim.
-  2017 — the direct manifold generalization of Burke-Lewis-Overton).
-  Established software: HANSO/GRANSO/PyGRANSO (independent cross-check
-  option, not required).
-- **Discrete stage (topology/placement selection)**: cardinality-
-  constrained SDP relaxation (Frangioni & Gentile's perspective
-  reformulation — literally the `a²+b² ≤ z²` construction used in
-  `sdp_topology_bound.py`), sensor selection (Joshi & Boyd 2009 — same
-  "choose k of m to optimize a function of a sum of per-candidate
-  matrices" structure, with an established rounding+local-search fix for
-  exactly the decode-unreliability problem found here), robust truss
-  topology design (Ben-Tal & Nemirovski), and branch-and-bound for
-  optimal experimental design (Ahipaşaoğlu — variable-bound-tightening
-  branching order, directly transferable given our own bound's
-  measured looseness).
+- **Continuous stage (θ on the torus)**: nonsmooth eigenvalue
+  optimization (Overton; Cox & Overton; Lewis on partly-smooth
+  functions) and Riemannian gradient sampling (Hosseini & Uschmajew,
+  SIAM J. Optim. 2017 — the manifold generalization of
+  Burke–Lewis–Overton). Established software: HANSO/GRANSO/PyGRANSO
+  (optional independent cross-check).
+- **Discrete stage (which couplings)**: cardinality-constrained SDP
+  relaxation (Frangioni & Gentile's perspective reformulation — the
+  `a²+b² ≤ z²` construction in `sdp_topology_bound.py`); sensor
+  selection (Joshi & Boyd 2009 — same "choose k of m to optimize a
+  function of a sum of per-candidate matrices" structure, with an
+  established rounding + local-search fix); robust truss topology design
+  (Ben-Tal & Nemirovski); branch-and-bound for optimal experimental
+  design (Ahipaşaoğlu — bound-tightening branching order); greedy
+  approximation for submodular maximization (Nemhauser, Wolsey & Fisher
+  1978 — its (1−1/e) guarantee does not strictly apply here, since greedy
+  scores by a bound rather than the objective).
+- **Stage-2 polish**: SQP / trust-region treatment of a semidefinite
+  (eigenvalue) constraint, with Overton's first-order model of a multiple
+  eigenvalue.
+- **Periodic structures** (for §8 item 4): cyclic-symmetry / Bloch-wave
+  reduction (Thomas 1979 and successors).
 
-This means the architecture below isn't ad hoc — each piece has a named,
-citable precedent.
-
----
-
-## 3. Split-Responsibility Architecture (implemented this session)
-
-**Decision**: stop asking the SDP relaxation to produce a candidate
-design (it's unreliable at that). Use it *only* for certification
-(a sound upper bound); use Riemannian gradient sampling *only* for
-evaluation (the actual achieved λ_min).
-
-- `sdp_certified_bound()` — SDP **stage 1 only** (skips the stage-2
-  decode entirely, since that decode is exactly the unreliable part
-  being routed around — no point paying for a QP solve whose result is
-  discarded).
-- `riemannian_multistart()` — best-of-N Riemannian gradient sampling
-  restarts (gradient sampling only certifies *local* Clarke-stationarity,
-  not global optimality, so multiple independent restarts are necessary,
-  not decorative — one from the topology's reference θ, the rest random).
-- `bound_and_evaluate()` — combines both: certified bound `t`, achieved
-  `lambda_min`, and the gap between them.
-
-### Two real bugs found and fixed during validation (not glossed over)
-
-1. **Multiplicity guard gap**: `optimize_theta_riemannian`'s very first
-   evaluation of `theta_init` wasn't wrapped in the same multiplicity
-   retry logic every *other* evaluation in the function already had.
-   Invisible in the original small-scale test suite; surfaced
-   immediately at full-sweep scale (hundreds of random restarts). Fixed
-   at the source in `riemannian_gradient_sampling.py`, re-verified
-   against the full existing test suite (all 7 checks still pass,
-   identical results).
-2. **No per-subset error isolation**: `bound_and_evaluate_sweep.py`'s
-   worker function let any exception (including the above, and a
-   separate "persistent multiplicity across a whole restart budget" edge
-   case) crash the entire 220-subset `ProcessPoolExecutor` run, losing
-   all progress. Fixed to mirror `exhaustive_subset_baseline.py`'s own
-   established convention: catch and record per-subset failures, never
-   let one bad subset take down the pool. Also added a queue-based
-   restart-replacement scheme in `riemannian_multistart()` — a start
-   that can't escape multiplicity is discarded and replaced with a
-   fresh, unrelated random draw rather than aborting.
-
-### Full-scale validation result (206/220 birds-foot size-9 subsets; 14 skipped — no full-rank reference found, consistent with prior known structural-infeasibility signal)
-
-- **Soundness**: PASSED for all 206 — zero violations.
-- **Certification gap** (t − achieved): median **8.5e-6**, max 6.7e-3
-  (the max is a known relaxation-looseness case, not a decode failure).
-- **Of the 56 subsets where DE itself failed to converge, Riemannian
-  multi-start succeeded on all 56 (100%)** — resolved λ_min from 0.0012
-  to 0.0093. This is the headline practical result: not just matching DE
-  where DE works, but recovering every case DE couldn't handle.
-- vs. DE where DE converged (150 comparable): 20 better, 19 worse, 111
-  ties — statistically equivalent.
-- vs. the old SDP decode: Riemannian better in 143/206 (69%).
-- Best subset found matches the existing champion (0.009263 vs. 0.009259
-  previously reported), with a certification gap at that topology of
-  just 8e-6 — i.e., provably within 8e-6 of optimal for that specific
-  design.
-- **Caveat, not hidden**: 29/206 subsets (14%) showed restart spread
-  > 1e-4 — meaningful disagreement across the 5 restarts. Not a
-  correctness problem (soundness held throughout), but a signal that 5
-  restarts may not always be enough if this becomes the primary method
-  rather than a validation exercise.
-
-Raw results: `results/bound_and_evaluate_sweep_results.{json,csv}`,
-`results/bound_and_evaluate_sweep_summary.txt`.
-
-### Infrastructure lesson (worth remembering, not just for this task)
-
-This machine has only 7.6GB RAM. The default `cpu_count()-1` worker
-convention used elsewhere in this repo (`exhaustive_subset_baseline.py`)
-gave 7 workers here, each fully loading numpy/scipy/cvxpy — enough to
-exhaust available memory and cause a real `MemoryError` inside a worker's
-import. `bound_and_evaluate_sweep.py` now defaults to 3 workers
-(overridable via `N_WORKERS` env var). Also: an empty *buffered* log file
-is not evidence a background process has died — check actual process
-state (or use `python -u`) before concluding a long-running job crashed.
+Each piece of the pipeline has a named, citable precedent.
 
 ---
 
-## 4. Updated Next Steps
+## 6. Pipeline and Code Map
 
-1. **(Just completed)** ~~Split responsibilities: SDP bounds for
-   certification, Riemannian sampling for evaluation~~ — done, validated
-   at full 220-subset scale, two real bugs found and fixed in the
-   process.
+### 6.1 How a design is evaluated
 
-2. **(Just completed)** ~~Decide whether 5 restarts is enough~~ — reran
-   the 29 disagreeing subsets at n_restarts=7 (`bound_and_evaluate_restart_check.py`).
-   **27/29 (93%) had already converged at n_restarts=5** (improvement
-   < 1e-6); only 2/29 improved, and only slightly (max 1.1e-5). The
-   restart *spread* itself stays wide even at n=7 (23/29 still > 1e-4),
-   but this does **not** translate into a better best-found value — it
-   reflects genuinely different local optima of varying quality on a
-   nonconvex landscape, not undersampling. **Conclusion: n_restarts=5 is
-   already sufficient to trust the achieved value; no need to raise the
-   default.** Soundness held throughout (0 violations).
-   One methodology lesson from building this check: `riemannian_multistart`
-   shares one RNG object across all restarts, so requesting more restarts
-   shifts every restart's internal sampling path, not just appending new
-   ones — caught and corrected the experiment's framing before trusting
-   results (verified directly on one subset). Worth fixing properly
-   (independent child RNG per restart) if this pipeline becomes more
-   central later — not urgent now given the result above.
-   Raw results: `results/bound_and_evaluate_restart_check_results.{json,csv}`,
-   `results/bound_and_evaluate_restart_check_summary.txt`.
+For a fixed active set:
 
-3. **(Just completed — strong result)** ~~Reconsider whether full custom
-   B&B is worth building at m=12~~ — tried **forward (bound-guided)
-   greedy** instead (`forward_greedy_topology.py`) as an alternative to
-   both brute force and B&B. Backward elimination (`prune_couplings()`,
-   already in this codebase) only reached 48.8% of the known champion
-   (0.004521 vs 0.009259) — but that's a genuinely different algorithm
-   from forward (additive) greedy, and the classical (1−1/e)
-   approximation guarantee (Nemhauser, Wolsey & Fisher 1978) applies to
-   forward greedy, not backward elimination. **Forward greedy found the
-   *exact* known champion topology** (`[0,1,2,3,5,6,7,8,11]`, spokes
-   O-M:3,O-B:2,O-N:3,O-A:1) — **100.0% of the exhaustively-verified
-   optimum**, in 7 seconds and 72 bound evaluations, vs. hours of
-   exhaustive search. Method: since the true objective is identically
-   zero for any subset smaller than k=9 (target_rank=18 needs ≥9
-   couplings to reach full rank at all), each step scores candidates by
-   `sdp_topology_bound.py`'s certified bound (best-case completion) —
-   an admissible look-ahead heuristic, not a literal textbook application
-   of the (1−1/e) theorem's hypotheses (stated honestly in the script's
-   own docstring). Also the first real exercise of `sdp_topology_bound`'s
-   shared-`registry` parameter (built earlier, never tested until now) —
-   verified to give identical bounds to the non-shared path before being
-   trusted here.
-   **Caveat**: this is one data point (one m=12, k=9 instance) — a
-   striking first result, not yet evidence this generalizes to larger
-   patterns. The natural next check is whether forward greedy still
-   tracks close to optimal as m grows, where exhaustive ground truth
-   won't be available to confirm against directly.
-   **Update (§7, §8): it does not generalize reliably.** With 6 candidate
-   sites per crease, forward greedy missed on two-panel (72.8% of the
-   exhaustive optimum) and on birds-foot (55% of the old champion, which
-   was available to it). Cause in both: the partial-node bound is flat
-   across many candidates, so early choices come down to tie order.
-   Greedy needs a correction step (swap search or tie-breaking) before
-   it can be trusted as the topology method.
-   Raw results: `results/forward_greedy_topology_results.json`,
-   `results/forward_greedy_topology_summary.txt`.
+1. **Certify** — `sdp_certified_bound()`: SDP stage 1 only, giving a
+   sound upper bound t. The stage-2 decode is skipped, since that is the
+   unreliable part.
+2. **Evaluate** — `riemannian_multistart()`: best of N Riemannian
+   gradient-sampling runs (one from the reference θ, the rest random).
+   Multiple restarts are needed because gradient sampling only
+   guarantees *local* Clarke stationarity. A start stuck at an eigenvalue
+   multiplicity is replaced with a fresh random one.
+3. **Polish (optional)** — `polish_tied_restarts()`: stage-2 log_product
+   polish of every restart within tolerance of the best λ_min.
+4. **Report** — `bound_and_evaluate()` returns t, the achieved λ_min, the
+   gap, and (with `polish=True`) the polished design.
 
-4. **(In progress, 2026-10-13 — see §6)** ~~Investigate the plateau
-   finding as a result, not a curiosity.~~ Stage-2 log_product polish now
-   exists for the Riemannian pipeline (`log_product_polish.py`, opt-in
-   via `bound_and_evaluate(..., polish=True)`). Key findings on the
-   birds-foot champion: the two-panel plateau does **not** carry over —
-   the optimum is a **double eigenvalue** at the end of a nearly-flat,
-   essentially **1-D ridge along one coupling's angle** (coupling 2, O-M
-   bottom-face midpoint), along which λ_min and log_product trade off. Strict
-   lexicographic stage 2 is a no-op; a 0.01–0.1% λ_min tolerance buys
-   +4–14% in the product of locked eigenvalues.
-   **Where to pick up** (in suggested order):
-   - (a) **1-D continuation along the ridge**: sweep coupling 2's angle,
-     re-optimize the other 8 at each value (Riemannian, warm-started from
-     the previous point), and plot λ_min vs. log_product along it — maps
-     the whole trade-off curve for this topology directly instead of
-     sampling it with random restarts (§6.4). Strong candidate for a
-     paper figure.
-   - (b) **Decide a stage-2 λ_min tolerance as design policy** (e.g.
-     1e-4 or 1e-3 relative) — the continuation curve from (a) is the
-     natural evidence for choosing it.
-   - (c) **Check whether gore-scale topologies (m=18, m=27) show a
-     plateau (like two-panel) or a low-dimensional ridge (like
-     birds-foot)** — run `polish_tied_restarts` on the §5 results.
-   - Minor, if the polish becomes central: it stops on the trust-region
-     floor rather than a certified KKT point on birds-foot (§6.2 caveat);
-     and `riemannian_multistart`'s shared RNG (item 2) means changing
-     n_restarts changes every restart, not just appends new ones.
+To choose the active set: `forward_greedy()` scores each candidate
+addition by the certified bound of its best-case completion, with
+optional `forced_active_start` for mandatory couplings and k-bumps when
+the final set can't reach full rank.
 
-5. **(Done this session)** ~~Test forward greedy at larger scale, without
-   exhaustive ground truth to check against~~ — done for both a single
-   gore (m=18) and the corrected full gore with inter-gore couplings
-   (m=27, k=23, gap 1.10%). **Real result found and real fix applied —
-   see §5.** Still open: (a) whether to trust the certified-bound gap as
-   the sole optimality evidence at this scale, and/or (b) layering local
-   search (swap-based refinement, e.g. Fedorov-exchange-style) on top of
-   the greedy result as a cheap correctness booster — not yet done.
+### 6.2 Code map
 
-6. **(Ambitious/optional)** Tighten the SDP bound with a higher moment-
-   relaxation level (Lasserre-hierarchy-style) if bound looseness becomes
-   a real blocker at larger scale — the forward-greedy bound-guidance
-   above would only get MORE useful from a tighter bound, not less.
+| File | Role |
+|---|---|
+| `RigidBodyModel.py` | Panels, couplings, constraint matrix C |
+| `coupling_optimizer.py` | Original DE/Nelder-Mead two-stage optimizer and backward pruning |
+| `interactive_optimizer.py` | Two-panel and birds-foot geometry; GUI |
+| `test_K_theta_structure.py` | `calibrate()` for the affine K(θ) decomposition (§2.1) |
+| `sdp_theta_optimizer.py` | Per-topology SDP relaxation |
+| `sdp_topology_bound.py` | Topology-level bound, per-coupling registry, `bound_node`, `find_full_rank_reference` |
+| `riemannian_gradient_sampling.py` | Riemannian gradient sampling |
+| `bound_and_evaluate.py` | Split-responsibility pipeline, multistart, polish hook |
+| `log_product_polish.py` | Stage-2 polish |
+| `forward_greedy_topology.py` | Forward greedy; birds-foot run |
+| `dxf_to_panels.py`, `gore_system_common.py`, `flasher_gore_system.py`, `full_flasher_gore_system.py` | DXF geometry loading and gore systems |
+| `forward_greedy_gore.py`, `forward_greedy_full_gore.py` | Gore greedy runs |
+| `polish_birdsfoot_champion.py`, `two_panel_six_sites.py`, `birdsfoot_six_sites.py` | 2026-10-13 experiments |
+| `test_*.py` | Validation suites (one per major module) |
 
-7. **(Still open — one gore-scale test done, decision not yet made)**
-   Decide how to get a trustworthy λ_min for the actual assembled
-   (rotationally-tiled) flasher pattern, not just a gore-scale test. One
-   gore wired to real duplicate neighbor panels (now done for both single
-   and inter-gore-coupled versions — see §5.5) is still only ONE
-   arbitrary boundary condition on the periodic problem — it does not
-   converge to the true full-assembly λ_min just by adding more neighbor
-   detail, no matter how clean the m=27 result looked. Two options, not
-   mutually exclusive:
-   - **Evaluate the full assembly directly** (all N gores, real m) —
-     conceptually the simplest, correct by construction, but scales
-     linearly (or worse — greedy construction time already grew from
-     46.7s at m=18 to 1068.6s at m=27, a >20x slowdown for a 1.5x
-     candidate-count increase, driven partly by two extra k-bump rounds
-     — see §5.5) in cost with N.
-   - **Cyclic-symmetry / Bloch-wave reduction** — the established
-     technique for exactly this situation in structural dynamics
-     (rotationally periodic structures: bladed disks/rotors; Thomas 1979
-     and the literature it spawned; standard cyclic-symmetry solvers in
-     commercial FEA). Solve ONE sector's (gore's) eigenvalue problem
-     repeatedly under a swept inter-sector phase condition (N conditions,
-     one per "nodal diameter" 0..N-1); the true global λ_min is the
-     minimum over that sweep. Correct without approximation error, and
-     each sector solve stays cheap (m=18-ish), but requires generalizing
-     this codebase's real-valued constraint-row machinery to complex
-     (phase-shifted) boundary couplings — not yet attempted, and a
-     nontrivial implementation step.
-   Not yet decided which to pursue; see §5.4/§5.5 for the concrete
-   trigger (an early single-gore design that turned out to silently omit
-   inter-gore couplings entirely) and the gore-scale test's own greedy-
-   runtime growth, which is itself evidence for taking the full-assembly
-   option's cost seriously before committing to it over Bloch reduction.
+### 6.3 Engineering notes
 
-**Recommendation if picking one**: forward bound-guided greedy produced
-the strongest practical result of this project on birds-foot with 3 sites
-per crease (exact champion, seconds not hours), but §7–§8 show it fails
-when candidates are near-duplicates. Before relying on it for anything
-larger, add a swap-based local search after greedy (§8.6 item 1; cheap,
-and testable against §7's exhaustive ground truth). Beyond that, the
-highest-value next step is finishing
-#7's decision (full assembly vs. Bloch reduction), since without it the
-gore-scale numbers in §5 aren't yet known to represent the actual target
-application's λ_min, only a lower or upper bound on it of unknown size.
-For the θ-selection side specifically (smaller, self-contained), item
-4(a) — the ridge continuation — is the natural next piece of work.
+- **Memory**: this machine has 7.6 GB RAM. The `cpu_count() − 1` worker
+  default (7 workers, each loading numpy/scipy/cvxpy) caused a real
+  `MemoryError`. `bound_and_evaluate_sweep.py` defaults to 3 workers
+  (`N_WORKERS` env var to override).
+- **Background jobs**: an empty *buffered* log isn't evidence a job died;
+  check process state or run with `python -u`.
+- **Shared RNG**: `riemannian_multistart` shares one RNG across restarts,
+  so changing `n_restarts` changes every restart's path, not just adds
+  new ones. Fix with an independent child RNG per restart if this
+  matters.
+- **Dependencies**: `ezdxf` and `shapely` were added for DXF loading.
+  There is no `requirements.txt` yet.
+- **Bugs fixed during the full sweep**: (1) the first evaluation of
+  `theta_init` in `optimize_theta_riemannian` lacked the multiplicity
+  retry every other evaluation had; (2) `bound_and_evaluate_sweep.py`
+  let one failing subset crash the whole process pool — now failures are
+  recorded per subset, matching `exhaustive_subset_baseline.py`.
 
 ---
 
-## 5. Larger-Scale Forward-Greedy Test: Flasher Gore (this session)
+## 7. Experiment Log
 
-Step 5 from the previous session's roadmap — testing forward greedy on a
-topology bigger than birds-foot's m=12, with no exhaustive ground truth
-available to check against.
+### 7.1 Full validation of the pipeline on birds-foot (2026-09-10)
 
-### 5.1 Geometry source: DXF, not hand-coded
+206 of 220 birds-foot size-9 subsets (14 skipped: no full-rank reference
+found, consistent with known structural infeasibility).
 
-Unlike birds-foot (hand-coded vertices in `interactive_optimizer.py`),
-this test's geometry came from a DXF crease-pattern drawing (a flat set of
-LINE entities meeting at shared vertices — no layers, no pre-closed panel
-polygons, no crease/boundary distinction). New reusable module:
+- **Soundness**: passed for all 206 — zero violations.
+- **Certification gap** (t − achieved): median 8.5e-6, max 6.7e-3 (a
+  known relaxation-looseness case, not a decode failure).
+- **DE failures recovered**: on the 56 subsets where DE failed to
+  converge, Riemannian multistart succeeded on all 56 (λ_min 0.0012 to
+  0.0093).
+- vs. DE where DE converged (150): 20 better, 19 worse, 111 ties.
+- vs. the old SDP decode: Riemannian better on 143/206 (69%).
+- Best subset matches the champion (0.009263 vs. 0.009259 previously),
+  with a gap of 8e-6 at that topology.
+- 29/206 subsets (14%) had restart spread > 1e-4 — see §7.2.
 
-- **`dxf_to_panels.py`** — `load_gore_geometry(dxf_path)` treats the
-  DXF's line segments as a planar straight-line graph and recovers panels
-  as its enclosed faces via `shapely.ops.polygonize`; an edge shared by
-  exactly two resulting faces is an interior crease (a candidate coupling
-  spoke), an edge bordering only one face is outer boundary. New
-  dependencies added to the environment: `ezdxf`, `shapely` (no
-  `requirements.txt` exists yet in this repo to record them in).
-- Verified clean on `Flasher_gore_reference_cleaned.dxf`: all 17 raw
-  lines resolved into exactly 6 panels and 6 interior creases, every
-  input line accounted for in exactly one polygon edge (no gaps, no
-  dangling segments) — not degenerate, despite the user's initial worry
-  that it might be.
-- **`flasher_gore_system.py`** — builds the `CouplingSystem` from that
-  extracted geometry the same way `build_birdsfoot_system` does: 3
-  KinematicCouplings per interior crease (20%/80% along the top face, 1
-  at the midpoint on the bottom face), giving **m=18** candidates (6 creases x 3) vs.
-  birds-foot's m=12. Panel connectivity is a two-hub tree (panels 0 and 1
-  each border 3 other panels), structurally different from birds-foot's
-  single-hub star.
+Results: `results/bound_and_evaluate_sweep_{results.json,results.csv,summary.txt}`.
 
-### 5.2 Real finding: leaf panels make some couplings structurally mandatory
+### 7.2 Are 5 restarts enough? (2026-09-10)
 
-Two panels in this gore (panel 2, panel 5) connect to the rest of the
-assembly through exactly ONE crease each. A panel with only one crease
-needs all 6 rows that crease can offer (3 couplings x 2 rows each) just
-to pin its own 6 relative degrees of freedom — there is no other path
-through the graph to constrain it, and exactly 6 rows are available, so
-all 3 of that crease's couplings are mandatory in any full-rank topology,
-not merely "good candidates."
+Reran the 29 high-spread subsets at 7 restarts
+(`bound_and_evaluate_restart_check.py`). 27/29 improved by < 1e-6; the
+other 2 by at most 1.1e-5. Spread stayed wide (23/29 still > 1e-4), but
+that reflects genuinely different local optima, not undersampling.
+**Conclusion: 5 restarts is enough.** Zero soundness violations.
 
-The bound-guided forward greedy (`forward_greedy_topology.py`'s
-`forward_greedy()`, reused unchanged) cannot see this: its per-step score
-is a best-case-completion SDP bound that treats every candidate as
-freely replaceable by a better one later, so it has no way to recognize
-"this one is non-optional." **Confirmed empirically, not just in theory**:
-unforced runs at both k=15 (target_rank/2 = 30/2, the exact structural
-minimum, same convention that worked cleanly for birds-foot's k=9) and
-k=16 left the panel-2 leaf crease (P1-P2) one coupling short of its
-required 3, and `find_full_rank_reference` failed for both final active
-sets — i.e. plain forward greedy, unmodified, produced an active set that
-provably cannot reach full rank at ANY theta, a real failure mode birds-
-foot's star topology never exposed.
+Results: `results/bound_and_evaluate_restart_check_{results.json,results.csv,summary.txt}`.
 
-**Fix applied**: `forward_greedy()` gained an optional
-`forced_active_start` parameter (backward-compatible, default `None` —
-birds-foot's existing calls are unaffected) to pre-seed structurally
-mandatory couplings before the greedy loop starts.
-`forward_greedy_gore.py` computes which creases are mandatory
-automatically (panel degree == 1 in the crease graph), forces those 6
-couplings (P0-P5, P1-P2) active, and lets greedy allocate the remaining
-9 of the k=15 budget across the other 12 candidates (the P0-P1/P0-P4/
-P1-P3/P3-P4 four-crease core loop — structurally its own rank-18 sub-
-problem, the same size as birds-foot's whole problem).
+### 7.3 Forward greedy on birds-foot (2026-09-11)
 
-### 5.3 Result (with the fix)
+Tried forward bound-guided greedy as an alternative to brute force and
+to a full branch-and-bound. Because the true objective is zero for any
+set smaller than k = 9, each step scores candidates by the certified
+bound of the best-case completion (an admissible lookahead heuristic,
+not a literal use of the (1−1/e) theorem).
 
-- Final active set: `[0,1,2,4,5,6,7,8,9,10,11,12,13,14,17]` — spokes
-  `P0-P1:3, P0-P4:2, P0-P5:3, P1-P2:3, P1-P3:3, P3-P4:1`.
-- Certified bound: t = 0.012966. Achieved λ_min (Riemannian, 5 restarts):
-  **0.012351**. Certification gap: 6.15e-4 (**4.98%** of the achieved
-  value) — looser than birds-foot's typical gaps (median 8.5e-6), a real
-  sign the SDP bound loosens at this scale/topology and worth watching if
-  this becomes the primary evaluation method rather than a one-off test.
-- Greedy construction: 46.7s, 0 unresolved-reference events, once the
-  mandatory couplings were forced.
-- Raw results: `results/forward_greedy_gore_results.json`,
-  `results/forward_greedy_gore_summary.txt`.
+- **Found the exact champion** `[0,1,2,3,5,6,7,8,11]` — 100% of the
+  exhaustive optimum, in seconds (19 s in the saved run; 72 bound
+  evaluations) vs. hours of exhaustive search.
+- Backward pruning reached only 48.8% (0.004521).
+- First real use of the shared per-coupling `registry`; verified to give
+  bounds identical to the non-shared path.
+- Caveat at the time: one data point. §7.6–§7.7 later showed it doesn't
+  generalize reliably.
 
-### 5.4 Caveat that reopened the scope of this test (not glossed over)
+Results: `results/forward_greedy_topology_{results.json,summary.txt}`,
+`results/forward_greedy_topology_3d_before_after.png`.
 
-This whole test evaluates ONE gore (wedge) of the full rotationally-
-symmetric flasher pattern, chosen originally to save computation while
-(it was assumed) still giving a viable answer. Partway through, the user
-identified that the initial single-gore DXF silently omitted the
-couplings that exist between adjacent gores in the real assembly — i.e.
-every result in §5.3 above is for an isolated wedge with free (unconnected)
-radial boundaries, not a physically complete boundary condition. A
-corrected DXF (`Full_Flasher_gore_reference.dxf`) has since been created
-with full duplicate neighbor-gore panels so the inter-gore couplings can
-be represented — **not yet evaluated as of this writing**.
+### 7.4 Forward greedy on flasher gores (2026-09-14)
 
-Discussed and NOT resolved by just wiring in one neighbor on each side
-with real (non-phase-shifted) couplings: that is only one arbitrary
-boundary condition on what is properly a periodic problem, and doesn't
-converge to the true assembled λ_min just by adding more neighbor detail.
-The correct reduction (cyclic-symmetry / Bloch-wave analysis, sweeping
-inter-sector phase — see roadmap item 7 above) or full-assembly
-evaluation are the two options on the table; single-gore-plus-real-
-neighbor-couplings is useful only as an algorithm-scale stress test, not
-as evidence about the physical assembly's true λ_min.
+**Geometry from DXF.** `dxf_to_panels.load_gore_geometry()` treats the
+DXF's line segments as a planar graph and recovers panels as its faces
+(`shapely.ops.polygonize`); an edge shared by two faces is a crease,
+one face is boundary. `Flasher_gore_reference_cleaned.dxf`: 17 lines →
+6 panels, 6 creases, every line accounted for. Gore systems use the
+standard 3 sites per crease (shared code in `gore_system_common.py`).
 
-### 5.5 Full-gore test (with inter-gore couplings) — run this session
+**Single gore (m=18): leaf panels.** Panels 2 and 5 attach by one crease
+each, so those creases' couplings are mandatory (§3). Unmodified greedy
+at k = 15 and 16 left the P1-P2 crease one coupling short, giving sets
+that can't reach full rank at any θ. Fix: `forced_active_start`
+(backward-compatible) seeded with the automatically detected leaf
+couplings.
 
-`Full_Flasher_gore_reference.dxf` evaluated. Two loader fixes were needed
-before it would parse, both generalizations of `dxf_to_panels.py` rather
-than one-off workarounds:
+- Result: `[0,1,2,4,5,6,7,8,9,10,11,12,13,14,17]` (P0-P1:3, P0-P4:2,
+  P0-P5:3, P1-P2:3, P1-P3:3, P3-P4:1). t = 0.012966, achieved λ_min =
+  **0.012351**, gap 4.98% (much looser than birds-foot). Greedy 46.7 s.
+- Results: `results/forward_greedy_gore_{results.json,summary.txt}`.
 
-- **Block INSERT support**: the corrected DXF adds the neighbor gore's
-  boundary panels via a mirrored block reference (`INSERT` entity, 2
-  `LINE`s inside `Block_0`), which `_read_segments` didn't previously
-  walk into. Fixed via `ezdxf`'s `virtual_entities()` (recursing through
-  nested blocks, transform-correct by construction) rather than
-  special-casing this file's specific insert.
-- **Vertex snapping**: the inserted copy's endpoints landed close to but
-  not bit-identical with the original gore's vertices they're meant to
-  coincide with — off by 0.0106 and 0.4547 units against a geometry scale
-  where the next-nearest genuinely distinct vertex pair is ~80 units away
-  (a 175x safety margin). Without merging these, `polygonize()` sees a
-  gap, not a shared vertex, and silently fails to close the new face.
-  Added `load_gore_geometry(..., snap_tol=...)` (opt-in, default `None` —
-  the original single-gore file needed no snapping and still gets none)
-  using simple O(n²) union-find clustering (`_snap_points`) — plenty fast
-  at these point counts. `full_flasher_gore_system.py` uses
-  `snap_tol=1.0`.
+**Missing inter-gore couplings.** The single-gore DXF omitted the
+couplings to neighboring gores, so the result above is for an isolated
+wedge with free radial edges. `Full_Flasher_gore_reference.dxf` adds the
+neighbor's boundary panels. Two loader generalizations were needed:
+block `INSERT` support (via `ezdxf`'s `virtual_entities()`), and
+opt-in vertex snapping (`snap_tol`; endpoints were off by up to 0.45
+units vs. ~80 units between genuinely distinct vertices).
 
-Result: **8 panels, 9 interior creases → m=27** candidates. Panel 2
-(a leaf in the single-gore version) now has a second crease (to new panel
-7) — exactly the connection that was previously missing. Panel 5 remains
-the only leaf (still only reachable via P0-P5), so
-`gore_system_common.mandatory_leaf_couplings()` (the single-gore fix's
-leaf-detection logic, factored out for reuse — see below) forces only 3
-couplings this time, not 6.
+**Full gore (m=27).** 8 panels, 9 creases; only panel 5 is still a leaf
+(3 forced couplings).
 
-**Code factored out, not duplicated**: `gore_system_common.py` is new —
-`flasher_gore_system.py` and `full_flasher_gore_system.py` both build on
-its shared `spokes_from_creases`/`build_gore_system`/
-`mandatory_leaf_couplings`/`default_start_thetas_deg` instead of each
-reimplementing the recipe. Confirmed the refactor changed nothing:
-`flasher_gore_system.py` reproduces its pre-refactor output exactly
-(m=18, same spoke labels, λ_min=0.013203 at full-active) before the new
-full-gore module was written against the shared code.
+- k = 21 and 22 couldn't reach full rank; each retry extended the same
+  set by one greedy step. Settled at **k = 23 of 27**.
+- t = 0.005242, achieved λ_min = **0.005185**, gap 1.10%. Spokes P0-P1:3,
+  P0-P4:1, P0-P5:3, P1-P6:3, P1-P2:2, P1-P3:2, P2-P7:3, P3-P4:3, P6-P7:3.
+- Greedy 1068.6 s (vs. 46.7 s at m=18), partly from the two extra
+  k-bump rounds.
+- Results: `results/forward_greedy_full_gore_{results.json,summary.txt}`;
+  figures `..._3d_before_after.png`, `..._hinges.png`,
+  `..._convergence.png`.
 
-**Forward-greedy result** (`forward_greedy_full_gore.py`, k starting at
-the structural minimum target_rank/2 = 21):
+**Limitation**: one neighbor gore's panels are one arbitrary boundary
+condition on a rotationally periodic problem. Adding more neighbor
+detail doesn't converge to the assembled λ_min. These are algorithm
+stress tests, not physical answers (§8 item 4).
 
-- k=21 and k=22 both failed to reach full rank at any theta (same
-  phenomenon as §5.2/§5.3's single-gore case, not a new failure mode) —
-  rather than restart from scratch, each retry appended exactly one more
-  greedy step onto the existing active set at k+1 (no wasted computation,
-  one continuous trace). Settled at **k=23 of 27**.
-- **Certified bound t = 0.005242. Achieved λ_min (Riemannian, 5
-  restarts) = 0.005185.** Certification gap 5.72e-5 (**1.10%** of
-  achieved value) — tighter than the single-gore test's 4.98%, despite
-  m growing from 18 to 27; bound looseness doesn't appear to scale
-  simply with m alone.
-- Final active set (23 of 27): spokes `P0-P1:3, P0-P4:1, P0-P5:3,
-  P1-P6:3, P1-P2:2, P1-P3:2, P2-P7:3, P3-P4:3, P6-P7:3`.
-- Greedy construction: 1068.6s (~18 min) — substantially slower than the
-  single-gore case's 46.7s, both from the larger m and from needing two
-  extra k-bump rounds; worth watching if this pipeline needs to run
-  routinely rather than as a one-off test.
-- Raw results: `results/forward_greedy_full_gore_results.json`,
-  `results/forward_greedy_full_gore_summary.txt`.
+### 7.5 Stage-2 log_product polish (2026-10-13)
 
-**Visualizations generated** (new: `forward_greedy_full_gore.py` also
-produces the same figure types birds-foot analyses used elsewhere in this
-repo — `visualization_rigid.py`'s `draw_3d_config`/`draw_hinge_layout`,
-unmodified):
-- `results/forward_greedy_full_gore_3d_before_after.png` — 3-D config,
-  all 27 candidates active vs. the greedy result at its achieved thetas,
-  each with the weakest constrained eigenmode overlaid.
-- `results/forward_greedy_full_gore_hinges.png` — one 2-D hinge-layout
-  panel per crease (9 total), showing each crease's 3 candidate contact
-  points (active: θ label + n1/n2 vectors; inactive: removed marker).
-- `results/forward_greedy_full_gore_convergence.png` — certified bound
-  chosen at each greedy step vs. active-coupling count, with the final
-  achieved λ_min and certified bound marked for comparison.
+**Why.** The DE pipeline had a stage 2 (maximize log_product =
+Σ log(locked eigenvalues) subject to λ_min ≥ λ* − tol) to choose among
+λ_min-tied designs. The Riemannian pipeline kept whichever restart had
+the best λ_min, so every reported θ was an arbitrary point of the optimal
+set. Topology choice is unaffected: log_product is −∞ for partial sets.
 
-**Status unchanged from §5.4's conclusion**: this is still only a
-larger algorithm-scale stress test, not a trustworthy physical λ_min for
-the assembled pattern — one neighbor gore's real duplicate panels are one
-arbitrary boundary condition, not the periodic-problem-correct answer.
-Roadmap item 7 (full-assembly evaluation vs. cyclic-symmetry/Bloch-wave
-reduction) is still open and still the recommended next step for a
-trustworthy physical number.
+**Method** (`log_product_polish.py`):
+- Smooth objective via the fixed gauge subspace (§2.3): log_product =
+  log det(PᵀK(θ)P), with exact gradient tr(Kr⁻¹ ∂Kr/∂θᵢ) from the
+  existing calibration.
+- Each step solves a small trust-region SDP: maximize the first-order
+  log_product gain, keeping a first-order model of the eigenvalues near
+  the threshold above it (Overton's model of a multiple eigenvalue;
+  cluster chosen by a Weyl bound), ‖d‖ ≤ Δ. A step is accepted only if
+  the true λ_min and log_product check out; retraction is θ + d mod π.
+- Opt-in via `bound_and_evaluate(..., polish=True)`; existing outputs
+  unchanged.
+- Validation (`test_log_product_polish.py`, 12/12, checked against the
+  real system): reduced spectrum matches to 2e-15; gradient matches
+  finite differences to 5e-7; every step feasible on the real system.
 
----
+**Two-panel**: the plateau is real and stage 2 uses it — log_product
+−4.88 → −1.99 (product ×18) at unchanged λ_min, θ moving up to 84°.
 
-## 6. Stage-2 log_product Polish on the Riemannian Pipeline (2026-10-13)
-
-**Files**: `log_product_polish.py` (method), `bound_and_evaluate.py`
-(`polish=` flag + `polish_tied_restarts()`), `test_log_product_polish.py`
-(validation — run first if picking this back up),
-`polish_birdsfoot_champion.py` (experiment; `N_RESTARTS` env var,
-default 5 reproduces forward greedy's evaluation exactly).
-
-**Why**: `coupling_optimizer.py`'s DE pipeline had a stage 2 (maximize
-log_product = Σ log(locked eigenvalues) subject to λ_min ≥ λ* − tol) to
-choose among λ_min-tied designs. The Riemannian pipeline
-(`riemannian_multistart` → `bound_and_evaluate`) had no equivalent — it
-kept whichever restart had the highest λ_min, so every reported θ
-(birds-foot champion, gore results) was an arbitrary point of the optimal
-set, not a deliberately chosen one. Topology selection is unaffected —
-log_product is −∞ on partial (rank-deficient) sets, so it can't guide
-greedy; stage 2 only picks the θ to build for a given topology.
-
-### 6.1 Method (`log_product_polish.py`)
-
-- **Smooth objective via the fixed gauge subspace.** Because the 6-dim
-  rigid-body null space is θ-independent (§1), one basis P for its
-  complement, computed once, gives Kr(θ) = PᵀK(θ)P whose spectrum is
-  exactly the locked eigenvalues at every full-rank θ. log_product =
-  log det Kr is smooth there, with exact gradient
-  tr(Kr⁻¹ ∂Kr/∂θᵢ) from the existing K0/Kc/Ks calibration.
-- **Constraint handled at eigenvalue multiplicity.** Each step solves a
-  small trust-region SDP: maximize ∇log_product·d subject to the
-  first-order model of the eigenvalue cluster near the threshold staying
-  ⪰ threshold (Overton's model of a multiple eigenvalue; cluster chosen
-  by a Weyl bound so nothing that could cross at first order is
-  omitted), ‖d‖ ≤ Δ. Steps are accepted only if the TRUE λ_min and
-  log_product check out; retraction is θ+d mod π.
-- **Integration**: `bound_and_evaluate(..., polish=False)` (opt-in,
-  existing outputs unchanged) + `polish_tied_restarts()`, which polishes
-  every restart tied with the best λ_min, sharing one calibration.
-- **Validation** (`test_log_product_polish.py`, 12/12 pass, all checked
-  against the REAL system via `CouplingOptimizer._locked_eigenvalues`,
-  not the reduced model): reduced spectrum matches to 2e-15 at random θ
-  far from the reference; gradient matches finite differences to 5e-7;
-  every accepted step and final point feasible on the real system.
-
-### 6.2 Results
-
-**Two-panel (test case)**: plateau confirmed and exploited — log_product
-−4.88 → −1.99 (product ×18) at exactly unchanged λ_min, θ moving up to
-84°. Stage 2 does real work here.
-
-**Birds-foot champion** (`polish_birdsfoot_champion.py`; reproduces
-forward greedy's evaluation, λ* = 0.00926316, 5 restarts):
-
-- **The optimum is a double eigenvalue, not a plateau.** Two smallest
-  locked eigenvalues 0.00926316 / 0.00926321 (relative gap 4.9e-6); the
-  third is 23% higher — the Cox–Overton structure. At the strict
-  tolerance (rel 1e-7, matching `coupling_optimizer.py`) the polish moves
-  θ by 0.000° and gains 1.3e-5 in log_product: **strict lexicographic
-  stage 2 is a no-op here.**
-- **But a long, nearly-flat ridge exists.** The 5 restarts end up to 20°
-  apart in θ with λ_min within 2e-4 (relative) of each other and
-  log_product spread of ~0.05 (~5% in the product). Strictly maximizing
-  λ_min picked a restart that is mid-pack on log_product.
-- **Trade-off is steep, ~100:1.** Allowing λ_min to drop buys log_product
-  (best restart): 0.01% → product ×1.011; 0.1% → ×1.106; 1% → ×2.38,
-  and the second-weakest eigenvalue separates from the weakest
-  (λ₂ 0.009263 → 0.010524 at 1%) — exactly the fragility stage 2 was
-  meant to address.
-- **Loosened tie tolerance — restarts don't merge.** Polishing every
-  restart within rel 1e-4 (4/5 tied) or 1e-3 (5/5 tied) moves each by
-  ≤0.1° / ≤0.9°; they stay 2.5–20° apart. Every polish ends with λ_min
-  exactly on the threshold (constraint binding), and each gains about the
-  same (≈+0.01 at 1e-4, ≈+0.1 at 1e-3) — i.e. the gain is λ_min budget
-  being spent, not travel along the ridge. Final ranking largely
-  inherits each restart's starting log_product. Best: ×1.022 vs. the
-  strict design at 1e-4 (−0.01% λ_min), ×1.124 at 1e-3 (−0.1%).
+**Birds-foot champion** (`polish_birdsfoot_champion.py`, λ* = 0.00926316):
+- **Double eigenvalue, not a plateau**: smallest two locked eigenvalues
+  0.00926316 / 0.00926321; the third is 23% higher. At strict tolerance
+  (relative 1e-7, as in `coupling_optimizer.py`) the polish moves θ by
+  0.000°: **strict stage 2 is a no-op here.**
+- **Steep trade-off, ~100:1**: from the best restart, giving up 0.01% /
+  0.1% / 1% of λ_min multiplies the product of locked eigenvalues by
+  1.011 / 1.106 / 2.38, and separates the second-weakest mode (λ₂
+  0.009263 → 0.010524 at 1%).
+- **Restarts don't merge.** With a looser tie tolerance (1e-4: 4/5 tied;
+  1e-3: 5/5), each polish moves ≤ 0.1° / ≤ 0.9° and ends exactly on the
+  λ_min constraint; restarts stay 2.5–20° apart. The gain is λ_min budget
+  being spent, not travel along the ridge.
+- **20 restarts** (`N_RESTARTS=20`): the ridge is ~1-D (§2.5); the strict
+  λ_min maximizer has the 2nd-worst log_product of 20. Best polished
+  design vs. strict design: ×1.039 at 1e-4 (5 restarts: ×1.022), ×1.140
+  at 1e-3 (×1.124). Cost ~4.5 min vs. ~40 s.
 - **Caveat**: every birds-foot polish stopped on the trust-region floor,
-  not a certified KKT point — the linear model of the coalesced
-  eigenvalue pair keeps over-predicting gain (some runs crawled 400–500
-  iterations). Final points are feasible and on the constraint; treat
-  them as "no further progress found," not proven stationary.
+  not a certified KKT point (the linear model of the coalesced pair keeps
+  over-predicting gain; some runs took 400–500 iterations). Final points
+  are feasible and on the constraint.
 
-### 6.3 Interpretation
+**Interpretation**: on birds-foot, the useful stage 2 is choosing among
+ridge points, not polishing one. Since the ridge is ~1-D and its
+direction is known, a 1-D continuation along it would map the whole
+trade-off more efficiently than random restarts (§8 item 2).
 
-For birds-foot, the useful stage 2 is **selection among many ridge
-points**, not polishing one: the polish is local, and restart choice
-matters about as much as the polish itself. Two decisions this leaves
-open: (a) adopt an explicit small λ_min tolerance (e.g. 1e-4 or 1e-3
-relative) as design policy, since at strict tolerance stage 2 does
-nothing on this topology; (b) sample the ridge more densely (more
-restarts) before polishing.
+Results: `results/polish_birdsfoot_champion_{results.json,summary.txt}`
+and `..._r20_{results.json,summary.txt}`.
 
-Raw results: `results/polish_birdsfoot_champion_{results.json,summary.txt}`.
+### 7.6 Contact-location choice: two panels, 6 sites (2026-10-13)
 
-### 6.4 Denser ridge sampling: 20 restarts
+**Question**: do more candidate *locations* per crease improve λ_min?
+Tested on two-panel, where exhaustive ground truth is cheap.
 
-`N_RESTARTS=20 python polish_birdsfoot_champion.py` (results:
-`results/polish_birdsfoot_champion_r20_{results.json,summary.txt}`; the
-5-restart files are untouched). Stage-1 λ* = 0.00926314 (vs 0.00926316
-at 5 restarts — same optimum; restarts differ from the 5-run because
-`riemannian_multistart` shares one RNG, see §4 item 2).
-
-- **The ridge is essentially one-dimensional.** Across 20 restarts, the
-  θ spread (max−min) per coupling is ≤3° for 8 of 9 couplings (most
-  <1°) but **19° for coupling 2** — the O-M spoke's bottom-face
-  midpoint contact. The near-optimal set is, to first approximation, "everything
-  else fixed, slide the O-M bottom-face groove angle."
-- **λ_min and log_product trade off along it.** Coupling 2's angle
-  correlates +0.86 with λ_min and −0.64 with log_product. The strict
-  λ_min-maximizing restart has the 2nd-*worst* log_product of all 20 —
-  pure λ_min maximization drives to the end of the ridge that is worst
-  for overall stiffness. All 20 restarts lie within 3.5e-4 (relative)
-  of λ*; still only one is strictly tied at 1e-7.
-- **More restarts help, modestly.** Best polished design vs. the strict
-  design: ×1.039 at rel_tol 1e-4 (vs ×1.022 with 5 restarts) and ×1.140
-  at 1e-3 (vs ×1.124). The same restart (7) wins at both tolerances;
-  its main difference from the strict design is coupling 2 at ≈10°
-  instead of ≈17.5°.
-- Polish behavior unchanged: each run moves ≤0.1° (1e-4) / ≤0.9°
-  (1e-3), ends on the constraint, stops on the trust-region floor.
-  Cost: ~4.5 min for evaluation + polish at 20 restarts (vs ~40 s at 5).
-
-**Updated interpretation**: since the ridge is ~1-D and its direction is
-known, sampling it with more random restarts is an inefficient way to
-explore it. A cheaper, more direct option: sweep coupling 2's angle
-along the ridge and re-optimize the other 8 at each value (a 1-D
-continuation), which would map the full λ_min-vs-log_product trade-off
-curve for this topology. Whether gore-scale topologies also show a
-low-dimensional ridge is untested.
-
----
-
-## 7. Contact-Location Choice: Two Panels, 6 Candidate Sites (2026-10-13)
-
-**Question**: does giving the optimizer more candidate contact
-*locations* per crease (not just angles) improve λ_min? First test on the
-two-panel system, where m is small enough for exhaustive ground truth.
-
-**Files**: `two_panel_six_sites.py` (experiment + figure). Results:
-`results/two_panel_six_sites_{results.json,summary.txt,3d_before_after.png}`.
-
-### 7.1 Setup
-
-The existing 3 sites plus each mirrored through the panels'
+**Setup**: the 3 standard sites plus each mirrored through the
 mid-thickness plane z = −t/2 (panels span z ∈ [−t, 0], t = 0.1):
 
 | site | point | | site | mirror |
@@ -679,181 +436,123 @@ mid-thickness plane z = −t/2 (panels span z ∈ [−t, 0], t = 0.1):
 | 1 | p2 (y=.8, top) | | 4 | p2′ (y=.8, bottom) |
 | 2 | p3 (y=.5, bottom) | | 5 | p3′ (y=.5, top) |
 
-**Correction found while setting this up**: the third contact of the
-standard 3-per-crease recipe (two-panel p3, and every birds-foot/gore
-crease) sits on the **bottom face** (z = top − t), not at mid-thickness
-as several docstrings and earlier sections of this doc said. Fixed in
-`interactive_optimizer.py`, `gore_system_common.py`,
-`sdp_theta_optimizer.py`, and §5/§6 here. No numbers change; only the
-description was wrong. Consequence for this test: p3's mirror is a new
-top-face point, not a duplicate.
+Setting this up revealed the "mid-thickness" mislabel (§1): p3 is on the
+bottom face, so its mirror is a new top-face point. Docstrings in
+`interactive_optimizer.py`, `gore_system_common.py` and
+`sdp_theta_optimizer.py` were fixed; no numbers changed.
 
-The original design [0,1,2] is one of the candidate subsets, so the
-comparison is direct.
-
-### 7.2 Results (exhaustive: all 42 subsets, k = 3..6, ~28 s)
-
+**Results** (exhaustive, all 42 subsets for k = 3–6, ~28 s):
 - **k=3: the original design is still optimal.** {p1,p2,p3} and its
-  mirror image {p1′,p2′,p3′} tie at λ_min = 0.013330. Every mixed
-  top/bottom set is worse: next tier 0.00992 (−26%), worst feasible
-  0.00324. Mirroring through a thin plate adds little leverage (0.1 of
-  thickness vs. 0.6 of edge length).
-- **Collinear triples are rank-deficient, as predicted**: {p1,p2,p3′}
-  (top edge) and {p3,p1′,p2′} (bottom edge). Three contacts on one line
-  leave rotation about it free. A useful built-in sanity check.
-- **More couplings do help**: best λ_min by k is 0.0133 (k=3), 0.0200
-  (k=4, ×1.50, sites {p1,p3,p1′,p3′}), 0.0240 (k=5), 0.0300 (k=6, ×2.25).
-  Extra locations pay off only if the coupling count is allowed to grow.
-- **Soundness**: max (achieved − certified bound) = 1.1e-9 across all 40
-  feasible subsets. The bound is essentially exact at every complete
-  subset here.
-- **Stage-2 polish** on the chosen design behaves as in §6.2's two-panel
-  case: log_product −4.10 → −1.99 at unchanged λ_min.
+  mirror {p1′,p2′,p3′} tie at 0.013330; every mixed top/bottom set is
+  worse (next 0.00992, worst feasible 0.00324).
+- The two collinear triples ({p1,p2,p3′}, {p3,p1′,p2′}) are rank-deficient,
+  as predicted.
+- Best λ_min by k: 0.0133 / 0.0200 / 0.0240 / 0.0300 for k = 3 / 4 / 5 / 6
+  (k=4 best: {p1,p3,p1′,p3′}).
+- Soundness: max (achieved − bound) = 1.1e-9; the bound is essentially
+  exact at complete subsets.
+- **Forward greedy missed: 72.8%** ({p3,p3′,p2}, 0.009707). At steps 1
+  and 2 the bound scored candidates at exactly 0.0150 (6/6, then 3/5
+  tied), so it committed by tie order to p3 and p3′, which stack at the
+  same y.
 
-### 7.3 First forward-greedy failure
+Results: `results/two_panel_six_sites_{results.json,summary.txt,3d_before_after.png}`.
+The figure shows all 6 sites at start angles (λ_min 0.0300) vs. the
+chosen design (= the original optimum) with unused sites marked.
 
-Forward greedy at k=3 picked {p3, p3′, p2}: λ_min 0.009707, **72.8% of
-the exhaustive optimum**. This is its first miss (birds-foot: exact
-champion; gores: no ground truth).
+### 7.7 Contact-location choice: birds-foot, 6 sites per spoke (2026-10-13)
 
-Cause: at steps 1 and 2 the partial-node SDP bound scored *every*
-candidate at exactly 0.0150 (all six at step 1; three of five at step 2),
-so the choice came down to tie order. It committed early to p3 and p3′,
-which stack at the same y. The bound is exact at complete subsets but
-flat across partial ones: the same "loose mid-tree" behavior recorded
-in §1's table, which didn't hurt on birds-foot but did here.
+**Question**: with more options, does greedy match or beat its 3-site
+result?
 
-Possible fixes, not yet tried: break bound ties with a lookahead (score
-by the best two-step completion), or by the SDP's relaxed z / spread of
-chosen sites; or follow greedy with swap-based local search (already
-listed as an open idea in §4 item 5).
-
-### 7.4 Figure
-
-`results/two_panel_six_sites_3d_before_after.png`: left, all 6 sites
-active at their start angles (λ_min 0.0300, already the k=6 optimum);
-right, the chosen k=3 design at polished angles with the 3 unused sites
-marked removed, weakest locked mode overlaid on both. Since the chosen
-design is the original one, the "after" panel is the original two-panel
-optimum.
-
-### 7.5 Where to pick up
-
-1. **Spread sites along the edge, not through the thickness** (e.g. add
-   y = 0.05 / 0.95, or a denser grid along y), since edge length is where
-   the leverage is.
-2. **Fix greedy's tie-breaking** (7.3) and recheck on this case, where
-   ground truth is available.
-3. ~~Then repeat on birds-foot with 6 sites per crease~~ — done, see §8.
-   Greedy failed there too.
-
----
-
-## 8. Contact-Location Choice: Birds-Foot, 6 Sites per Spoke (2026-10-13)
-
-**Question**: with more candidate locations to choose from, does forward
-greedy match or beat its 3-site birds-foot result (the exact exhaustive
-champion, λ_min 0.009263)?
-
-**Files**: `birdsfoot_six_sites.py` (experiment + 3 figures). Results:
-`results/birdsfoot_six_sites_{results.json,summary.txt,3d_before_after.png,hinges.png,convergence.png}`.
-
-### 8.1 Setup
-
-- Same site construction as §7, applied to every spoke: the original 3
-  (20% top, 80% top, 50% bottom) plus each mirrored through z = −t/2.
-  m = 24 candidates, k = 9 (target_rank 18). Index 6s + j: j = 0–2
-  original, j = 3–5 mirror of j − 3.
-- Start angles: originals keep `BIRDSFOOT_START_THETAS_DEG`; mirrors get
-  +47° (mod 180) so none starts parallel to its original.
-- The old champion [0,1,2,3,5,6,7,8,11] maps to [0,1,2,6,8,12,13,14,20],
-  so it is one of the candidate subsets: the 24-site optimum is ≥ 0.009263.
-- No exhaustive ground truth (C(24,9) ≈ 1.3M subsets). Evidence used
-  instead: the root certified bound (any 9-of-24 design), each set's own
-  certified bound, and per-step tie counts.
-- Both designs evaluated with the same pipeline: certified bound +
-  5-restart Riemannian + strict stage-2 polish. Seed 17, as in
-  `forward_greedy_topology.py`.
-
-### 8.2 Results
+**Setup**: §7.6's construction on every spoke; m = 24, k = 9. Index
+6s + j (j = 0–2 original, 3–5 mirror of j − 3). Mirrors start at the
+original's angle + 47° (mod 180). The old champion maps to
+`[0,1,2,6,8,12,13,14,20]`, so it is one of the candidate subsets and the
+24-site optimum is ≥ 0.009263. Both designs evaluated identically
+(certified bound + 5 restarts + strict polish, seed 17).
 
 | design | λ_min | own bound t | gap | log_product |
 |---|---|---|---|---|
 | old 3-site champion (re-evaluated in the 24-site system) | 0.009263 | 0.009271 | 0.08% | −19.98 |
-| new forward greedy over 24 sites | **0.005106** | 0.008397 | 64% | −22.19 |
+| forward greedy over 24 sites | **0.005106** | 0.008397 | 64% | −22.19 |
 
-- **Greedy got worse: 55% of the old champion.** This is certified, not
-  an optimizer artifact: the greedy set's own upper bound (0.008397) is
-  below what the old champion actually achieves, so no choice of angles
-  could rescue that set. (The 64% gap means the bound is loose for that
-  set, but that doesn't affect this conclusion.)
-- **The old champion reproduces exactly** in the 24-site system
-  (0.009263, gap 0.08%), so the extra candidates didn't change anything
-  for that subset — greedy just didn't find it.
-- **Root bound for any 9-of-24 design: 0.014676.** The true 24-site
-  optimum lies between 0.009263 and 0.014676. Whether mirrored sites can
-  beat the old champion at all is still **unknown**.
-- Greedy took 19 s, needed no k-bump (the k=9 set reached full rank),
-  and used 3 mirrored sites out of 9. Spokes O-M:3, O-B:1, O-N:3, O-A:2.
-- One SDP solve warned "solution may be inaccurate". The ~10% margin
-  between 0.0084 and 0.0093 makes it very unlikely to matter.
+- **Greedy got worse: 55% of the old champion.** This is certified: the
+  greedy set's own upper bound (0.008397) is below what the old champion
+  achieves, so no choice of angles could rescue that set.
+- The old champion reproduces exactly, so greedy simply didn't find it.
+- **Root bound for any 9-of-24 design: 0.014676**, so the 24-site optimum
+  lies between 0.009263 and 0.014676. Whether mirrored sites can beat the
+  old champion is still unknown.
+- Greedy took 19 s, no k-bump; 3 of 9 chosen sites are mirrors.
+- One SDP solve warned "solution may be inaccurate"; the ~10% margin
+  makes it very unlikely to matter.
 
-### 8.3 Why greedy failed (same mechanism as §7.3)
-
-Candidates tied for the best bound score (within 1e-6), and the bound
-chosen, at each step:
+**Why it failed** (same mechanism as §7.6):
 
 | step | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 |---|---|---|---|---|---|---|---|---|---|
 | tied | 12/24 | 7/23 | 4/22 | 1/21 | 4/20 | 1/19 | 2/18 | 1/17 | 1/16 |
 | bound | 0.014676 | 0.014676 | 0.014676 | 0.014676 | 0.014476 | 0.014196 | 0.013704 | 0.012887 | 0.008397 |
 
-The bound stays at the root value for 4 steps, so the first choices come
-down to tie order. Greedy committed early to **stacked pairs**: the 50%
-bottom site and its mirrored 50% top site on both O-M (sites 2, 5) and
-O-N (14, 17), i.e. two couplings at the same point along the spoke. The
-bound only reflects the cost at the last step (0.0129 → 0.0084). The
-hinge figure's bottom row shows the new design clustered at 20–50% along
-O-M and O-N, versus the old champion's spread to 20%/80%.
+The bound sat at the root value for 4 steps; greedy committed by tie
+order to stacked pairs at the 50% position on O-M (sites 2, 5) and O-N
+(14, 17). The cost only showed up at the last step (0.0129 → 0.0084).
 
-### 8.4 What we learned
+**Lesson**: forward greedy is only as good as its bound is informative.
+More options made the *search* worse even though they can't make the
+*optimum* worse.
 
-1. **Forward greedy is only as good as its bound is informative.** It
-   worked on 3-site birds-foot because the bound happened to separate
-   candidates; adding near-duplicate sites flattens it and greedy
-   degrades. More options made the *search* worse even though they
-   can't make the *optimum* worse.
-2. **Stacking two contacts at the same along-edge position wastes a
-   coupling** (seen on both two-panel and birds-foot). Thickness gives
-   little leverage compared with spread along the edge.
-3. The partial-node SDP bound's looseness mid-tree (§1 table) is now a
-   demonstrated practical problem for greedy, not just a B&B-efficiency
-   concern.
+Results: `results/birdsfoot_six_sites_{results.json,summary.txt}`.
+Figures: `..._3d_before_after.png` (all 24 / old champion / greedy, weakest
+mode overlaid), `..._hinges.png` (one hinge layout per spoke, old vs.
+new), `..._convergence.png` (bound per step vs. achieved, old champion,
+root bound).
 
-### 8.5 Figures
+---
 
-- `birdsfoot_six_sites_3d_before_after.png` — three panels: all 24
-  candidates at start angles (λ_min 0.02995) / old 3-site champion /
-  new greedy result, weakest locked mode overlaid on each.
-- `birdsfoot_six_sites_hinges.png` — one hinge layout per spoke, old
-  champion (top row) vs. new greedy (bottom row): active grooves with θ,
-  unused sites as ×.
-- `birdsfoot_six_sites_convergence.png` — bound chosen per greedy step,
-  with lines for the new achieved value, the old champion, and the root
-  bound.
+## 8. Open Questions and Next Steps
 
-### 8.6 Where to pick up
+In suggested order.
 
-1. **Swap-based local search after greedy** (Fedorov-exchange style; also
-   §4 item 5(b)): repeatedly try replacing one chosen coupling with one
-   unchosen one and keep any swap that raises λ_min (or the certified
-   bound). Cheap. Validate it first on §7's two-panel case, where
-   exhaustive ground truth exists, then rerun here — it can reach the old
-   champion from the greedy set.
-2. **Better tie-breaking in greedy**: lookahead for tied candidates, or
-   penalize picking a site at an along-edge position already used.
-3. **Start from the old champion and allow swaps** to answer the open
-   question directly: can mirrored sites beat 0.009263? (Upper limit
-   0.014676.)
-4. Then try sites spread along the edge (§7.5 item 1) rather than
-   mirrored through the thickness.
+1. **Make greedy reliable (highest priority for placement work).**
+   - Add swap-based local search after greedy (Fedorov-exchange style):
+     try replacing each chosen coupling with each unchosen one, keep any
+     swap that raises λ_min or the certified bound. Validate on the
+     two-panel 6-site case (exhaustive ground truth, §7.6), then rerun
+     birds-foot 24 sites (§7.7), where it can reach the old champion.
+   - Better tie-breaking: lookahead for tied candidates, or penalize a
+     site at an along-crease position already used.
+   - Start from the old champion and allow swaps, to answer directly
+     whether mirrored sites can beat 0.009263 (upper limit 0.014676).
+   - Then try sites spread *along* the crease (e.g. 5%/95%, or a denser
+     grid) rather than mirrored through the thickness (§3).
+2. **Map the λ_min vs. log_product trade-off on the birds-foot ridge.**
+   Sweep the O-M bottom-face coupling's angle, re-optimize the other 8 at
+   each value (warm-started), and plot λ_min vs. log_product. Use it to
+   choose a stage-2 λ_min tolerance (e.g. 1e-4 or 1e-3 relative) as
+   design policy. Good paper-figure candidate.
+3. **Check whether the gores show a plateau or a ridge**: run
+   `polish_tied_restarts` on the §7.4 results.
+4. **Get a physical λ_min for the assembled flasher** (needed before gore
+   numbers mean anything physically). Two options, not mutually
+   exclusive:
+   - *Evaluate the full assembly directly* (all N gores): correct by
+     construction, but cost grows with N, and greedy runtime already grew
+     >20× from m=18 to m=27.
+   - *Cyclic-symmetry / Bloch-wave reduction*: solve one gore under a
+     swept inter-sector phase (N conditions); the global λ_min is the
+     minimum over the sweep. Exact and cheap per solve, but needs the
+     constraint-row machinery generalized to complex, phase-shifted
+     couplings.
+5. **Check the cut condition (§3)** as an explanation for the full-gore
+   k-bumps; if it holds, use it to seed or filter greedy.
+6. **Is the certified gap enough evidence at larger scale?** At the
+   gores there is no exhaustive check; swap search (item 1) would add a
+   second line of evidence.
+7. **Optional: tighten the SDP bound** (higher moment-relaxation level,
+   Lasserre-style). A tighter bound for partial sets would directly fix
+   greedy's flat-score problem.
+8. **Housekeeping**: independent child RNG per restart (§6.3); a
+   `requirements.txt`; the polish's trust-region-floor stopping on
+   birds-foot (§7.5) if the polish becomes central.
