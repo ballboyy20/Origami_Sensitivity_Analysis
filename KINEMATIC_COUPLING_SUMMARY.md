@@ -741,10 +741,15 @@ Decisions (2026-10-13):
 - Design the bound to accept a *list* of K matrices (objective = min
   λ_min over them): it costs nothing now and is exactly what the
   cyclic-symmetry reduction needs later (8.5).
-- Validation ladder, with exhaustive ground truth at each scale:
-  two-panel 6 sites → birds-foot 12 sites (220 subsets known) → full gore
-  (choosing 4 of 27 to drop is only 17,550 subsets, feasible overnight) →
-  the same systems with mixed types.
+- Validation ladder, with exhaustive ground truth where feasible:
+  two-panel 6 sites (20 subsets) → birds-foot 12 sites (220 subsets
+  known) → single gore (6 leaf couplings forced, choose 9 of 12: also 220
+  subsets) → the same systems with mixed types. The full gore under exact
+  constraint (k = 21, 3 forced, choose 18 of 24) is C(24,6) = 134,596
+  subsets: too many to evaluate with Riemannian, but bound-only screening
+  of all of them (~0.2 s each, ~7 h) is feasible as a partial check.
+  (Corrected 2026-10-20: an earlier version said 17,550, which counted
+  the over-constrained k = 23.)
 
 **Phase 3 — arms and other planes (goal C).**
 - Mostly candidate generation once Phases 1–2 exist: arm candidates are
