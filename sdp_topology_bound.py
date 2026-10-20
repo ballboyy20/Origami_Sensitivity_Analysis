@@ -200,7 +200,7 @@ def find_full_rank_reference(system, active_indices, target_rank, length_scale=1
 
 def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
                         length_scale=1.0, target_rank=None, ref_thetas=None,
-                        solver=None, registry=None, **solver_kwargs):
+                        solver=None, registry=None, arcs=None, **solver_kwargs):
     """
     Upper-bounds lambda_min over EVERY completion of a partially-decided
     branch-and-bound node: forced_active couplings fixed on, forced_
@@ -271,6 +271,16 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
         indices this node needs. Passing a shared registry in (built ONCE
         over all m candidate sites) avoids recomputing it for every node
         in a B&B tree.
+    arcs : dict or None
+        Optional per-coupling angle restrictions, {i: (phi, w)}: coupling
+        i's point x_i = (cos 2theta_i, sin 2theta_i) is restricted to the
+        arc of the unit circle centred at angle phi with width w (both in
+        2*theta space, radians, 0 < w <= 2*pi). Each adds the arc's
+        convex-hull cut (Lu, Deng, Zhang & Fang, J. Glob. Optim. 2018,
+        sec. 2): <x_i, (cos phi, sin phi)> >= cos(w/2), on top of the
+        existing disk constraint -- in perspective form,
+        a*cos phi + b*sin phi >= z*cos(w/2), for undecided couplings.
+        Default None: no cuts, identical to the original relaxation.
     solver_kwargs : forwarded to Problem.solve().
 
     Returns
@@ -384,14 +394,23 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
         K_expr = np.zeros((target_rank, target_rank))
         constraints = []
 
+        arcs = arcs or {}
         for kk, i in enumerate(forced_active):
             K_expr = K_expr + K0p[i] + u[kk] * Kcp[i] + v[kk] * Ksp[i]
             constraints.append(cp.SOC(1.0, cp.hstack([u[kk], v[kk]])))
+            if i in arcs and arcs[i][1] < 2 * np.pi:
+                phi, w = arcs[i]
+                constraints.append(np.cos(phi) * u[kk] + np.sin(phi) * v[kk]
+                                   >= np.cos(w / 2))
 
         for kk, i in enumerate(undecided):
             K_expr = K_expr + z[kk] * K0p[i] + a[kk] * Kcp[i] + b[kk] * Ksp[i]
             constraints.append(cp.SOC(z[kk], cp.hstack([a[kk], b[kk]])))
             constraints.append(z[kk] <= 1)
+            if i in arcs and arcs[i][1] < 2 * np.pi:
+                phi, w = arcs[i]
+                constraints.append(np.cos(phi) * a[kk] + np.sin(phi) * b[kk]
+                                   >= np.cos(w / 2) * z[kk])
 
         if undecided:
             constraints.append(cp.sum(z) == n_free_needed)

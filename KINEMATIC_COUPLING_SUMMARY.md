@@ -28,8 +28,12 @@ validated soundly, and reported honestly.
   sites are near-duplicates (55–73% of optimum, §7.6–§7.7). One-swap local
   search fixes every two-panel case but only 48% of birds-foot starts:
   birds-foot has real one-swap traps (96.8% and 90.6% of the champion,
-  §7.8–§7.9). Neither method alone is reliable; branch-and-bound is the
-  candidate for a guarantee.
+  §7.8–§7.9). A branch-and-bound prototype now finds the exhaustive
+  optimum every time on two-panel and birds-foot, with 11 Riemannian
+  evaluations instead of 206 (§7.10). **Its certified gap is 17.6% on
+  birds-foot**, set by leaves whose own bound is loose; arc branching
+  could not tighten them (§7.11). Next candidate: moment (Lasserre)
+  lifting (§8.4).
 - **Choosing among equally good angles: tool built, policy open.**
   Stage-2 log_product polish works, but on birds-foot it only helps if a
   small λ_min sacrifice is allowed (§7.5).
@@ -39,8 +43,8 @@ validated soundly, and reported honestly.
   42 DOFs), so it isn't a valid design under the exact-constraint
   requirement (§8.2).
 
-**Roadmap** (§8): swap search after greedy (built; needs a two-swap
-escape or B&B behind it) → generalize the coupling
+**Roadmap** (§8): swap search after greedy (built) → branch-and-bound
+(prototype built; needs tighter leaf bounds) → generalize the coupling
 model (flat / V-groove / tetrahedral, any face orientation) →
 branch-and-bound selection under an exact row budget → couplings on
 arms.
@@ -142,6 +146,47 @@ gradient sampling is the right tool.
 
 Which of these the gore-scale systems show is untested.
 
+### 2.6 Why the certified bound can be loose, and what can't fix it
+
+The bound relaxes each coupling's point x_i = (cos 2θᵢ, sin 2θᵢ) from the
+unit circle to the filled disk. The disk is the smallest convex region
+containing the circle, which an SDP needs; a point inside the disk is a
+fake groove (the center = the average over all orientations). Because K
+is linear in each x_i (§2.1), this disk relaxation is exactly the
+Lagrangian dual of the real problem:
+
+- real problem: max over angles of min over modes w of wᵀK(x)w
+- bound: min over *mixtures* of modes of max over angles
+
+They differ when the optimum balances two or more weak modes (the
+double-eigenvalue structure of §2.4). The relaxation then blends several
+couplings at once to fake a stiffness no real combination of angles has:
+the looseness is **collective**.
+
+Consequences (verified in §7.11):
+- Restricting any *one* coupling's angle doesn't help; the others
+  compensate.
+- No per-coupling constraint can fix it, in any solver: linear cuts on
+  each x_i separately, LP or SOCP reformulations (which drop the SDP's
+  coupling between modes and are only looser), or the SDP itself.
+- Fixing it needs **product terms** xᵢxⱼ (a lifted relaxation such as
+  the moment/Lasserre hierarchy), which carry information about which
+  angle combinations are jointly achievable.
+
+The bound is still tight for most complete designs (median gap 8.5e-6 on
+birds-foot); it's loose for a minority (up to 55% above achieved).
+
+### 2.7 Whether a design can be fully constrained doesn't depend on luck
+
+For a given set of couplings, the minors of C are trigonometric
+polynomials in the angles, so either almost every angle choice gives full
+rank, or none does. One random angle draw (a few, for numerical safety)
+therefore decides feasibility exactly. Verified on birds-foot: all 206
+feasible sets reached full rank on every one of 20 random draws (4,120
+total); the 14 "no reference" sets on none. Failures are structural, and
+not always caught by row counting: one of the 14 has spokes 3/2/2/2,
+which passes every cut.
+
 ---
 
 ## 3. What We Know About Good Designs
@@ -168,6 +213,11 @@ Which of these the gore-scale systems show is untested.
   common one-swap trap (96.8%) is exactly 2 swaps from the champion, with
   every intermediate step worse. The design space is genuinely
   multi-modal at the topology level, not just in θ (§7.9).
+- **Birds-foot's two champions are exact mirror images** across the
+  line through O, M and N (O-B ↔ O-A). Verified by geometry and by
+  certified bounds of all 220 sets; their Riemannian values differ only
+  by restart noise. 38 of the 220 sets are their own mirror image, so
+  there are 129 distinct designs (§7.10).
 - **Pure λ_min maximization can pick a fragile design.** On the
   birds-foot ridge, the strict λ_min maximizer had the 2nd-worst
   log_product of 20 restarts; giving up 0.1% of λ_min buys +14% in the
@@ -182,11 +232,13 @@ Which of these the gore-scale systems show is untested.
 | DE / Nelder-Mead (`coupling_optimizer.py`) | Superseded for evaluation. | Boundary pinning (§2.2) and nonsmoothness (§2.4); failed to converge on 56 of 206 birds-foot subsets. |
 | Backward greedy pruning (`CouplingOptimizer.prune_couplings`) | Superseded. | Reached 48.8% of the birds-foot champion. |
 | Per-topology SDP relaxation (`sdp_theta_optimizer.py`) | Bound sound; decode unreliable. | Zero violations on 220 subsets, but the relaxed optimum often sits inside the unit disk (no real θ behind it); two different tie-break objectives gave the same poor decode. Now used for the bound only. |
-| Topology-level SDP bound (`sdp_topology_bound.py`) | Sound; loose for partial sets. | Zero violations (root + 98 random nodes). Stays loose through ~10 of 12 decisions, tight only near leaves; nearly exact at complete subsets. Looseness flattens greedy's scores (§7.6–§7.7). |
+| Topology-level SDP bound (`sdp_topology_bound.py`) | Sound; loose for partial sets. | Zero violations (root + 98 random nodes). Stays loose through ~10 of 12 decisions, tight only near leaves. Nearly exact for most complete subsets, but loose for some (up to 55% above achieved), for a structural reason (§2.6). Looseness flattens greedy's scores (§7.6–§7.7). |
 | Riemannian gradient sampling (`riemannian_gradient_sampling.py`) | Validated; the achieved-value method. | Hosseini & Uschmajew's manifold version of Burke–Lewis–Overton. Crosses the 0/π seam cleanly; recovered all 56 subsets DE failed on; statistically tied with DE elsewhere. |
 | Split-responsibility pipeline (`bound_and_evaluate.py`) | Validated at full scale. | SDP for the certified bound, Riemannian for the achieved value (§6, §7.1). |
 | Forward bound-guided greedy (`forward_greedy_topology.py`) | Works on birds-foot; unreliable in general. | Exact birds-foot champion in seconds (§7.3). Misses with near-duplicate sites: 72.8% (two-panel) and 55% (birds-foot 24 sites), because tied bound scores leave early choices to tie order. Can't see mandatory couplings without forcing (§7.4). |
 | One-swap local search (`swap_search.py`) | Validated on two scales; reliable only on two-panel. | Two-panel: 20/20 starts reach the optimum (1 swap each). Birds-foot: 105/220 (48%); the rest stop at one-swap local optima (96.8%, 90.6%). Bound screening prunes most swaps; ~5 min per birds-foot run (§7.8–§7.9). |
+| Branch-and-bound (`branch_and_bound.py`) | Prototype validated on two-panel and birds-foot. | Finds the optimum every time; birds-foot with 11 Riemannian evaluations instead of 206. Certified gap 0.01% (two-panel), 17.6% (birds-foot), limited by loose leaf bounds (§7.10). |
+| Arc branching on loose leaves (`arc_refine.py`) | Sound; ineffective here. | 3,000 nodes moved the worst leaf's bound 0.010890 → 0.010881. Our relaxation has no product terms, so per-coupling arc cuts can't reach the collective looseness (§2.6, §7.11). |
 | Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 checks vs. real system); opt-in. | Big gain on the two-panel plateau; no-op on birds-foot at strict tolerance, +4–14% with a 0.01–0.1% λ_min tolerance (§7.5). |
 
 ---
@@ -213,6 +265,16 @@ request):
   approximation for submodular maximization (Nemhauser, Wolsey & Fisher
   1978 — its (1−1/e) guarantee does not strictly apply here, since greedy
   scores by a bound rather than the objective).
+- **Leaf bounds (unit-modulus structure)**: each x_i on a circle is the
+  "unit-modulus" constraint of phase-only beamforming and radar code
+  design. Argument-division branch-and-bound with arc convex-hull cuts:
+  Lu & Liu (IEEE Trans. Signal Process. 2017); Lu, Deng, Zhang & Fang
+  (J. Glob. Optim. 70, 2018) — works there because their SDP is lifted
+  (§7.11). Bound tightening: Coffrin, Hijazi & Van Hentenryck (QC
+  relaxation for power flow, CP 2015 / IEEE TPS 2016). Moment-SOS
+  hierarchy for polynomial matrix inequalities: Henrion & Lasserre (IEEE
+  TAC 2006); sparse variants TSSOS / CS-TSSOS (Wang, Magron & Lasserre).
+  Mixed-integer SDP for truss topology: Gally, Pfetsch & Ulbrich (SCIP-SDP).
 - **Stage-2 polish**: SQP / trust-region treatment of a semidefinite
   (eigenvalue) constraint, with Overton's first-order model of a multiple
   eigenvalue.
@@ -266,6 +328,9 @@ the final set can't reach full rank.
 | `forward_greedy_gore.py`, `forward_greedy_full_gore.py` | Gore greedy runs |
 | `polish_birdsfoot_champion.py`, `two_panel_six_sites.py`, `birdsfoot_six_sites.py` | 2026-10-13 experiments |
 | `two_panel_swap_validation.py`, `birdsfoot_swap_validation.py` | 2026-10-20 swap-search validations |
+| `branch_and_bound.py` | B&B prototype (`BranchAndBound`), `verify_symmetry`, `reflect` |
+| `bnb_validation.py` | B&B validation against exhaustive ground truth |
+| `arc_refine.py`, `test_arc_refine.py` | Arc-restricted leaf bounds and refinement (`LeafRefiner`); soundness tests |
 | `test_*.py` | Validation suites (one per major module) |
 
 ### 6.3 Engineering notes
@@ -282,6 +347,9 @@ the final set can't reach full rank.
   matters.
 - **Dependencies**: `ezdxf` and `shapely` were added for DXF loading.
   There is no `requirements.txt` yet.
+- **Never verify a symmetry with Riemannian λ_min values**: restart
+  noise (up to ~1% between mirror pairs) can reject a valid symmetry.
+  Use `verify_symmetry` (exact geometry + certified bounds).
 - **Bugs fixed during the full sweep**: (1) the first evaluation of
   `theta_init` in `optimize_theta_riemannian` lacked the multiplicity
   retry every other evaluation had; (2) `bound_and_evaluate_sweep.py`
@@ -611,6 +679,126 @@ Results: `results/birdsfoot_swap_validation_{results.json,summary.txt,starts.png
 (figure: start vs. final λ_min for all 220 starts; three horizontal bands
 are the champion and the two traps).
 
+### 7.10 Branch-and-bound prototype (2026-10-20)
+
+**What it is** (`branch_and_bound.py`, Phase 2 of §8.4, V-grooves only).
+A depth-first search over which couplings are on, off or undecided. At
+each branch, cheapest test first:
+
+1. Cardinality (enough undecided couplings left to reach k).
+2. Cut counting (§8.3): ≥ 6 possible rows across every split of the
+   panels; forced-on rows inside a group ≤ 6 × (group size − 1). Only
+   applied when the design is exactly constrained.
+3. Symmetry: keep only the lexicographically largest design of each
+   mirror family, from user-supplied permutations.
+4. Feasibility by random-angle rank checks (§2.7) — no "unresolved"
+   status.
+5. Certified bound: discard if bound ≤ incumbent × (1 + 1e-4).
+
+Survivors branch on the most-fractional relaxed z. At complete designs
+(leaves), the bound is checked first and Riemannian runs only if the
+bound beats the incumbent. The incumbent starts from greedy + swap search
+and updates whenever a leaf beats it. Output: the best design plus a
+certified upper bound = max(incumbent × (1 + tol), largest bound among
+evaluated leaves).
+
+**Validation** (`bnb_validation.py`), against exhaustive ground truth.
+Configurations: A no starting incumbent, no symmetry; B + symmetry;
+C + greedy/swap incumbent (the planned setup); D start from the 96.8%
+one-swap trap.
+
+| system / config | found | certified gap | branches | Riemannian evals | time |
+|---|---|---|---|---|---|
+| two-panel A / B / C | 0.013330 ✓ | 0.010% | 23 / 25 / 17 | 3 / 2 / 0 | ≤ 2 s |
+| birds-foot A | 0.009263 ✓ | 17.6% | 215 | 24 | 648 s (cold cache) |
+| birds-foot B | 0.009263 ✓ | 17.6% | 213 | 14 | 52 s |
+| birds-foot C | 0.009263 ✓ | 17.6% | 189 | 11 | 15 s |
+| birds-foot D | 0.009263 ✓ | 17.6% | 193 | 11 | 13 s |
+
+(Times after A are with leaf evaluations cached from earlier configs;
+swap search for C's incumbent took another ~5 min.)
+
+- **Finds the optimum every time**, including from the trap that stopped
+  swap search, with **11 Riemannian evaluations instead of 206**.
+- **Symmetry breaking nearly halves leaf evaluations** (24 → 14) but
+  barely changes the branch count (215 → 213): most-fractional branching
+  rarely decides the mirrored O-B/O-A sites early, so symmetry mostly
+  prunes near the leaves.
+- **Cut counting and the rank test pruned nothing** on these systems
+  (every branch passed). They exist for the gores and mixed types.
+- **The certified gap is 17.6% on birds-foot**, and it does not come from
+  the tree search. 15 evaluated leaves have their own bound above the
+  champion while achieving less (bound/achieved 1.14–1.55). The worst is
+  the 96.8% trap `[0,1,2,4,5,7,8,10,11]`: bound 0.010890, achieved
+  0.008969. It is its own mirror image, so symmetry can't remove it.
+  §7.11 is the attempt to tighten these leaf bounds.
+
+**Lesson about symmetry verification.** The first run rejected the
+birds-foot mirror because it compared Riemannian λ_min values of each set
+and its mirror image, and those carry restart noise (mirror pairs differ
+by up to 0.94%). `verify_symmetry` now checks exact geometry (reflected
+points and face normals) and that each set and its mirror have the same
+*certified bound* (deterministic): birds-foot mirror verified to 9e-7
+over all 220 sets; a deliberately wrong permutation fails both checks.
+
+Results: `results/bnb_validation_{results.json,summary.txt,counts.png}`
+(figure: branches visited and Riemannian evaluations per configuration).
+
+### 7.11 Tightening loose leaf bounds with arc branching: tried, ineffective (2026-10-20)
+
+**Method** (`arc_refine.py`; arc cuts added to `sdp_topology_bound` as
+an optional `arcs` argument, off by default). From the unit-modulus
+literature (§5): restrict each coupling's point x = (cos 2θ, sin 2θ) to an
+arc of the circle; the arc's convex hull is the disk plus one chord cut,
+⟨x, m⟩ ≥ cos(w/2), with m the arc's mid-direction and w its width
+(Lu, Deng, Zhang & Fang 2018, sec. 2). Two pieces:
+
+- **B. Bound tightening** (Coffrin, Hijazi & Van Hentenryck): for each
+  coupling, bound each half of its arc; discard halves that can't beat
+  the incumbent.
+- **A. Best-first branching on arcs** (Lu–Deng Algorithm 1): branch on
+  the coupling whose relaxed point is furthest from its arc, bisect that
+  arc; round each node's relaxed solution onto the arcs as a candidate
+  design, polished with Riemannian if promising.
+
+**Soundness** (`test_arc_refine.py`, all pass, checked on the real
+system): no arcs = identical bound; 2,700 angle vectors sampled inside
+random arcs, 0 above their bound (min margin 1.6e-3); halving an arc never
+raised the bound (24 cases); refined bounds never below achieved values.
+
+**Result on the worst leaf** (bound 0.010890; true optimum 0.008969,
+confirmed by the best 5 of 40 Riemannian restarts):
+
+- **B removed nothing.** Restricting any *single* coupling, even to an
+  eighth of its circle, leaves the bound at 0.01089: the other couplings
+  rearrange to compensate.
+- **A: 3,000 nodes, 6,000 SDP solves, 11.5 min → bound 0.010881.** Not
+  one node was pruned (every node produced two surviving children).
+  Rounding gave designs at λ ≈ 0.0002: the relaxed points sit too deep
+  inside their disks to round to anything useful.
+- **The bound only reaches the incumbent when all 9 couplings are pinned
+  together.** Arcs of equal width w on every coupling, centred on the
+  optimum:
+
+  | w (in 2θ) | 360° | 90° | 45° | 22.5° | 11.25° | 5.6° | 2.8° |
+  |---|---|---|---|---|---|---|---|
+  | bound above achieved | 21.4% | 20.8% | 16.9% | 9.3% | 3.3% | 0.9% | 0.2% |
+
+  Proving this leaf needs ~11° on every coupling at once (≈ five halvings
+  each, ~45 levels deep near the optimum).
+
+**Why it worked for Lu & Deng but not here.** Their relaxation is
+*lifted*: a matrix variable C ⪰ ccᴴ holds every product cᵢcⱼ*, so
+narrowing one variable's arc tightens its interactions with all the
+others. Ours has no product terms — K is linear in x — so an arc cut
+only constrains each coupling on its own, while the looseness is
+*collective* (§2.6). Arc branching is the right tool only on top of a
+lifted relaxation.
+
+The arc-width table, the 40-restart check and the 3,000-node run were
+one-off diagnostics (not saved as scripts); each is a few lines with
+`arc_refine.LeafRefiner`.
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -722,6 +910,26 @@ Decisions (2026-10-13):
   independent rows).
 
 **Phase 2 — reliable selection by branch-and-bound (goal A).**
+*Prototype built and validated (2026-10-20, §7.10): V-grooves only,
+depth-first, most-fractional branching, cut counting, generic-rank
+feasibility, manual symmetry breaking, greedy + swap incumbent. Finds the
+optimum on two-panel and birds-foot; birds-foot certified gap 17.6%.*
+
+Next steps, in order:
+1. **Tighten loose leaf bounds with moment lifting** (§2.6). Per loose
+   leaf, one feasibility SDP at the second Henrion–Lasserre level: "is
+   there any x on the circles with K(x) ⪰ (incumbent)·I?" If infeasible,
+   the leaf is proved. Birds-foot size: ~7,300 moment variables, PSD
+   blocks 190×190 and 342×342 — test first on the worst leaf
+   (`[0,1,2,4,5,7,8,10,11]`). If level 2 alone isn't tight enough, add
+   arc branching on top (`arc_refine.py` composes with it): that is the
+   Lu–Deng algorithm, transferred correctly.
+2. If lifting doesn't help either: accept a larger certified gap, or
+   look for another approach.
+3. Branch on mirror pairs first, so symmetry prunes higher in the tree.
+4. Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
+
+Original Phase 2 design notes:
 - Formulation: one choice per site from {none, flat, V, tet}; exact row
   budget Σ rows = target_rank. In the SDP relaxation: z_flat + z_V +
   z_tet ≤ 1 per site, Σ (rows × z) = target_rank.
@@ -736,8 +944,8 @@ Decisions (2026-10-13):
      incumbents early.
   5. At leaves, use the certified bound (near-exact for complete sets) as
      a filter; run Riemannian only where the bound beats the incumbent.
-  6. Only if still too slow: tighter relaxations (valid inequalities;
-     Lasserre-style).
+  6. Tighter relaxations — now known to be needed for the certified gap,
+     not just speed (§7.11): moment lifting first.
 - Design the bound to accept a *list* of K matrices (objective = min
   λ_min over them): it costs nothing now and is exactly what the
   cyclic-symmetry reduction needs later (8.5).
