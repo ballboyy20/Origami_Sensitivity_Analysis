@@ -1,0 +1,36 @@
+Branch-and-bound validation (exhaustive ground truth)
+==============================================================================
+Prototype: depth-first, most-fractional branching, cut counting, generic-rank feasibility, manual symmetry breaking, prune tolerance 1e-4.
+
+two-panel: m=6, k=3, exhaustive optimum 0.013330
+   symmetry 'thickness mirror': verified (geometry: point err 0.0e+00, normal err 0.0e+00; bounds over 20 sets: max rel diff 4.6e-08, 0 feasibility mismatches; noisy exhaustive lambda diff 5.5e-13, info only)
+   symmetry 'y mirror': verified (geometry: point err 5.6e-17, normal err 0.0e+00; bounds over 20 sets: max rel diff 6.0e-08, 0 feasibility mismatches; noisy exhaustive lambda diff 4.8e-13, info only)
+   symmetry 'both': verified (geometry: point err 5.6e-17, normal err 0.0e+00; bounds over 20 sets: max rel diff 4.9e-08, 0 feasibility mismatches; noisy exhaustive lambda diff 6.0e-13, info only)
+   greedy [1, 2, 5] -> swap search [0, 1, 2] lambda_min 0.013330 (4s)
+   A: PASS  found 0.013330 [0, 1, 2]  start 0.000000; certified UB 0.013331 (gap 1.33e-06, 0.010%)
+      nodes 23; pruned: bound 5, symmetry 0, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 7: 3 pruned by bound, 1 infeasible, 3 evaluated; incumbent updates 3; 3s
+   B: PASS  found 0.013330 [0, 1, 2]  start 0.000000; certified UB 0.013331 (gap 1.33e-06, 0.010%)
+      nodes 25; pruned: bound 3, symmetry 7, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 3: 0 pruned by bound, 1 infeasible, 2 evaluated; incumbent updates 2; 2s
+   C: PASS  found 0.013330 [0, 1, 2]  start 0.013330; certified UB 0.013331 (gap 1.33e-06, 0.010%)
+      nodes 17; pruned: bound 5, symmetry 3, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 1: 1 pruned by bound, 0 infeasible, 0 evaluated; incumbent updates 0; 0s
+   shared cache: 5 Riemannian evaluations, 20 leaf bound solves
+
+birds-foot: m=12, k=9, exhaustive optimum 0.009263
+   symmetry 'O-B <-> O-A mirror': verified (geometry: point err 0.0e+00, normal err 0.0e+00; bounds over 220 sets: max rel diff 9.1e-07, 0 feasibility mismatches; noisy exhaustive lambda diff 9.4e-03, info only)
+   greedy [0, 1, 2, 3, 5, 6, 7, 8, 11] -> swap search [0, 1, 2, 3, 5, 6, 7, 8, 11] lambda_min 0.009263 (303s)
+   A: PASS  found 0.009263 [0, 1, 2, 3, 5, 6, 7, 8, 11]  start 0.000000; certified UB 0.010890 (gap 1.63e-03, 17.559%)
+      nodes 215; pruned: bound 37, symmetry 0, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 71: 46 pruned by bound, 1 infeasible, 24 evaluated; incumbent updates 9; 648s
+   B: PASS  found 0.009263 [0, 1, 2, 3, 5, 6, 7, 8, 11]  start 0.000000; certified UB 0.010890 (gap 1.63e-03, 17.559%)
+      nodes 213; pruned: bound 36, symmetry 37, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 34: 19 pruned by bound, 1 infeasible, 14 evaluated; incumbent updates 4; 52s
+   C: PASS  found 0.009263 [0, 1, 2, 3, 5, 6, 7, 8, 11]  start 0.009263; certified UB 0.010890 (gap 1.63e-03, 17.559%)
+      nodes 189; pruned: bound 37, symmetry 28, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 30: 18 pruned by bound, 1 infeasible, 11 evaluated; incumbent updates 0; 15s
+   D: PASS  found 0.009263 [0, 1, 2, 3, 5, 6, 7, 8, 11]  start 0.008969; certified UB 0.010890 (gap 1.63e-03, 17.559%)
+      nodes 193; pruned: bound 37, symmetry 29, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 31: 19 pruned by bound, 1 infeasible, 11 evaluated; incumbent updates 2; 13s
+   shared cache: 25 Riemannian evaluations, 220 leaf bound solves
