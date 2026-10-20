@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-10-13.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-10-20.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -25,8 +25,11 @@ validated soundly, and reported honestly.
   (§7.1).
 - **Choosing *which* couplings: partly solved.** Forward bound-guided
   greedy found the exact birds-foot champion, but fails when candidate
-  sites are near-duplicates (55–73% of optimum, §7.6–§7.7). It needs a
-  correction step (swap search) before it can be trusted.
+  sites are near-duplicates (55–73% of optimum, §7.6–§7.7). One-swap local
+  search fixes every two-panel case but only 48% of birds-foot starts:
+  birds-foot has real one-swap traps (96.8% and 90.6% of the champion,
+  §7.8–§7.9). Neither method alone is reliable; branch-and-bound is the
+  candidate for a guarantee.
 - **Choosing among equally good angles: tool built, policy open.**
   Stage-2 log_product polish works, but on birds-foot it only helps if a
   small λ_min sacrifice is allowed (§7.5).
@@ -36,7 +39,8 @@ validated soundly, and reported honestly.
   42 DOFs), so it isn't a valid design under the exact-constraint
   requirement (§8.2).
 
-**Roadmap** (§8): swap search after greedy → generalize the coupling
+**Roadmap** (§8): swap search after greedy (built; needs a two-swap
+escape or B&B behind it) → generalize the coupling
 model (flat / V-groove / tetrahedral, any face orientation) →
 branch-and-bound selection under an exact row budget → couplings on
 arms.
@@ -75,8 +79,12 @@ wrong and has been fixed, see §7.6.)
 | Single flasher gore | 6 (two-hub tree) | 18 | 15 | `flasher_gore_system.py` (DXF) | none |
 | Full gore + neighbor panels | 8 | 27 | 21 (greedy's set needed 23: over-constrained, §8.2) | `full_flasher_gore_system.py` (DXF) | none |
 
-Best known values: two-panel 0.013330; birds-foot 0.009263
-(`[0,1,2,3,5,6,7,8,11]`, spokes O-M:3, O-B:2, O-N:3, O-A:1).
+Best known values: two-panel 0.013330 (`[0,1,2]` and its mirror image
+`[3,4,5]` in the 6-site system); birds-foot 0.009263, reached by **two**
+designs: `[0,1,2,3,5,6,7,8,11]` (O-M:3, O-B:2, O-N:3, O-A:1) and
+`[0,1,2,5,6,7,8,9,11]` (O-M:3, O-B:1, O-N:3, O-A:2), equal to 6e-7. The
+second is in the exhaustive sweep but was never reported (§7.9). It looks
+like a mirror image of the first; the geometry hasn't been checked.
 
 ---
 
@@ -156,6 +164,10 @@ Which of these the gore-scale systems show is untested.
 - **More couplings help a lot — but that's out of scope** under the
   exact-constraint requirement (§8.2). Two-panel, best λ_min by k: 0.0133
   (k=3), 0.0200 (k=4), 0.0240 (k=5), 0.0300 (k=6) (§7.6).
+- **Good designs can be several swaps apart.** On birds-foot, the most
+  common one-swap trap (96.8%) is exactly 2 swaps from the champion, with
+  every intermediate step worse. The design space is genuinely
+  multi-modal at the topology level, not just in θ (§7.9).
 - **Pure λ_min maximization can pick a fragile design.** On the
   birds-foot ridge, the strict λ_min maximizer had the 2nd-worst
   log_product of 20 restarts; giving up 0.1% of λ_min buys +14% in the
@@ -174,6 +186,7 @@ Which of these the gore-scale systems show is untested.
 | Riemannian gradient sampling (`riemannian_gradient_sampling.py`) | Validated; the achieved-value method. | Hosseini & Uschmajew's manifold version of Burke–Lewis–Overton. Crosses the 0/π seam cleanly; recovered all 56 subsets DE failed on; statistically tied with DE elsewhere. |
 | Split-responsibility pipeline (`bound_and_evaluate.py`) | Validated at full scale. | SDP for the certified bound, Riemannian for the achieved value (§6, §7.1). |
 | Forward bound-guided greedy (`forward_greedy_topology.py`) | Works on birds-foot; unreliable in general. | Exact birds-foot champion in seconds (§7.3). Misses with near-duplicate sites: 72.8% (two-panel) and 55% (birds-foot 24 sites), because tied bound scores leave early choices to tie order. Can't see mandatory couplings without forcing (§7.4). |
+| One-swap local search (`swap_search.py`) | Validated on two scales; reliable only on two-panel. | Two-panel: 20/20 starts reach the optimum (1 swap each). Birds-foot: 105/220 (48%); the rest stop at one-swap local optima (96.8%, 90.6%). Bound screening prunes most swaps; ~5 min per birds-foot run (§7.8–§7.9). |
 | Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 checks vs. real system); opt-in. | Big gain on the two-panel plateau; no-op on birds-foot at strict tolerance, +4–14% with a 0.01–0.1% λ_min tolerance (§7.5). |
 
 ---
@@ -248,9 +261,11 @@ the final set can't reach full rank.
 | `bound_and_evaluate.py` | Split-responsibility pipeline, multistart, polish hook |
 | `log_product_polish.py` | Stage-2 polish |
 | `forward_greedy_topology.py` | Forward greedy; birds-foot run |
+| `swap_search.py` | One-swap local search (`swap_search`) and the cached, per-set-seeded `SetEvaluator` |
 | `dxf_to_panels.py`, `gore_system_common.py`, `flasher_gore_system.py`, `full_flasher_gore_system.py` | DXF geometry loading and gore systems |
 | `forward_greedy_gore.py`, `forward_greedy_full_gore.py` | Gore greedy runs |
 | `polish_birdsfoot_champion.py`, `two_panel_six_sites.py`, `birdsfoot_six_sites.py` | 2026-10-13 experiments |
+| `two_panel_swap_validation.py`, `birdsfoot_swap_validation.py` | 2026-10-20 swap-search validations |
 | `test_*.py` | Validation suites (one per major module) |
 
 ### 6.3 Engineering notes
@@ -519,6 +534,83 @@ mode overlaid), `..._hinges.png` (one hinge layout per spoke, old vs.
 new), `..._convergence.png` (bound per step vs. achieved, old champion,
 root bound).
 
+### 7.8 One-swap local search: two panels, 6 sites (2026-10-20)
+
+**Method** (`swap_search.py`, Phase 0 of §8.4). From a starting set of k
+couplings, each pass considers every swap (one active out, one inactive
+in; set size and row count unchanged):
+
+1. Screen each swapped set with its certified bound (complete set, so
+   nothing undecided). Drop sets that can't reach full rank, and sets
+   whose bound can't beat the current achieved λ_min — a rigorous rule.
+2. Evaluate survivors (certified bound + 5-restart Riemannian) in
+   descending bound order, stopping once no remaining bound can beat the
+   best found. This finds the true best swap while evaluating few sets.
+3. Accept it if λ_min improves by > 1e-4 relative (above the restart
+   noise measured in §7.2); otherwise stop at a one-swap local optimum.
+
+Each set's evaluation is seeded from the set itself and cached, so a set
+always gets the same value whichever path reaches it.
+
+**Validation** (`two_panel_swap_validation.py`): swap search from all 20
+three-site starts, against the exhaustive ground truth of §7.6.
+
+- **20/20 starts reached the optimum** (0.013330), each ending at the
+  nearer of the two mirror-image optima. That includes greedy's
+  {p2, p3, p3′} (fixed by swapping p3′ → p1) and both rank-deficient
+  starts.
+- Every non-optimal start needed exactly 1 swap: on two-panel every set
+  is one swap from an optimum, so this is an easy case.
+- Bound screening did most of the work: 342 swaps considered, 36
+  infeasible, 288 pruned by bound, 18 evaluated in full (one per feasible
+  set). 21 s total.
+- Cross-check against §7.6's saved values: max difference 5.6e-13, 0
+  feasibility disagreements.
+
+Results: `results/two_panel_swap_validation_{results.json,summary.txt,starts.png}`
+(figure: start vs. final λ_min per starting set).
+
+### 7.9 One-swap local search: birds-foot, 12 sites (2026-10-20)
+
+**Validation** (`birdsfoot_swap_validation.py`): swap search from all 220
+size-9 starts, against the exhaustive sweep of §7.1.
+
+**Result: 105/220 starts (47.7%) reached the champion value.**
+
+| final design | λ_min | % of champion | starts |
+|---|---|---|---|
+| `[0,1,2,3,5,6,7,8,11]` (the known champion) | 0.009263 | 100% | 80 |
+| `[0,1,2,5,6,7,8,9,11]` (O-B:1, O-A:2) | 0.009263 | 100% | 25 |
+| `[0,1,2,4,5,7,8,10,11]` | 0.008969 | 96.8% | 89 |
+| `[0,2,3,4,5,6,8,10,11]`, `[0,2,4,5,6,8,9,10,11]` (tie) | 0.008392 | 90.6% | 26 |
+
+- **A second design ties the champion** (equal to 6e-7). It was in the
+  §7.1 sweep all along; only one was ever reported.
+- **The traps are genuine one-swap local optima**, confirmed with the
+  sweep's independent values: the 96.8% design's best neighbor is 0.008657,
+  lower than its own value. The champion is exactly 2 swaps from it.
+  The two 90.6% designs are each other's best neighbors.
+- **The bound can't certify the traps**: some neighbors' bounds (up to
+  0.0098) exceed the trap's value, so they had to be evaluated in full.
+- Every run ended at ≥ 90.6% of the champion. Runs are short: median 2
+  accepted swaps, max 3.
+- **Cost per run (as if nothing were cached)**: median 59 sets bounded and
+  11 evaluated in full, about 5 minutes. The full 220-start run took
+  96 min (at most one evaluation per feasible set, thanks to the cache).
+- Cross-check against §7.1's saved values: median difference 3e-5, all
+  206 sets agree on feasibility. The largest difference (3%) is one set
+  at λ ≈ 0.005 where one seed's restarts found a better local optimum;
+  it doesn't affect any conclusion.
+
+**Lesson**: one-swap search fixes greedy's tie-order mistakes when the
+optimum is one swap away, but birds-foot's topology landscape has real
+local optima. On its own it isn't reliable; its job is to supply a strong
+starting incumbent.
+
+Results: `results/birdsfoot_swap_validation_{results.json,summary.txt,starts.png}`
+(figure: start vs. final λ_min for all 220 starts; three horizontal bands
+are the champion and the two traps).
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -592,15 +684,23 @@ Decisions (2026-10-13):
 
 ### 8.4 Plan, in order
 
-**Phase 0 — swap search after greedy (quick).**
-- Fedorov-exchange-style local search: try replacing each chosen
-  coupling with each unchosen one; keep any swap that improves λ_min (or
-  the certified bound). For mixed types, a swap must keep the row count
-  exact.
-- Validate on the two-panel 6-site case (exhaustive truth, §7.6), then
-  birds-foot 24 sites (§7.7): it should reach the old champion.
-- Needed regardless: it supplies the starting incumbent that makes B&B
-  prune.
+**Phase 0 — swap search after greedy.** *Built and validated
+(2026-10-20, §7.8–§7.9); not sufficient on its own.*
+- Done: one-swap, best-improvement search with rigorous bound screening
+  (`swap_search.py`). Two-panel: 20/20 starts reach the optimum.
+  Birds-foot: 105/220; the rest stop at one-swap local optima.
+- Options still open (can be combined):
+  - *Two-swap escape when stuck*: the main birds-foot trap is exactly 2
+    swaps from the champion. 108 extra sets per escape on birds-foot,
+    ~3,800 at 24 sites (bound screening carries the load there).
+  - *Multiple random starts*: each start reaches the champion with
+    probability ~0.48, so ~5 starts would very likely find it. Cheap,
+    but only a statistical guarantee.
+- Not yet run: birds-foot 24 sites from greedy's set (§7.7; 4 swaps from
+  the old champion), and from the old champion itself.
+- Role going forward: supplies B&B's starting incumbent. Every birds-foot
+  run ended at ≥ 90.6% of the champion, which is what B&B pruning needs.
+- For mixed coupling types, a swap must keep the row count exact.
 
 **Phase 1 — generalize the coupling model (goal B + groundwork for C).**
 - A contact = a set of unit normals at a point, built in a local frame
