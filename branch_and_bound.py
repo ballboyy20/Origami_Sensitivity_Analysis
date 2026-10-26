@@ -1,21 +1,30 @@
 """
 branch_and_bound.py
 
-Prototype branch-and-bound (B&B) for choosing which k of m candidate
-couplings to activate -- Phase 2 of the roadmap (KINEMATIC_COUPLING_SUMMARY.md
-sec 8.4), in its first, V-groove-only form.
+Prototype branch-and-bound (B&B) for choosing which candidate couplings to
+activate -- Phase 2 of the roadmap (KINEMATIC_COUPLING_SUMMARY.md sec 8.4).
+Two modes:
+
+  - V-grooves only: choose k of m candidates (2 rows each).
+  - Mixed types (pass `rows` and `site_of`, e.g. from
+    coupling_types.TypedCandidates): each site hosts at most one of its
+    candidates (flat / V-groove / socket), and the design must have
+    exactly target_rank rows. Turning a candidate on turns the rest of its
+    site off.
 
 A NODE fixes some couplings on (forced_active), some off (forced_inactive),
 and leaves the rest undecided. Search is depth-first from the root. At
 each node, in order of cost:
 
-  1. Cardinality: enough undecided couplings left to reach k, and not too
-     many forced on.
+  1. Cardinality: enough rows still available to reach the budget, and not
+     too many forced on.
   2. Cut counting (exact constraint, sec 8.3): for every split of the
      panels into two groups, the couplings that could still be active
      must supply >= 6 rows across the split, and the forced-active rows
      inside each group must not exceed 6*(group size - 1) (more would be
-     redundant).
+     redundant). Likewise the forced-active rows on any one crease (one
+     panel pair) must not exceed 6; for a bridge crease this together
+     with the >= 6 rule makes its rows exactly 6.
   3. Symmetry: user-supplied panel-geometry symmetries (as permutations of
      coupling indices). Only the lexicographically largest design of each
      symmetric family is kept; a node is discarded as soon as its decided
@@ -29,7 +38,8 @@ each node, in order of cost:
 Surviving nodes branch on the MOST-FRACTIONAL undecided coupling (relaxed z
 closest to 0.5), exploring the child that rounds z first (z >= 0.5 -> on).
 
-A LEAF is a complete k-set: certified bound first (via the shared
+A LEAF is a complete design (k couplings, or exactly the row budget):
+certified bound first (via the shared
 SetEvaluator), then the full Riemannian evaluation only if the bound beats
 the incumbent. The incumbent starts from a supplied design (normally
 greedy + swap search) and is updated whenever a leaf beats it.
@@ -54,7 +64,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from sdp_topology_bound import sdp_topology_bound
 
-ROWS_PER_COUPLING = 2      # V-grooves only, for this prototype
+ROWS_PER_COUPLING = 2      # V-groove-only mode
 
 
 def _rank_full(system, active, target_rank, theta, length_scale):
@@ -82,7 +92,7 @@ def reflect(points, planes):
 
 
 def verify_symmetry(evaluator, perm, planes, k, n_sample_sets=300, rel_tol=1e-4,
-                    seed=0):
+                    seed=0, designs=None):
     """
     Check that `perm` (perm[i] = image of coupling i) is a genuine symmetry
     before using it to discard branches -- a wrong one would silently
@@ -96,6 +106,8 @@ def verify_symmetry(evaluator, perm, planes, k, n_sample_sets=300, rel_tol=1e-4,
       2. Certified bounds (deterministic convex optimum): for every k-set
          (or n_sample_sets random ones, if there are more), the set and its
          image have the same bound to rel_tol and the same feasibility.
+         With `designs` (a list of complete designs, e.g. mixed-type ones),
+         those are sampled instead of k-sets and `k` is unused.
 
     Returns (ok, details dict).
     """
@@ -110,7 +122,7 @@ def verify_symmetry(evaluator, perm, planes, k, n_sample_sets=300, rel_tol=1e-4,
     normal_err = float(np.max(1.0 - np.abs(np.sum(nrm_r * nrm[perm], axis=1))))
     geom_ok = point_err < 1e-9 and normal_err < 1e-9
 
-    all_sets = list(combinations(range(m), k))
+    all_sets = list(designs) if designs is not None else list(combinations(range(m), k))
     rng = np.random.default_rng(seed)
     if len(all_sets) > n_sample_sets:
         idx = rng.choice(len(all_sets), size=n_sample_sets, replace=False)
@@ -140,26 +152,44 @@ class BranchAndBound:
     evaluator : swap_search.SetEvaluator
         Shared, cached leaf evaluator (also holds system, registry,
         target_rank, base angles). Sharing it with a prior swap search
-        reuses that search's evaluations.
-    k : int
-        Number of couplings to activate.
+        reuses that search's evaluations. In mixed mode it must be built
+        with the same rows/sites.
+    k : int or None
+        Number of couplings to activate (V-groove-only mode). Ignored in
+        mixed mode, where the budget is target_rank rows.
     symmetries : list of permutations (each a list/array p with p[i] = image
         of coupling i), or None. Each must be a genuine symmetry of the
         system (same lambda_min for a design and its image) -- verify
-        before passing one in.
+        before passing one in. In mixed mode these are candidate
+        permutations (TypedCandidates.lift_perm).
     fixed_active : couplings that must be active (e.g. leaf-panel ones).
     prune_rel_tol : relative pruning tolerance (bound <= incumbent*(1+tol)).
     n_rank_draws : random-theta draws for the generic-rank test.
+    rows, site_of : (m,) int arrays, or None for V-groove-only mode.
     """
 
-    def __init__(self, evaluator, k, symmetries=None, fixed_active=(),
-                 prune_rel_tol=1e-4, n_rank_draws=3, seed=0, verbose=True):
+    def __init__(self, evaluator, k=None, symmetries=None, fixed_active=(),
+                 prune_rel_tol=1e-4, n_rank_draws=3, seed=0, verbose=True,
+                 rows=None, site_of=None):
         self.ev = evaluator
         self.system = evaluator.system
         self.m = evaluator.m
         self.k = k
         self.target_rank = evaluator.target_rank
         self.length_scale = evaluator.length_scale
+        self.mixed = rows is not None
+        if self.mixed:
+            self.rows = np.asarray(rows, dtype=int)
+            self.site_of = (np.arange(self.m) if site_of is None
+                            else np.asarray(site_of, dtype=int))
+            self.budget = self.target_rank
+        else:
+            self.rows = np.full(self.m, ROWS_PER_COUPLING)
+            self.site_of = np.arange(self.m)
+            self.budget = ROWS_PER_COUPLING * k
+        self.siblings = [[j for j in range(self.m)
+                          if j != i and self.site_of[j] == self.site_of[i]]
+                         for i in range(self.m)]
         self.symmetries = [np.asarray(p, dtype=int) for p in (symmetries or [])]
         self.fixed_active = sorted(int(i) for i in fixed_active)
         self.prune_rel_tol = prune_rel_tol
@@ -179,23 +209,55 @@ class BranchAndBound:
                     self.cuts.append(S)
 
     # ── node tests ──────────────────────────────────────────────────────
+    def _site_rows(self, fa, und):
+        """{site: rows} for the forced-active candidate at each taken site,
+        and the most rows any undecided candidate offers at each free site."""
+        best = {int(self.site_of[i]): int(self.rows[i]) for i in fa}
+        taken = set(best)
+        for i in und:
+            s = int(self.site_of[i])
+            if s not in taken:
+                best[s] = max(best.get(s, 0), int(self.rows[i]))
+        return best, taken
+
+    def _completion(self, fa, und):
+        """(rows forced, most rows reachable, the candidates achieving that
+        maximum: the largest-row undecided candidate at each free site)."""
+        r_fa = int(sum(self.rows[i] for i in fa))
+        taken = {int(self.site_of[i]) for i in fa}
+        pick = {}
+        for i in und:
+            s = int(self.site_of[i])
+            if s not in taken and (s not in pick or self.rows[i] > self.rows[pick[s]]):
+                pick[s] = i
+        return r_fa, r_fa + int(sum(self.rows[i] for i in pick.values())), sorted(pick.values())
+
     def _cut_ok(self, fa, und):
-        # Both rules assume exact constraint (rows == target_rank); skip
+        # All rules assume exact constraint (rows == target_rank); skip
         # them otherwise rather than prune something valid.
-        if ROWS_PER_COUPLING * self.k != self.target_rank:
+        if self.budget != self.target_rank:
             return True
-        possible = set(fa) | set(und)
+        crease_rows = {}
+        for i in fa:
+            pair = frozenset(self.ends[i])
+            crease_rows[pair] = crease_rows.get(pair, 0) + int(self.rows[i])
+            if crease_rows[pair] > 6:
+                return False
+        site_rows, _ = self._site_rows(fa, und)
+        site_ends = {int(self.site_of[i]): self.ends[i] for i in range(self.m)}
         for S in self.cuts:
-            cross = sum(1 for i in possible if (self.ends[i][0] in S) != (self.ends[i][1] in S))
-            if ROWS_PER_COUPLING * cross < 6:
+            cross = sum(r for s, r in site_rows.items()
+                        if (site_ends[s][0] in S) != (site_ends[s][1] in S))
+            if cross < 6:
                 return False
             for side, size in ((S, len(S)), (None, self.n_panels - len(S))):
                 if side is None:
-                    inside = sum(1 for i in fa if self.ends[i][0] not in S
+                    inside = sum(self.rows[i] for i in fa if self.ends[i][0] not in S
                                  and self.ends[i][1] not in S)
                 else:
-                    inside = sum(1 for i in fa if self.ends[i][0] in S and self.ends[i][1] in S)
-                if ROWS_PER_COUPLING * inside > 6 * (size - 1):
+                    inside = sum(self.rows[i] for i in fa
+                                 if self.ends[i][0] in S and self.ends[i][1] in S)
+                if inside > 6 * (size - 1):
                     return False
         return True
 
@@ -242,18 +304,20 @@ class BranchAndBound:
         def thresh():
             return inc_lam * (1 + self.prune_rel_tol)
 
-        stack = [(tuple(self.fixed_active), ())]   # (forced_active, forced_inactive)
+        root_fi = sorted({j for i in self.fixed_active for j in self.siblings[i]})
+        stack = [(tuple(self.fixed_active), tuple(root_fi))]   # (forced_active, forced_inactive)
         while stack and st['nodes'] < max_nodes:
             fa, fi = stack.pop()
             st['nodes'] += 1
             und = [i for i in range(self.m) if i not in fa and i not in fi]
 
             # cardinality, and normalize forced completions to leaves
-            if len(fa) > self.k or len(fa) + len(und) < self.k:
+            r_fa, r_most, pick = self._completion(fa, und)
+            if r_fa > self.budget or r_most < self.budget:
                 st['pruned_cardinality'] += 1
                 continue
-            if len(fa) == self.k or len(fa) + len(und) == self.k:
-                leaf = sorted(fa) if len(fa) == self.k else sorted(set(fa) | set(und))
+            if r_fa == self.budget or r_most == self.budget:
+                leaf = sorted(fa) if r_fa == self.budget else sorted(set(fa) | set(pick))
                 x = np.zeros(self.m, dtype=int); x[leaf] = 1
                 if not self._symmetry_ok(x):
                     st['pruned_symmetry'] += 1
@@ -291,10 +355,11 @@ class BranchAndBound:
                 st['pruned_rank'] += 1
                 continue
             try:
+                mixed_kw = dict(rows=self.rows, sites=self.site_of) if self.mixed else {}
                 res = sdp_topology_bound(self.system, list(fa), list(fi), und, self.k,
                                          length_scale=self.length_scale,
                                          target_rank=self.target_rank, ref_thetas=ref,
-                                         registry=self.ev.registry)
+                                         registry=self.ev.registry, **mixed_kw)
                 b, z = res['t'], res['z']
             except (RuntimeError, ValueError):
                 st['sdp_errors'] += 1          # can't bound: branch, never prune
@@ -305,7 +370,8 @@ class BranchAndBound:
 
             j = int(np.argmin(np.abs(z - 0.5)))
             v = und[j]
-            on = (tuple(sorted(fa + (v,))), fi)
+            on = (tuple(sorted(fa + (v,))),
+                  tuple(sorted(set(fi) | {j for j in self.siblings[v] if j in und})))
             off = (fa, tuple(sorted(fi + (v,))))
             # depth-first: push the preferred child last so it pops first
             stack.extend([off, on] if z[j] >= 0.5 else [on, off])

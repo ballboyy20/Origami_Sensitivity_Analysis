@@ -34,19 +34,37 @@ class RigidPanel:
 
 class KinematicCoupling:
     """
-    One sphere-in-V-groove contact between two panels.
-    
+    One sphere contact between two panels, of one of three types:
+
+      'flat'    — sphere on a flat:      1 normal (the face normal), 1 row.
+      'vgroove' — sphere in a V-groove:  2 normals n1, n2, 2 rows.
+      'tet'     — sphere in a tetrahedral (trihedral) socket: 3 normals,
+                  evenly spaced 120 deg apart about the face normal, 3 rows.
+
     The groove is cut into the mating face. Its orientation is defined
-    by theta: the angle of the groove bisector measured from the +Y axis,
-    rotating about the face normal (X-axis for a face at x=1).
-    
-    The V-angle is fixed at 90 degrees (each face is 45 deg from bisector).
-    This produces two orthogonal normals n1, n2 and two constraint rows.
+    by theta: the angle of the groove axis u measured from the in-plane
+    reference direction ref_dir, rotating about the face normal.
+
+    The V-angle is fixed at 90 degrees (each wall is 45 deg from the face
+    normal), and the tetrahedral socket's walls use the same 45 deg tilt,
+    so every contact normal of every type makes the same angle with the
+    face normal except the flat's. Each type carries an equal (unit)
+    weight per row.
+
+    Flats and tetrahedral sockets have no angle dependence in K: a flat
+    has one fixed normal, and the socket's sum of n n^T over its three
+    evenly spaced normals is the same for every theta. set_theta still
+    rotates the socket's normals (so drawings show something definite),
+    but K is unchanged.
     """
-    
+
     HALF_ANGLE = np.pi / 4  # 45 degrees — fixed 90 deg V-groove
-    
-    def __init__(self, panel_A, panel_B, point, face_normal, theta=0.0):
+    TET_TILT   = np.pi / 4  # 45 degrees — socket walls, same as the groove's
+    KINDS      = ('flat', 'vgroove', 'tet')
+    N_ROWS     = {'flat': 1, 'vgroove': 2, 'tet': 3}
+
+    def __init__(self, panel_A, panel_B, point, face_normal, theta=0.0,
+                 kind='vgroove', ref_dir=None):
         """
         panel_A:     RigidPanel — panel carrying the sphere
         panel_B:     RigidPanel — panel carrying the groove
@@ -54,22 +72,39 @@ class KinematicCoupling:
         face_normal: (3,) unit vector normal to the mating face
                      (points from panel_B toward panel_A)
         theta:       groove rotation angle (radians) about face_normal,
-                     measured from +Z at theta=0
+                     measured from ref_dir at theta=0
+        kind:        'flat', 'vgroove' or 'tet'
+        ref_dir:     (3,) in-plane reference direction for theta = 0.
+                     Only its component in the mating-face plane is used.
+                     Defaults to +Z, which suits faces orthogonal to the
+                     XY plane (every crease face so far); a face parallel
+                     to the panel must supply its own.
         """
+        if kind not in self.KINDS:
+            raise ValueError(f"kind must be one of {self.KINDS}, got {kind!r}")
         self.panel_A    = panel_A
         self.panel_B    = panel_B
         self.point      = np.array(point,       dtype=float)
         self.face_normal = np.array(face_normal, dtype=float)
         self.face_normal /= np.linalg.norm(self.face_normal)
         self.theta      = theta
+        self.kind       = kind
+        self.n_rows     = self.N_ROWS[kind]
 
-        self.active = True   # set False to exclude from constraint matrix (not yet implemnted)
-        
+        ref = np.array([0., 0., 1.]) if ref_dir is None else np.array(ref_dir, dtype=float)
+        ref = ref - np.dot(ref, self.face_normal) * self.face_normal
+        if np.linalg.norm(ref) < 1e-9:
+            raise ValueError("ref_dir is parallel to face_normal; supply an "
+                             "in-plane reference direction for this face")
+        self.ref_dir = ref / np.linalg.norm(ref)
+
+        self.active = True   # set False to exclude from constraint matrix
+
         self._compute_groove_normals()
-    
+
     def _compute_groove_normals(self):
         """
-        Build n1 and n2 from theta.
+        Build the contact normals from theta.
 
         The groove is a V-shaped channel cut into the mating face, as in a
         Kelvin/Maxwell kinematic coupling: the two walls open toward
@@ -78,47 +113,57 @@ class KinematicCoupling:
         direction. The groove's own length axis u — the one direction each
         wall's normal stays perpendicular to, and therefore the only
         direction sliding remains free — lies in the mating-face plane and
-        is rotated by theta, measured from +Z at theta=0.
+        is rotated by theta, measured from ref_dir at theta=0.
 
-        Since mating faces are always orthogonal to the XY plane,
-        face_normal always lies in XY, so Z is a stable in-plane reference.
+        The in-plane frame is (e1, e2) = (ref_dir, ref_dir x face_normal).
+        With the default ref_dir = +Z and face_normal in XY this is exactly
+        the original (Z, Z x face_normal) frame, so V-groove normals are
+        unchanged from before ref_dir existed.
         """
 
-        in_plane_Z = np.array([0., 0., 1.])
-        in_plane_Y = np.cross(in_plane_Z, self.face_normal)
-        in_plane_Y /= np.linalg.norm(in_plane_Y)
+        e1 = self.ref_dir
+        e2 = np.cross(e1, self.face_normal)
+        e2 /= np.linalg.norm(e2)
 
-        u = (np.cos(self.theta) * in_plane_Z +
-             np.sin(self.theta) * in_plane_Y)
+        u = (np.cos(self.theta) * e1 +
+             np.sin(self.theta) * e2)
         u /= np.linalg.norm(u)
 
         # w is transverse to u, in the mating-face plane
         w = np.cross(self.face_normal, u)
         w /= np.linalg.norm(w)
 
-        c = np.cos(self.HALF_ANGLE)
-        s = np.sin(self.HALF_ANGLE)
-
         self.u  = u
         self.w  = w
-        self.n1 = c * self.face_normal + s * w
-        self.n2 = c * self.face_normal - s * w
-        self.n1 /= np.linalg.norm(self.n1)
-        self.n2 /= np.linalg.norm(self.n2)
-    
+
+        if self.kind == 'flat':
+            self.normals = [self.face_normal.copy()]
+        elif self.kind == 'vgroove':
+            c = np.cos(self.HALF_ANGLE)
+            s = np.sin(self.HALF_ANGLE)
+            self.n1 = c * self.face_normal + s * w
+            self.n2 = c * self.face_normal - s * w
+            self.n1 /= np.linalg.norm(self.n1)
+            self.n2 /= np.linalg.norm(self.n2)
+            self.normals = [self.n1, self.n2]
+        else:  # 'tet'
+            c = np.cos(self.TET_TILT)
+            s = np.sin(self.TET_TILT)
+            self.normals = []
+            for phi in (0., 2 * np.pi / 3, 4 * np.pi / 3):
+                n = c * self.face_normal + s * (np.cos(phi) * u + np.sin(phi) * w)
+                self.normals.append(n / np.linalg.norm(n))
+
     def get_constraint_rows(self, total_dofs):
         """
-        Returns two constraint rows — one per groove face.
+        Returns one constraint row per contact normal (n_rows of them).
         Each row is shape (total_dofs,).
         """
         Phi_A = self.panel_A.get_interpolation_matrix(self.point, total_dofs)
         Phi_B = self.panel_B.get_interpolation_matrix(self.point, total_dofs)
         delta_Phi = Phi_A - Phi_B
-        
-        row1 = self.n1 @ delta_Phi
-        row2 = self.n2 @ delta_Phi
-        
-        return row1, row2
+
+        return tuple(n @ delta_Phi for n in self.normals)
     
     def set_theta(self, theta):
         """Update groove orientation and recompute normals."""
@@ -156,9 +201,7 @@ class CouplingSystem:
         rows = []
         for c in self.couplings:
             if getattr(c, 'active', True):          # ← respect active flag
-                r1, r2 = c.get_constraint_rows(self.total_dofs)
-                rows.append(r1)
-                rows.append(r2)
+                rows.extend(c.get_constraint_rows(self.total_dofs))
         C = np.zeros((0, self.total_dofs)) if not rows else np.array(rows)
 
         if length_scale != 1.0 and C.shape[0] > 0:

@@ -56,8 +56,14 @@ class SetEvaluator:
     repeated sets (common across many starts) are evaluated once."""
 
     def __init__(self, system, target_rank, base_thetas_deg, registry=None,
-                 n_restarts=5, max_ref_tries=300, seed=0, length_scale=1.0):
+                 n_restarts=5, max_ref_tries=300, seed=0, length_scale=1.0,
+                 rows=None, sites=None):
+        """rows, sites: mixed coupling types (coupling_types.TypedCandidates
+        .rows / .site_of); a set then needs exactly target_rank rows and at
+        most one candidate per site to be 'bounded'."""
         self.system = system
+        self.rows = rows
+        self.sites = sites
         self.m = len(system.couplings)
         self.target_rank = target_rank
         self.base_thetas_deg = np.asarray(base_thetas_deg, dtype=float)
@@ -81,6 +87,9 @@ class SetEvaluator:
     def bound(self, active):
         """(status, bound, reference) for the complete set `active`."""
         key = tuple(sorted(int(i) for i in active))
+        if (key not in self._bound_cache and self.sites is not None
+                and len({int(self.sites[i]) for i in key}) < len(key)):
+            self._bound_cache[key] = ('infeasible', None, None)   # two at one site
         if key not in self._bound_cache:
             self.n_bound_calls += 1
             r = bound_node(self.system, forced_active=list(key),
@@ -89,7 +98,7 @@ class SetEvaluator:
                            target_rank=self.target_rank,
                            base_thetas_deg=self.base_thetas_deg,
                            registry=self.registry, max_ref_tries=self.max_ref_tries,
-                           rng=self._rng(key, 1))
+                           rng=self._rng(key, 1), rows=self.rows, sites=self.sites)
             self._bound_cache[key] = (r['status'], r['bound'], r['reference'])
         return self._bound_cache[key]
 

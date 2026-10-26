@@ -31,9 +31,12 @@ validated soundly, and reported honestly.
   §7.8–§7.9). A branch-and-bound prototype now finds the exhaustive
   optimum every time on two-panel and birds-foot, with 11 Riemannian
   evaluations instead of 206 (§7.10). **Its certified gap is 17.6% on
-  birds-foot**, set by leaves whose own bound is loose; arc branching
-  could not tighten them (§7.11). Next candidate: moment (Lasserre)
-  lifting (§8.4).
+  birds-foot**, set by about 15 leaves whose own bound is loose. Arc
+  branching (§7.11) and moment lifting (§7.12) both failed to tighten
+  them: per-coupling methods can't, and full order-2 lifting is too
+  expensive on this machine. **Open decision** (§8.4): accept the gap
+  with the supporting evidence, or try MOSEK for one definitive order-2
+  answer.
 - **Choosing among equally good angles: tool built, policy open.**
   Stage-2 log_product polish works, but on birds-foot it only helps if a
   small λ_min sacrifice is allowed (§7.5).
@@ -163,7 +166,7 @@ double-eigenvalue structure of §2.4). The relaxation then blends several
 couplings at once to fake a stiffness no real combination of angles has:
 the looseness is **collective**.
 
-Consequences (verified in §7.11):
+Consequences (verified in §7.11–§7.12):
 - Restricting any *one* coupling's angle doesn't help; the others
   compensate.
 - No per-coupling constraint can fix it, in any solver: linear cuts on
@@ -172,6 +175,16 @@ Consequences (verified in §7.11):
 - Fixing it needs **product terms** xᵢxⱼ (a lifted relaxation such as
   the moment/Lasserre hierarchy), which carry information about which
   angle combinations are jointly achievable.
+
+An equivalent way to see it: a point inside a disk is the average of a
+random spread of groove angles, and K is linear, so **the disk bound is
+the best λ_min of the expected stiffness matrix when each groove's angle
+is drawn independently at random**. Anything that only constrains one
+coupling at a time (arc cuts, linear multipliers) is also satisfied by
+independent random grooves, so it can't separate them from real designs.
+Only constraints that couple different grooves' angles can, and in the
+moment hierarchy that first happens in the full order-2 localizing
+matrix, which is the expensive part (§7.12).
 
 The bound is still tight for most complete designs (median gap 8.5e-6 on
 birds-foot); it's loose for a minority (up to 55% above achieved).
@@ -239,6 +252,7 @@ which passes every cut.
 | One-swap local search (`swap_search.py`) | Validated on two scales; reliable only on two-panel. | Two-panel: 20/20 starts reach the optimum (1 swap each). Birds-foot: 105/220 (48%); the rest stop at one-swap local optima (96.8%, 90.6%). Bound screening prunes most swaps; ~5 min per birds-foot run (§7.8–§7.9). |
 | Branch-and-bound (`branch_and_bound.py`) | Prototype validated on two-panel and birds-foot. | Finds the optimum every time; birds-foot with 11 Riemannian evaluations instead of 206. Certified gap 0.01% (two-panel), 17.6% (birds-foot), limited by loose leaf bounds (§7.10). |
 | Arc branching on loose leaves (`arc_refine.py`) | Sound; ineffective here. | 3,000 nodes moved the worst leaf's bound 0.010890 → 0.010881. Our relaxation has no product terms, so per-coupling arc cuts can't reach the collective looseness (§2.6, §7.11). |
+| Moment lifting on loose leaves (`moment_leaf_bound.py`) | Order 1 verified = disk bound; order 2 impractical here. | Linear-multiplier lifting: worst leaf 0.010890 → 0.010880. Full order 2: Clarabel needs 27.5 GB; SCS unconverged after 50 min, margin still positive at the champion (inconclusive, leans no) (§7.12). |
 | Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 checks vs. real system); opt-in. | Big gain on the two-panel plateau; no-op on birds-foot at strict tolerance, +4–14% with a 0.01–0.1% λ_min tolerance (§7.5). |
 
 ---
@@ -331,6 +345,7 @@ the final set can't reach full rank.
 | `branch_and_bound.py` | B&B prototype (`BranchAndBound`), `verify_symmetry`, `reflect` |
 | `bnb_validation.py` | B&B validation against exhaustive ground truth |
 | `arc_refine.py`, `test_arc_refine.py` | Arc-restricted leaf bounds and refinement (`LeafRefiner`); soundness tests |
+| `moment_leaf_bound.py`, `moment_leaf_test.py` | Moment relaxations of a leaf: `MomentLeafRelaxation` (order 1/2), `LinearMultiplierRelaxation`; worst-leaf test |
 | `test_*.py` | Validation suites (one per major module) |
 
 ### 6.3 Engineering notes
@@ -347,6 +362,11 @@ the final set can't reach full rank.
   matters.
 - **Dependencies**: `ezdxf` and `shapely` were added for DXF loading.
   There is no `requirements.txt` yet.
+- **Large semidefinite blocks and Clarabel**: an interior-point method
+  needs memory ~ (packed block size)², so a 342×342 block needs ~27.5 GB.
+  SCS fits but converges slowly; MOSEK works in the (smaller) dual space.
+  Also: piping a long run through `grep` without `--line-buffered` hides
+  its output until it exits.
 - **Never verify a symmetry with Riemannian λ_min values**: restart
   noise (up to ~1% between mirror pairs) can reject a valid symmetry.
   Use `verify_symmetry` (exact geometry + certified bounds).
@@ -799,6 +819,72 @@ The arc-width table, the 40-restart check and the 3,000-node run were
 one-off diagnostics (not saved as scripts); each is a few lines with
 `arc_refine.LeafRefiner`.
 
+### 7.12 Tightening loose leaf bounds with moment lifting: tried, not practical (2026-10-20)
+
+**Question**: does adding product terms xᵢxⱼ (§2.6) prove the worst loose
+leaf `[0,1,2,4,5,7,8,10,11]` (disk bound 0.010890, true optimum 0.008969)
+can't beat the champion (0.009263)?
+
+**Method** (`moment_leaf_bound.py`, `moment_leaf_test.py`). The leaf
+question "is there any x on the 9 circles with K(x) − τI ⪰ 0?" is a
+polynomial matrix inequality. Its moment relaxation (Henrion & Lasserre
+2006) replaces x by moments y (y₀ = 1) with a PSD moment matrix, a PSD
+localizing matrix for K(x) − τI, and the circle equalities. For
+robustness the code maximizes a margin ε (localizing matrix ⪰ εI):
+ε < 0 proves no design reaches τ; every real design gives ε ≥ 0.
+
+- **Order 1 = the disk bound**, as expected: the margin changes sign
+  exactly at 0.010890 (a correctness check of the construction).
+- **Order 2** (all degree-2 products): 7,315 moments, PSD blocks 190×190
+  and 342×342.
+
+**Results:**
+
+| relaxation | worst-leaf result | proves the leaf? |
+|---|---|---|
+| disk (order 1) | bound 0.010890 | no |
+| linear-multiplier lifting (`LinearMultiplierRelaxation`), 4 / 8 / 16 directions per coupling | bound 0.010884 / 0.010880 / 0.010880 | no |
+| full order 2, Clarabel | ran out of memory: tried to allocate 27.5 GB (7.6 GB machine) | — |
+| full order 2, SCS (first-order solver) | margin **+4.6e-4** at τ = 0.009264; +5.6e-4 at τ = 0.008968 (validity). Both stopped at the 50-min limit, `optimal_inaccurate` | inconclusive, leans no |
+| needed | bound ≤ 0.009264 (margin < 0) | |
+
+- **Linear multipliers** ((1 + ⟨u, xᵢ⟩)·(K(x) − τI) ⪰ 0, valid on the
+  circle; only degree-2 moments, solves in seconds) **don't help.** They
+  only add information about each coupling on its own (see the
+  interpretation below).
+- **Full order 2 is impractical here.** Clarabel (interior point) forms
+  a dense matrix over the 342×342 block's 58,653 packed entries →
+  58,653² × 8 bytes = 27.5 GB. SCS fits in memory but didn't converge in
+  50 min per solve. With ~15 loose leaves on birds-foot and larger gores,
+  it isn't usable routinely even if it worked.
+- **The SCS margin at the champion stayed clearly positive** (+4.6e-4).
+  An unconverged solve can't certify anything, so this isn't proof that
+  order 2 fails, but it suggests order 2 also can't rule this leaf out.
+
+**Interpretation (why per-coupling information can't help).** A point
+inside a disk is the average of some random spread of groove angles. K is
+linear in x, so the disk bound equals the best λ_min of the *expected*
+stiffness matrix when each groove's angle is drawn **independently at
+random**. Any constraint that only involves one coupling at a time (arc
+cuts, linear multipliers) is also satisfied by such independent random
+grooves, so it can't separate them from real designs. Only constraints
+that couple different grooves' angles (the full order-2 localizing
+matrix, with every E[xₐx_b(K(x) − τI)] in one PSD block) can, and that is
+exactly the expensive part.
+
+**Possible next attempts, if this is revisited:**
+- **MOSEK** (free academic license via BYU) for one definitive order-2
+  answer on this leaf. It works in the 7,315-moment space (dense Schur
+  complement ~0.4 GB instead of 27.5 GB), so it should solve accurately
+  in minutes to tens of minutes. Settles whether order 2 proves the
+  leaf, but likely still too slow for routine use.
+- **Shrink the moment problem**: on the circles, x_c² + x_s² = 1 makes
+  many moments redundant (trigonometric / complex-variable reformulation),
+  and the birds-foot mirror symmetry can block-diagonalize the matrices.
+  Sparse hierarchies (TSSOS / CS-TSSOS) are another route.
+- Combining order 2 with arc branching (the Lu–Deng structure transferred
+  correctly) only makes sense once a single order-2 solve is affordable.
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -915,19 +1001,26 @@ depth-first, most-fractional branching, cut counting, generic-rank
 feasibility, manual symmetry breaking, greedy + swap incumbent. Finds the
 optimum on two-panel and birds-foot; birds-foot certified gap 17.6%.*
 
-Next steps, in order:
-1. **Tighten loose leaf bounds with moment lifting** (§2.6). Per loose
-   leaf, one feasibility SDP at the second Henrion–Lasserre level: "is
-   there any x on the circles with K(x) ⪰ (incumbent)·I?" If infeasible,
-   the leaf is proved. Birds-foot size: ~7,300 moment variables, PSD
-   blocks 190×190 and 342×342 — test first on the worst leaf
-   (`[0,1,2,4,5,7,8,10,11]`). If level 2 alone isn't tight enough, add
-   arc branching on top (`arc_refine.py` composes with it): that is the
-   Lu–Deng algorithm, transferred correctly.
-2. If lifting doesn't help either: accept a larger certified gap, or
-   look for another approach.
-3. Branch on mirror pairs first, so symmetry prunes higher in the tree.
-4. Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
+**Where this was left (2026-10-20): an open decision on the certified
+gap.** Arc branching (§7.11) and moment lifting (§7.12) both failed to
+tighten the ~15 loose birds-foot leaves. Options:
+
+1. **Accept the gap and report it honestly** (recommended). B&B finds the
+   optimum reliably; the 17.6% certified gap is confined to named leaves,
+   and on each of them independent methods agree on the achieved value
+   (exhaustive sweep, DE, swap search, B&B; 40 restarts on the worst one).
+   Claim: "certified relative to leaf evaluation, with a quantified gap".
+   Unblocks the steps below.
+2. **One definitive order-2 answer with MOSEK** (free academic license):
+   settles whether order 2 proves the worst leaf; likely too slow for
+   routine use (§7.12).
+3. **Keep researching tighter leaf bounds**: reduced/symmetric moment
+   formulations, sparse hierarchies, interval methods. Open-ended.
+
+Then, whichever is chosen:
+- Branch on mirror pairs first, so symmetry prunes higher in the tree.
+- Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
+- Move on to Phase 1 (coupling types).
 
 Original Phase 2 design notes:
 - Formulation: one choice per site from {none, flat, V, tet}; exact row
@@ -944,8 +1037,8 @@ Original Phase 2 design notes:
      incumbents early.
   5. At leaves, use the certified bound (near-exact for complete sets) as
      a filter; run Riemannian only where the bound beats the incumbent.
-  6. Tighter relaxations — now known to be needed for the certified gap,
-     not just speed (§7.11): moment lifting first.
+  6. Tighter relaxations — needed for the certified gap, not just speed;
+     arc branching and moment lifting tried without success (§7.11–§7.12).
 - Design the bound to accept a *list* of K matrices (objective = min
   λ_min over them): it costs nothing now and is exactly what the
   cyclic-symmetry reduction needs later (8.5).

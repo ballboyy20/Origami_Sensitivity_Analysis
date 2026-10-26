@@ -250,6 +250,24 @@ def polish_tied_restarts(system, active_indices, all_results, length_scale=1.0,
     return dict(best=best, per_start=per_start, threshold=threshold)
 
 
+def _evaluate_angle_free(system, active_indices, length_scale, target_rank):
+    """A design of only flats and sockets has no angles: K is fixed, so its
+    locked lambda_min is both the achieved value and an exact bound. Same
+    return keys as bound_and_evaluate (theta is the active couplings'
+    current, irrelevant, angles)."""
+    for i, c in enumerate(system.couplings):
+        c.active = (i in active_indices)
+    C = system.build_constraint_matrix(length_scale=length_scale)
+    if np.linalg.matrix_rank(C) < target_rank:
+        raise ValueError(f"angle-free design {active_indices} is rank-deficient")
+    eig = np.linalg.eigvalsh(C.T @ C)
+    lam = float(eig[C.shape[1] - target_rank])
+    theta = np.array([system.couplings[i].theta for i in active_indices])
+    return dict(t=lam, stage1_status='exact (no angles)', lambda_min=lam,
+                theta=theta, gap=0.0, all_riemannian_results=[],
+                n_start_failures=0, active_indices=active_indices)
+
+
 def bound_and_evaluate(system, active_indices, length_scale=1.0,
                         target_rank=None, ref_thetas=None, n_restarts=5,
                         rng=None, solver=None, riemannian_kwargs=None,
@@ -282,6 +300,10 @@ def bound_and_evaluate(system, active_indices, length_scale=1.0,
     active_indices = sorted(int(i) for i in active_indices)
     if target_rank is None:
         target_rank = system.total_dofs - 6
+
+    if all(getattr(system.couplings[i], 'kind', 'vgroove') != 'vgroove'
+           for i in active_indices):
+        return _evaluate_angle_free(system, active_indices, length_scale, target_rank)
 
     bound = sdp_certified_bound(system, active_indices, length_scale,
                                  target_rank, ref_thetas, solver)

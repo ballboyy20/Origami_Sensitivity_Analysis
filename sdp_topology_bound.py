@@ -198,9 +198,23 @@ def find_full_rank_reference(system, active_indices, target_rank, length_scale=1
 # Part B: the combined (z, angle) topology-bound SDP
 # ══════════════════════════════════════════════════════════════════════
 
+def _row_need(rows, sites, forced_active, undecided, target_rank):
+    """Mixed-type cardinality: (rows still needed, most rows the undecided
+    candidates can still supply, one per free site)."""
+    need = target_rank - int(sum(rows[i] for i in forced_active))
+    taken = {int(sites[i]) for i in forced_active}
+    best = {}
+    for i in undecided:
+        s = int(sites[i])
+        if s not in taken:
+            best[s] = max(best.get(s, 0), int(rows[i]))
+    return need, sum(best.values())
+
+
 def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
                         length_scale=1.0, target_rank=None, ref_thetas=None,
-                        solver=None, registry=None, arcs=None, **solver_kwargs):
+                        solver=None, registry=None, arcs=None, rows=None,
+                        sites=None, **solver_kwargs):
     """
     Upper-bounds lambda_min over EVERY completion of a partially-decided
     branch-and-bound node: forced_active couplings fixed on, forced_
@@ -281,6 +295,18 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
         existing disk constraint -- in perspective form,
         a*cos phi + b*sin phi >= z*cos(w/2), for undecided couplings.
         Default None: no cuts, identical to the original relaxation.
+    rows, sites : (len(system.couplings),) int arrays or None
+        Mixed coupling types (coupling_types.TypedCandidates.rows /
+        .site_of). When `rows` is given, the cardinality constraint
+        becomes the exact row budget
+            sum(rows_i * z_i for undecided) == target_rank - rows(forced_active)
+        and `k` is ignored; with `sites`, at most one candidate per site
+        may be on (sum of z over a site's undecided candidates <= 1, or
+        == 0 if the site already has a forced-active candidate). `sites`
+        defaults to one site per candidate. Default None for both: the
+        original count constraint.
+        Candidates whose K has no angle dependence (flats, sockets:
+        Kc_i = Ks_i = 0 in the registry) contribute z_i * K0_i only.
     solver_kwargs : forwarded to Problem.solve().
 
     Returns
@@ -315,16 +341,26 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
             f"{len(forced_inactive)} + {len(undecided)} covering "
             f"{sorted(all_idx)} of {m} total).")
 
-    n_fa = len(forced_active)
-    n_free_needed = k - n_fa
-    if n_free_needed < 0 or n_free_needed > len(undecided):
-        raise ValueError(
-            f"Node is infeasible by cardinality alone: need {n_free_needed} "
-            f"of {len(undecided)} undecided couplings active to reach k={k} "
-            f"given {n_fa} already forced active.")
-
     if target_rank is None:
         target_rank = system.total_dofs - 6
+
+    n_fa = len(forced_active)
+    if rows is None:
+        n_free_needed = k - n_fa
+        if n_free_needed < 0 or n_free_needed > len(undecided):
+            raise ValueError(
+                f"Node is infeasible by cardinality alone: need {n_free_needed} "
+                f"of {len(undecided)} undecided couplings active to reach k={k} "
+                f"given {n_fa} already forced active.")
+    else:
+        rows = np.asarray(rows, dtype=int)
+        sites = np.arange(m) if sites is None else np.asarray(sites, dtype=int)
+        n_free_needed, most = _row_need(rows, sites, forced_active, undecided,
+                                        target_rank)
+        if n_free_needed < 0 or n_free_needed > most:
+            raise ValueError(
+                f"Node is infeasible by row count alone: need {n_free_needed} "
+                f"more rows, undecided candidates can supply at most {most}.")
 
     reference_indices = sorted(set(forced_active) | set(undecided))
     if not reference_indices:
@@ -382,6 +418,11 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
         K0p = {i: P.T @ registry[i][0] @ P for i in reference_indices}
         Kcp = {i: P.T @ registry[i][1] @ P for i in reference_indices}
         Ksp = {i: P.T @ registry[i][2] @ P for i in reference_indices}
+        # Flats and sockets: Kc_i = Ks_i = 0 up to rounding; leave their
+        # angle terms out rather than carry ~1e-16 noise into the SDP.
+        has_angle = {i: max(np.abs(registry[i][1]).max(), np.abs(registry[i][2]).max())
+                        > 1e-12 * max(1.0, np.abs(registry[i][0]).max())
+                     for i in reference_indices}
 
         # ── Build the perspective-relaxed SDP ───────────────────────────
         z = cp.Variable(len(undecided)) if undecided else None
@@ -396,7 +437,9 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
 
         arcs = arcs or {}
         for kk, i in enumerate(forced_active):
-            K_expr = K_expr + K0p[i] + u[kk] * Kcp[i] + v[kk] * Ksp[i]
+            K_expr = K_expr + K0p[i]
+            if has_angle[i]:
+                K_expr = K_expr + u[kk] * Kcp[i] + v[kk] * Ksp[i]
             constraints.append(cp.SOC(1.0, cp.hstack([u[kk], v[kk]])))
             if i in arcs and arcs[i][1] < 2 * np.pi:
                 phi, w = arcs[i]
@@ -404,7 +447,9 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
                                    >= np.cos(w / 2))
 
         for kk, i in enumerate(undecided):
-            K_expr = K_expr + z[kk] * K0p[i] + a[kk] * Kcp[i] + b[kk] * Ksp[i]
+            K_expr = K_expr + z[kk] * K0p[i]
+            if has_angle[i]:
+                K_expr = K_expr + a[kk] * Kcp[i] + b[kk] * Ksp[i]
             constraints.append(cp.SOC(z[kk], cp.hstack([a[kk], b[kk]])))
             constraints.append(z[kk] <= 1)
             if i in arcs and arcs[i][1] < 2 * np.pi:
@@ -412,12 +457,23 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
                 constraints.append(np.cos(phi) * a[kk] + np.sin(phi) * b[kk]
                                    >= np.cos(w / 2) * z[kk])
 
-        if undecided:
+        if undecided and rows is not None:
+            constraints.append(rows[undecided] @ z == n_free_needed)
+            taken = {int(sites[i]) for i in forced_active}
+            by_site = {}
+            for kk, i in enumerate(undecided):
+                by_site.setdefault(int(sites[i]), []).append(kk)
+            for s, kks in by_site.items():
+                cap = 0 if s in taken else 1
+                if cap == 0 or len(kks) > 1:
+                    constraints.append(cp.sum(z[kks]) <= cap)
+        elif undecided:
             constraints.append(cp.sum(z) == n_free_needed)
         elif n_free_needed != 0:
             raise ValueError(
-                f"No undecided couplings but forced_active count {n_fa} "
-                f"!= k={k}.")
+                f"No undecided couplings but forced_active "
+                f"{'rows' if rows is not None else 'count'} doesn't match "
+                f"the requirement ({n_free_needed} short).")
 
         constraints.append(K_expr - t * np.eye(target_rank) >> 0)
 
@@ -468,7 +524,7 @@ def sdp_topology_bound(system, forced_active, forced_inactive, undecided, k,
 def bound_node(system, forced_active, forced_inactive, undecided, k,
                 length_scale=1.0, target_rank=None, base_thetas_deg=None,
                 registry=None, solver=None, max_ref_tries=300, rng=None,
-                **solver_kwargs):
+                rows=None, sites=None, **solver_kwargs):
     """
     Policy wrapper around find_full_rank_reference() + sdp_topology_bound()
     for use by a real branch-and-bound search. Never raises for a node
@@ -515,19 +571,27 @@ def bound_node(system, forced_active, forced_inactive, undecided, k,
     rng : numpy.random.Generator or None, forwarded to
         find_full_rank_reference (defaults to a fresh, unseeded
         Generator -- pass your own for reproducibility).
+    rows, sites : mixed coupling types, forwarded to sdp_topology_bound
+        (cardinality then means the exact row budget; `k` is ignored).
     """
     forced_active   = sorted(int(i) for i in forced_active)
     forced_inactive = sorted(int(i) for i in forced_inactive)
     undecided       = sorted(int(i) for i in undecided)
 
-    n_free_needed = k - len(forced_active)
-    if n_free_needed < 0 or n_free_needed > len(undecided):
+    if target_rank is None:
+        target_rank = system.total_dofs - 6
+
+    if rows is None:
+        n_free_needed, most = k - len(forced_active), len(undecided)
+    else:
+        site_arr = (np.arange(len(system.couplings)) if sites is None
+                    else np.asarray(sites, dtype=int))
+        n_free_needed, most = _row_need(np.asarray(rows, dtype=int), site_arr,
+                                        forced_active, undecided, target_rank)
+    if n_free_needed < 0 or n_free_needed > most:
         return dict(status='infeasible', bound=None, reference=None,
                     reason='cardinality', forced_active=forced_active,
                     forced_inactive=forced_inactive, undecided=undecided)
-
-    if target_rank is None:
-        target_rank = system.total_dofs - 6
     if base_thetas_deg is None:
         base_thetas_deg = np.degrees([c.theta for c in system.couplings])
     if rng is None:
@@ -547,7 +611,7 @@ def bound_node(system, forced_active, forced_inactive, undecided, k,
             system, forced_active, forced_inactive, undecided, k,
             length_scale=length_scale, target_rank=target_rank,
             ref_thetas=ref, solver=solver, registry=registry,
-            **solver_kwargs)
+            rows=rows, sites=sites, **solver_kwargs)
     except RuntimeError as e:
         return dict(status='unresolved', bound=None, reference=ref,
                     reason=str(e), forced_active=forced_active,

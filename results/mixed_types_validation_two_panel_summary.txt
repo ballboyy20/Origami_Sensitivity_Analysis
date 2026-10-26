@@ -1,0 +1,43 @@
+Mixed coupling types: two-panel validation (exhaustive ground truth)
+==============================================================================
+Types per site: flat (1 row), V-groove (2), tetrahedral socket (3); exactly 6 rows; equal unit weights; socket walls at 45 deg.
+
+Two-panel, 3 sites (p1, p2, p3): exhaustive optimum 0.017142 (10s)
+   10 designs, 7 feasible (full rank), 0 lost to MultiplicityError. Best 10:
+      0.017142  [VFT]
+      0.017142  [FVT]
+      0.014106  [TVF]
+      0.014106  [TFV]
+      0.014106  [VTF]
+      0.014106  [FTV]
+      0.013330  [VVV]
+      0.000000  [-TT]
+      0.000000  [T-T]
+      0.000000  [TT-]
+   B&B (no incumbent, no symmetry): PASS  found 0.017142 [VFT]; certified UB 0.017144 (gap 0.010%), complete True
+      nodes 7; pruned: bound 3, symmetry 0, rank 0, cut 0, cardinality 0; sdp errors 0
+      leaves 1: 0 pruned by bound, 0 infeasible, 1 evaluated; 0s
+
+Two-panel, 6 sites (p1, p2, p3 and their thickness mirrors): exhaustive optimum 0.017142 (342s, 126 Riemannian evaluations)
+   336 designs, 126 feasible (full rank), 0 lost to MultiplicityError. Best 8:
+      0.017142  [VFT ---]
+      0.017142  [--- VFT]
+      0.017142  [FVT ---]
+      0.017142  [--- FVT]
+      0.014106  [--- FTV]
+      0.014106  [TVF ---]
+      0.014106  [TFV ---]
+      0.014106  [--- TFV]
+   best all-V design 0.013330 (sec 7.6: 0.013330); mixed types improve on it (128.6%)
+   symmetry 'thickness mirror': verified (point err 0.0e+00, bounds over 300 designs: max rel diff 2.3e-07, 0 feasibility mismatches)
+   symmetry 'y mirror': verified (point err 5.6e-17, bounds over 300 designs: max rel diff 2.0e-07, 0 feasibility mismatches)
+   symmetry 'both': verified (point err 5.6e-17, bounds over 300 designs: max rel diff 1.4e-07, 0 feasibility mismatches)
+   A (no incumbent, no symmetry): PASS  found 0.017142 [VFT ---]; certified UB 0.017144 (gap 0.010%), complete True
+      nodes 835; pruned: bound 103, symmetry 0, rank 21, cut 0, cardinality 149; sdp errors 0
+      leaves 145: 26 pruned by bound, 118 infeasible, 1 evaluated; 24s
+   B (no incumbent, symmetry): PASS  found 0.017142 [FVT ---]; certified UB 0.017144 (gap 0.010%), complete True
+      nodes 583; pruned: bound 51, symmetry 98, rank 10, cut 0, cardinality 89; sdp errors 0
+      leaves 44: 5 pruned by bound, 38 infeasible, 1 evaluated; 14s
+   soundness: 120 random partial nodes bounded (0 infeasible by row count/rank); min (bound - best completion) -8.22e-13; violations 0
+
+OVERALL: PASS
