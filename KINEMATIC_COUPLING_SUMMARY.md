@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-10-20.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-09.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -37,6 +37,12 @@ validated soundly, and reported honestly.
   expensive on this machine. **Open decision** (§8.4): accept the gap
   with the supporting evidence, or try MOSEK for one definitive order-2
   answer.
+- **Coupling types (flat / V-groove / tetrahedral): built, validated on
+  two-panel.** Every site may host any type under an exact row budget;
+  the bound, branch-and-bound and evaluator all support it. On two-panel
+  a V + flat + socket design reaches 0.017142, 128.6% of the best
+  all-V-groove design (with unit row weights, §7.13). Birds-foot mixed
+  run, row weights and mixed-type incumbents are still to do.
 - **Choosing among equally good angles: tool built, policy open.**
   Stage-2 log_product polish works, but on birds-foot it only helps if a
   small λ_min sacrifice is allowed (§7.5).
@@ -48,9 +54,10 @@ validated soundly, and reported honestly.
 
 **Roadmap** (§8): swap search after greedy (built) → branch-and-bound
 (prototype built; needs tighter leaf bounds) → generalize the coupling
-model (flat / V-groove / tetrahedral, any face orientation) →
-branch-and-bound selection under an exact row budget → couplings on
-arms.
+model (flat / V-groove / tetrahedral, any face orientation: built) →
+branch-and-bound selection under an exact row budget (built, two-panel
+validated) → couplings on arms → flasher. Day-by-day schedule to
+Thanksgiving: §8.7.
 
 ---
 
@@ -59,7 +66,11 @@ arms.
 **Model.** Each panel is rigid (6 DOFs). Each `KinematicCoupling` is a
 sphere in a 90° V-groove on the shared mating face; it contributes 2
 constraint rows (one per groove wall, normals n1, n2) to C. The groove's
-sliding axis lies in the mating face, rotated by θ. K = CᵀC.
+sliding axis lies in the mating face, rotated by θ from an in-plane
+reference direction `ref_dir` (default +Z). K = CᵀC. Since 2026-10-26 a
+coupling can also be a flat (1 row, the face normal) or a tetrahedral
+socket (3 rows, normals 120° apart at 45° from the face normal); neither
+depends on θ (§7.13).
 
 **Objective.** λ_min is the smallest *locked* eigenvalue of K: the
 (d − rank C)-th eigenvalue, skipping the 6 whole-assembly rigid-body
@@ -250,7 +261,8 @@ which passes every cut.
 | Split-responsibility pipeline (`bound_and_evaluate.py`) | Validated at full scale. | SDP for the certified bound, Riemannian for the achieved value (§6, §7.1). |
 | Forward bound-guided greedy (`forward_greedy_topology.py`) | Works on birds-foot; unreliable in general. | Exact birds-foot champion in seconds (§7.3). Misses with near-duplicate sites: 72.8% (two-panel) and 55% (birds-foot 24 sites), because tied bound scores leave early choices to tie order. Can't see mandatory couplings without forcing (§7.4). |
 | One-swap local search (`swap_search.py`) | Validated on two scales; reliable only on two-panel. | Two-panel: 20/20 starts reach the optimum (1 swap each). Birds-foot: 105/220 (48%); the rest stop at one-swap local optima (96.8%, 90.6%). Bound screening prunes most swaps; ~5 min per birds-foot run (§7.8–§7.9). |
-| Branch-and-bound (`branch_and_bound.py`) | Prototype validated on two-panel and birds-foot. | Finds the optimum every time; birds-foot with 11 Riemannian evaluations instead of 206. Certified gap 0.01% (two-panel), 17.6% (birds-foot), limited by loose leaf bounds (§7.10). |
+| Branch-and-bound (`branch_and_bound.py`) | Prototype validated on two-panel and birds-foot; mixed-type mode validated on two-panel. | Finds the optimum every time; birds-foot with 11 Riemannian evaluations instead of 206. Certified gap 0.01% (two-panel), 17.6% (birds-foot), limited by loose leaf bounds (§7.10). Mixed types (exact row budget, ≤ 1 type per site): two-panel 6 sites, exhaustive optimum found, gap 0.01% (§7.13). |
+| Mixed coupling types (`coupling_types.py`, `RigidBodyModel.py`) | Validated (`test_coupling_types.py`, all checks pass). | Flat / V-groove / socket per site. Kelvin couplings reach rank 6 in every placement; two sockets leave rank 5. Flats and sockets have Kc = Ks = 0. V-groove-only designs reproduce the original C exactly (§7.13). |
 | Arc branching on loose leaves (`arc_refine.py`) | Sound; ineffective here. | 3,000 nodes moved the worst leaf's bound 0.010890 → 0.010881. Our relaxation has no product terms, so per-coupling arc cuts can't reach the collective looseness (§2.6, §7.11). |
 | Moment lifting on loose leaves (`moment_leaf_bound.py`) | Order 1 verified = disk bound; order 2 impractical here. | Linear-multiplier lifting: worst leaf 0.010890 → 0.010880. Full order 2: Clarabel needs 27.5 GB; SCS unconverged after 50 min, margin still positive at the champion (inconclusive, leans no) (§7.12). |
 | Stage-2 log_product polish (`log_product_polish.py`) | Validated (12/12 checks vs. real system); opt-in. | Big gain on the two-panel plateau; no-op on birds-foot at strict tolerance, +4–14% with a 0.01–0.1% λ_min tolerance (§7.5). |
@@ -346,6 +358,10 @@ the final set can't reach full rank.
 | `bnb_validation.py` | B&B validation against exhaustive ground truth |
 | `arc_refine.py`, `test_arc_refine.py` | Arc-restricted leaf bounds and refinement (`LeafRefiner`); soundness tests |
 | `moment_leaf_bound.py`, `moment_leaf_test.py` | Moment relaxations of a leaf: `MomentLeafRelaxation` (order 1/2), `LinearMultiplierRelaxation`; worst-leaf test |
+| `coupling_types.py` | `TypedCandidates`: expands each site into one candidate per type (index = site × n_kinds + kind), row counts, design rules, exhaustive enumeration, symmetry lifting (`lift_perm`) |
+| `test_coupling_types.py` | Coupling-type validation: rows vs. hand derivation, Kelvin/Maxwell rank, affine structure, regression, `ref_dir` |
+| `mixed_types_validation.py` | Mixed-type bound and B&B vs. exhaustive ground truth (`two-panel`, `birds-foot`, `all`) |
+| `OPTIMIZATION_STRUCTURE.md` | How the pipeline's pieces fit together (call graph, B&B node steps, certificate); companion to this document |
 | `test_*.py` | Validation suites (one per major module) |
 
 ### 6.3 Engineering notes
@@ -370,6 +386,14 @@ the final set can't reach full rank.
 - **Never verify a symmetry with Riemannian λ_min values**: restart
   noise (up to ~1% between mirror pairs) can reject a valid symmetry.
   Use `verify_symmetry` (exact geometry + certified bounds).
+- **B&B implementation details** (from `OPTIMIZATION_STRUCTURE.md` §7):
+  each evaluated leaf's bound is computed twice (`bound_node` to decide,
+  then `sdp_certified_bound` inside `bound_and_evaluate`; same
+  relaxation). Leaves with no full-rank reference after 300 tries are
+  treated as infeasible, which is valid by §2.7. Forced completions skip
+  the cut and rank tests (the leaf bound's reference search does the rank
+  check). In a mixed design with at least one V-groove, flats and sockets
+  still get (zero-gradient) θ variables in Riemannian.
 - **Bugs fixed during the full sweep**: (1) the first evaluation of
   `theta_init` in `optimize_theta_riemannian` lacked the multiplicity
   retry every other evaluation had; (2) `bound_and_evaluate_sweep.py`
@@ -885,6 +909,73 @@ exactly the expensive part.
 - Combining order 2 with arc branching (the Lu–Deng structure transferred
   correctly) only makes sense once a single order-2 solve is affordable.
 
+### 7.13 Mixed coupling types: model, B&B, two-panel validation (2026-10-26)
+
+**What was built** (Phase 1 of §8.4, plus the mixed-type form of Phase 2):
+
+- **Coupling model** (`RigidBodyModel.KinematicCoupling`): a `kind` of
+  `'flat'` (1 row: the face normal), `'vgroove'` (2 rows, as before) or
+  `'tet'` (3 rows: normals 120° apart about the face normal, tilted 45°
+  like the groove walls). Each row has unit weight. A flat's K is fixed,
+  and the socket's Σ nnᵀ is the same at every θ, so both have
+  Kc = Ks = 0 and the affine structure (§2.1) still holds.
+- **Any face orientation**: θ is now measured from an explicit in-plane
+  `ref_dir` (default +Z, which reproduces the old frame exactly). A face
+  parallel to the panel must supply its own `ref_dir`, and raises without
+  one. This removes the +Z limitation noted in §8.3.
+- **Candidates** (`coupling_types.TypedCandidates`): each site becomes
+  one candidate per type, so the registry, calibration, rank tests and
+  Riemannian all work unchanged on candidate indices. A valid design has
+  at most one candidate per site and exactly target_rank rows.
+- **Bound** (`sdp_topology_bound(..., rows=, sites=)`): Σ rows·z equals
+  the remaining row budget, Σ z ≤ 1 per site. Angle-free candidates
+  contribute z·K0 only.
+- **B&B mixed mode** (`BranchAndBound(..., rows=, site_of=)`): the budget
+  is rows, not k. Turning a candidate on turns off its siblings at that
+  site. Cut counting uses rows, plus a new rule: at most 6 forced-on rows
+  per crease (so a bridge crease gets exactly 6).
+- **Evaluator**: a design with no V-grooves has a fixed K, so its λ_min
+  is computed exactly (gap 0) with no optimization.
+
+**Unit tests** (`test_coupling_types.py`, all pass, rerun 2026-11-09):
+rows and Σ nnᵀ identities match hand derivations; on two-panel, all 6
+Kelvin placements (T+V+F) and Maxwell (V+V+V) reach rank 6, and every
+two-socket pair leaves rank 5 (rotation about the line joining them); the
+affine model holds for mixed designs to 4e-15 with Kc = Ks = 0 (max
+9e-16) for flats and sockets; V-only designs in the expanded birds-foot
+system give exactly the original C; `ref_dir` behaves as specified.
+
+**Two-panel validation** (`mixed_types_validation.py two-panel`, against
+exhaustive ground truth):
+
+| system | designs (feasible) | exhaustive optimum | B&B |
+|---|---|---|---|
+| 3 sites | 10 (7) | **0.017142**, [V F T] and its mirror [F V T] | found, gap 0.010%, 7 nodes, 1 leaf evaluated |
+| 6 sites (+ thickness mirrors) | 336 (126) | **0.017142**, [V F T] on top or bottom set, 4 tied | A (no symmetry): found, 835 nodes, 24 s. B (3 verified symmetries): found, 583 nodes, 14 s. 1 leaf evaluated in each |
+
+- **Mixed types beat all V-grooves**: 0.017142 vs. 0.013330 (128.6%).
+  The socket goes at the bottom-face midpoint p3; the V-groove and flat
+  at the two top-face ends. Next best: socket at an end (0.014106); all-V
+  is third (0.013330).
+- **Caveat: unit row weights.** This ranking assumes a flat row is as
+  stiff as a groove wall. It can change once row weights are decided
+  (§8.4 Phase 1).
+- Symmetries (thickness mirror, y-mirror, both) verified by exact
+  geometry and certified bounds over 300 designs (max relative bound
+  difference 2.3e-7).
+- Soundness: 120 random partial nodes, bound ≥ best completion in every
+  case (min margin −8e-13, i.e. rounding), 0 violations.
+- Exhaustive 6-site search: 342 s and 126 Riemannian evaluations, vs. 14 s
+  for B&B with symmetry.
+
+**Not yet done**: the `birds-foot` part of the script (B&B with the
+all-V champion as incumbent, plus a 300-design random-sample check) has
+not been run. Greedy is still V-groove only, and swap search in mixed
+mode only finds like-for-like swaps, so neither can produce a mixed-type
+incumbent yet.
+
+Results: `results/mixed_types_validation_two_panel_{results.json,summary.txt}`.
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -949,12 +1040,14 @@ Decisions (2026-10-13):
   socket with three evenly spaced normals is isotropic in the face plane.
   Both are constant (Kc = Ks = 0), so the affine structure (§2.1), the
   fixed gauge subspace (§2.3), the per-coupling registry and the SDP all
-  carry over unchanged, and the angle stage runs only over V-grooves.
+  carry over unchanged, and the angle stage runs only over V-grooves (in
+  effect: flats and sockets keep a θ variable with zero gradient).
+  Implemented and verified (§7.13).
 - **Arms already work kinematically.** `get_interpolation_matrix` uses
   r = p − centroid, so a contact on a rigid arm is just a point far from
-  the centroid. What's hard-coded is `_compute_groove_normals`, which
-  assumes a vertical mating face and uses +Z as the reference direction
-  (it breaks outright for a face parallel to the panel).
+  the centroid. The old +Z hard-coding in `_compute_groove_normals` is
+  gone: each coupling now takes an explicit `ref_dir`, and a face
+  parallel to the panel works when one is given (§7.13).
 
 ### 8.4 Plan, in order
 
@@ -977,6 +1070,10 @@ Decisions (2026-10-13):
 - For mixed coupling types, a swap must keep the row count exact.
 
 **Phase 1 — generalize the coupling model (goal B + groundwork for C).**
+*Built and validated (2026-10-26, §7.13): all three types, explicit
+`ref_dir`, unit tests passing. Still open: the row-weight decision below,
+and a mixed-type incumbent (row-aware greedy; swaps that trade types at
+equal row count, e.g. V+V ↔ flat+socket).*
 - A contact = a set of unit normals at a point, built in a local frame
   (face normal + explicit in-plane reference vector), with a type:
   flat (1 normal), V-groove (2, rotated by θ), tetrahedral (3, evenly
@@ -999,7 +1096,10 @@ Decisions (2026-10-13):
 *Prototype built and validated (2026-10-20, §7.10): V-grooves only,
 depth-first, most-fractional branching, cut counting, generic-rank
 feasibility, manual symmetry breaking, greedy + swap incumbent. Finds the
-optimum on two-panel and birds-foot; birds-foot certified gap 17.6%.*
+optimum on two-panel and birds-foot; birds-foot certified gap 17.6%.
+Mixed-type mode (exact row budget, ≤ 1 type per site) added 2026-10-26
+and validated on two-panel against exhaustive ground truth (§7.13);
+birds-foot mixed run pending.*
 
 **Where this was left (2026-10-20): an open decision on the certified
 gap.** Arc branching (§7.11) and moment lifting (§7.12) both failed to
@@ -1020,7 +1120,8 @@ tighten the ~15 loose birds-foot leaves. Options:
 Then, whichever is chosen:
 - Branch on mirror pairs first, so symmetry prunes higher in the tree.
 - Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
-- Move on to Phase 1 (coupling types).
+- Phase 1 (coupling types): since built (§7.13); remaining items are
+  scheduled in §8.7.
 
 Original Phase 2 design notes:
 - Formulation: one choice per site from {none, flat, V, tet}; exact row
@@ -1083,3 +1184,31 @@ Original Phase 2 design notes:
   and the per-coupling SDP registry don't cover it. It would need
   gradient-based optimization over positions, separate from the current
   machinery.
+
+### 8.7 Schedule to Thanksgiving (drafted 2026-11-09)
+
+Twelve business days, Mon 11/9 – Tue 11/24; Wed 11/25 is buffer. Each day
+ends with a check that says it's done.
+
+| Day | Date | Task | Done when |
+|---|---|---|---|
+| 1 | Mon 11/9 | Bring this doc up to date (§7.13). Close the gap decision (§8.4): one order-2 MOSEK solve on the worst leaf, stopped after 3 h, then adopt option 1 (accept and report the gap). Branch on mirror pairs first. | Decision recorded in §7.12/§8.4; birds-foot B&B still finds 0.009263 with fewer than 213 branches. |
+| 2 | Tue 11/10 | Scale test: birds-foot 24 sites (§7.7). Swap search from greedy's set and from the old champion for the incumbent; B&B in the background (`python -u`, 3 workers). | Go/no-go verdict on B&B at scale: nodes, evaluations, gap, time. |
+| 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. |
+| 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.14. |
+| 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. |
+| 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. |
+| 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. |
+| 8 | Wed 11/18 | Arm experiments on two-panel and birds-foot, with and without arms; sweep `length_scale` and k_arm. | When arms win, and by how much, logged. |
+| 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types and arm sites. | System loads; panel and crease counts checked; rotational symmetry permutations verified. |
+| 10 | Fri 11/20 | Flasher selection with cyclically symmetric designs enforced (the same choice in every gore): greedy + swap incumbent, then B&B or the Day 3 fallback. | Exactly constrained design with certified bound and gap, or a record of where it stopped scaling. |
+| 11 | Mon 11/23 | Scale the flasher up: more gores, or the cyclic-symmetry (Bloch-wave) reduction of §8.5 if time allows. Final evaluation (5 restarts, optional polish). | Best flasher design evaluated; trend with gore count recorded. |
+| 12 | Tue 11/24 | Figures (generalize `draw_hinge_layout` for arms if quick) and write-up: Status, §4, §7, roadmap. | Results committed; this doc reflects what's done and what's open. |
+
+**If behind, cut in this order**: MOSEK (Day 1); the `length_scale`
+sweep (Day 8); generalizing `draw_hinge_layout`; flasher size (Day 11:
+stay at 2 gores).
+
+**Biggest risk**: Day 2. If B&B can't handle 24 sites it won't handle the
+flasher. That is why Day 3 builds the two-swap fallback and Day 10
+enforces cyclic symmetry to keep the search small.
