@@ -37,6 +37,11 @@ each node, in order of cost:
 
 Surviving nodes branch on the MOST-FRACTIONAL undecided coupling (relaxed z
 closest to 0.5), exploring the child that rounds z first (z >= 0.5 -> on).
+With branch_rule='symmetry_first', the choice is restricted (when possible)
+to the couplings the symmetry test is currently waiting on: for each
+symmetry p not yet settled, the first position i where x[i] vs x[p[i]] is
+undetermined contributes i and p[i]. Deciding those mirror pairs first lets
+test 3 discard mirrored branches near the root instead of near the leaves.
 
 A LEAF is a complete design (k couplings, or exactly the row budget):
 certified bound first (via the shared
@@ -166,11 +171,17 @@ class BranchAndBound:
     prune_rel_tol : relative pruning tolerance (bound <= incumbent*(1+tol)).
     n_rank_draws : random-theta draws for the generic-rank test.
     rows, site_of : (m,) int arrays, or None for V-groove-only mode.
+    branch_rule : 'fractional' (most-fractional z) or 'symmetry_first'
+        (most-fractional among the mirror pairs the symmetry test is
+        waiting on; falls back to 'fractional' when there are none).
     """
 
     def __init__(self, evaluator, k=None, symmetries=None, fixed_active=(),
                  prune_rel_tol=1e-4, n_rank_draws=3, seed=0, verbose=True,
-                 rows=None, site_of=None):
+                 rows=None, site_of=None, branch_rule='fractional'):
+        if branch_rule not in ('fractional', 'symmetry_first'):
+            raise ValueError(f"unknown branch_rule {branch_rule!r}")
+        self.branch_rule = branch_rule
         self.ev = evaluator
         self.system = evaluator.system
         self.m = evaluator.m
@@ -276,6 +287,21 @@ class BranchAndBound:
                     break              # certain: x is larger
         return True
 
+    def _symmetry_pending(self, x):
+        """Couplings the symmetry test is waiting on: for each symmetry not
+        yet settled, the first position i whose comparison x[i] vs x[p[i]]
+        is undetermined contributes the undecided ones of {i, p[i]}."""
+        pending = set()
+        for p in self.symmetries:
+            for i, pi in enumerate(p):
+                xi, yi = x[i], x[pi]
+                if xi < 0 or yi < 0:
+                    pending.update(j for j in (i, int(pi)) if x[j] < 0)
+                    break
+                if xi != yi:
+                    break              # settled for this symmetry
+        return pending
+
     def _reference(self, fa, und, key):
         rng = np.random.default_rng([self.seed, 7, *key])
         union = set(fa) | set(und)
@@ -368,7 +394,12 @@ class BranchAndBound:
                 st['pruned_bound'] += 1
                 continue
 
-            j = int(np.argmin(np.abs(z - 0.5)))
+            frac = np.abs(np.asarray(z, dtype=float) - 0.5)
+            if self.branch_rule == 'symmetry_first':
+                pending = self._symmetry_pending(x)
+                if pending:
+                    frac = np.where([u in pending for u in und], frac, np.inf)
+            j = int(np.argmin(frac))
             v = und[j]
             on = (tuple(sorted(fa + (v,))),
                   tuple(sorted(set(fi) | {j for j in self.siblings[v] if j in und})))

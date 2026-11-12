@@ -965,6 +965,10 @@ exhaustive ground truth):
   difference 2.3e-7).
 - Soundness: 120 random partial nodes, bound ≥ best completion in every
   case (min margin −8e-13, i.e. rounding), 0 violations.
+- **The rank test prunes in mixed mode** (it pruned nothing on the
+  V-only runs, §7.10): 21 nodes in A and 10 in B, and most leaves were
+  rank-infeasible (118 of 145 in A, 38 of 44 in B), e.g. two sockets
+  leave rank 5. Cut counting still pruned nothing.
 - Exhaustive 6-site search: 342 s and 126 Riemannian evaluations, vs. 14 s
   for B&B with symmetry.
 

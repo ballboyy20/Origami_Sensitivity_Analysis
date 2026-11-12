@@ -10,6 +10,8 @@ Configurations per system (to show what each piece contributes):
   B  no starting incumbent, symmetry breaking
   C  greedy + swap-search incumbent, symmetry breaking   <- the planned setup
   D  (birds-foot only) start from the 96.8% one-swap trap, symmetry breaking
+  Bs, Cs, Ds  as B, C, D but branching on mirror pairs first
+              (branch_rule='symmetry_first'); only when a symmetry is verified
 
 Pass criteria: the search completes, finds the exhaustive optimum (within
 1e-4 relative), and its certified upper bound is >= the optimum.
@@ -51,7 +53,8 @@ OUT_FIG     = os.path.join(RESULTS_DIR, 'bnb_validation_counts.png')
 SEED    = 31            # same evaluator seed as the swap validations
 OPT_TOL = 1e-4
 
-COLORS = {'A': '#9ec5f4', 'B': '#5598e7', 'C': '#1c5cab', 'D': '#0d366b'}
+COLORS = {'A': '#9ec5f4', 'B': '#5598e7', 'C': '#1c5cab', 'D': '#0d366b',
+          'Bs': '#f4b183', 'Cs': '#e0702a', 'Ds': '#9c4510'}
 
 
 def load_two_panel_truth():
@@ -112,10 +115,13 @@ def run_system(name, system, thetas, k, truth, greedy, symmetries, trap=None):
     configs = [('A', None, []), ('B', None, syms), ('C', sw['active'], syms)]
     if trap is not None:
         configs.append(('D', trap, syms))
+    if syms:
+        configs += [(tag + 's', inc, sy) for tag, inc, sy in configs if tag != 'A']
     out = {}
     for tag, inc, sy in configs:
         print(f"\n[{name}] config {tag}", flush=True)
-        bnb = BranchAndBound(ev, k, symmetries=sy, seed=SEED)
+        rule = 'symmetry_first' if tag.endswith('s') else 'fractional'
+        bnb = BranchAndBound(ev, k, symmetries=sy, seed=SEED, branch_rule=rule)
         r = bnb.run(incumbent_active=inc)
         r['passed'] = bool(r['complete'] and r['lambda_min'] >= opt * (1 - OPT_TOL)
                            and r['certified_upper_bound'] >= opt * (1 - 1e-9))
@@ -140,7 +146,7 @@ def run_system(name, system, thetas, k, truth, greedy, symmetries, trap=None):
 
 
 def make_figure(results):
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
+    fig, axes = plt.subplots(1, 2, figsize=(11, 5.6))
     for ax, key, title in ((axes[0], 'nodes', 'Branches visited'),
                            (axes[1], 'leaves_evaluated', 'Leaves evaluated with Riemannian')):
         labels, vals, cols = [], [], []
@@ -160,7 +166,8 @@ def make_figure(results):
             ax.spines[side].set_visible(False)
         ax.grid(axis='x', alpha=0.25)
     fig.suptitle('Branch-and-bound validation. A: no incumbent, no symmetry · '
-                 'B: + symmetry · C: + greedy/swap incumbent · D: trap incumbent',
+                 'B: + symmetry · C: + greedy/swap incumbent · D: trap incumbent · '
+                 's: mirror pairs first',
                  fontsize=9)
     plt.tight_layout(rect=[0, 0, 1, 0.93])
     fig.savefig(OUT_FIG, dpi=150)
@@ -170,7 +177,8 @@ def make_figure(results):
 def main():
     L = ["Branch-and-bound validation (exhaustive ground truth)", "=" * 78,
          "Prototype: depth-first, most-fractional branching, cut counting, generic-rank "
-         "feasibility, manual symmetry breaking, prune tolerance 1e-4.", ""]
+         "feasibility, manual symmetry breaking, prune tolerance 1e-4.",
+         "Configs ending in 's' branch on mirror pairs first (branch_rule='symmetry_first').", ""]
     results = {}
 
     truth, greedy = load_two_panel_truth()

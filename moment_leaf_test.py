@@ -14,10 +14,15 @@ Steps:
   4. If affordable, bisect for the order-2 bound itself.
 
 Saves: results/moment_leaf_test_summary.txt
-Run directly: python -u moment_leaf_test.py
+       (results/moment_leaf_test_<solver>_summary.txt with --solver)
+Run directly: python -u moment_leaf_test.py [--solver MOSEK] [--max-min 90]
+
+With --solver, step 3 (the decisive one) runs before step 2, each order-2
+solve is capped at --max-min minutes (MOSEK only), and the bisection is
+skipped unless a solve takes under 15 min.
 """
 
-import sys, os, time
+import sys, os, time, argparse
 
 import numpy as np
 
@@ -26,6 +31,7 @@ from interactive_optimizer import build_birdsfoot_system, BIRDSFOOT_START_THETAS
 from swap_search import SetEvaluator
 from log_product_polish import ReducedKModel
 from moment_leaf_bound import MomentLeafRelaxation
+import cvxpy as cp
 
 LEAF = [0, 1, 2, 4, 5, 7, 8, 10, 11]
 ACHIEVED = 0.008969
@@ -41,6 +47,18 @@ def log(msg):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--solver', default=None, help="cvxpy solver name, e.g. MOSEK")
+    ap.add_argument('--max-min', type=float, default=90.0,
+                    help="per-solve time cap in minutes (MOSEK only)")
+    args = ap.parse_args()
+    global OUT
+    kw = {}
+    if args.solver:
+        kw['solver'] = getattr(cp, args.solver.upper())
+        OUT = OUT.replace('_summary.txt', f'_{args.solver.lower()}_summary.txt')
+        if args.solver.upper() == 'MOSEK':
+            kw['mosek_params'] = {'MSK_DPAR_OPTIMIZER_MAX_TIME': 60.0 * args.max_min}
     s = build_birdsfoot_system(np.array(BIRDSFOOT_START_THETAS_DEG))
     tr = s.total_dofs - 6
     ev = SetEvaluator(s, tr, BIRDSFOOT_START_THETAS_DEG, seed=31)
@@ -62,19 +80,32 @@ def main():
     log(f"order 2: {r2.N} moments, M {r2.nb_M}x{r2.nb_M}, L {r2.size_L}x{r2.size_L} "
         f"(built in {time.perf_counter() - t0:.0f}s)")
 
-    e, st, sec = r2.margin(ACHIEVED * (1 - 1e-4))
-    log(f"2. order 2 at tau {ACHIEVED * (1 - 1e-4):.6f} (just below achieved): eps {e:+.3e} "
-        f"({st}, {sec:.0f}s) -> {'valid' if e >= -1e-7 else 'INVALID'}")
+    if args.solver:
+        log(f"solver {args.solver.upper()}, per-solve cap {args.max_min:.0f} min")
 
-    thresh = CHAMPION * (1 + 1e-4)
-    e, st, sec = r2.margin(thresh)
-    proved = e < 0
-    log(f"3. order 2 at tau {thresh:.6f} (champion + tol): eps {e:+.3e} ({st}, {sec:.0f}s) "
-        f"-> {'PROVED: leaf cannot beat the champion' if proved else 'not proved'}")
+    def step2():
+        e, st, sec = r2.margin(ACHIEVED * (1 - 1e-4), **kw)
+        log(f"2. order 2 at tau {ACHIEVED * (1 - 1e-4):.6f} (just below achieved): eps {e:+.3e} "
+            f"({st}, {sec:.0f}s) -> {'valid' if e >= -1e-7 else 'INVALID'}")
+        return sec
+
+    def step3():
+        thresh = CHAMPION * (1 + 1e-4)
+        e, st, sec = r2.margin(thresh, **kw)
+        proved = e < 0 and st == 'optimal'
+        log(f"3. order 2 at tau {thresh:.6f} (champion + tol): eps {e:+.3e} ({st}, {sec:.0f}s) "
+            f"-> {'PROVED: leaf cannot beat the champion' if proved else 'not proved'}")
+        return sec
+
+    if args.solver:
+        sec = max(step3(), step2())
+    else:
+        sec = max(step2(), step3())
 
     if sec < 900:
         log("4. bisecting for the order-2 bound:")
-        b2 = r2.bound(ACHIEVED * (1 - 1e-4), b_disk, rel_tol=2e-3, log=log)
+        b2 = r2.bound(ACHIEVED * (1 - 1e-4), b_disk, rel_tol=2e-3,
+                      solver=kw.get('solver'), log=log)
         log(f"   order-2 bound {b2:.6f} ({100 * (b2 / ACHIEVED - 1):.1f}% above achieved; "
             f"disk bound was {100 * (b_disk / ACHIEVED - 1):.1f}%)")
 
