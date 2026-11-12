@@ -312,7 +312,10 @@ class BranchAndBound:
         return None
 
     # ── search ──────────────────────────────────────────────────────────
-    def run(self, incumbent_active=None, max_nodes=200000):
+    def run(self, incumbent_active=None, max_nodes=200000, max_sec=None,
+            log_every=None):
+        """max_sec: stop (incomplete, certified UB = inf) after this many
+        seconds. log_every: print progress every this many nodes."""
         t0 = time.perf_counter()
         st = dict(nodes=0, pruned_cardinality=0, pruned_cut=0, pruned_symmetry=0,
                   pruned_rank=0, pruned_bound=0, sdp_errors=0, leaves=0,
@@ -333,8 +336,17 @@ class BranchAndBound:
         root_fi = sorted({j for i in self.fixed_active for j in self.siblings[i]})
         stack = [(tuple(self.fixed_active), tuple(root_fi))]   # (forced_active, forced_inactive)
         while stack and st['nodes'] < max_nodes:
+            if max_sec is not None and time.perf_counter() - t0 > max_sec:
+                break
             fa, fi = stack.pop()
             st['nodes'] += 1
+            if log_every and st['nodes'] % log_every == 0:
+                print(f"    [{time.perf_counter() - t0:7.0f}s] nodes {st['nodes']}, "
+                      f"stack {len(stack)}, depth {len(fa) + len(fi)}, incumbent "
+                      f"{inc_lam:.6f}, leaves evaluated {st['leaves_evaluated']}, "
+                      f"pruned bound/sym/rank/cut {st['pruned_bound']}/"
+                      f"{st['pruned_symmetry']}/{st['pruned_rank']}/{st['pruned_cut']}",
+                      flush=True)
             und = [i for i in range(self.m) if i not in fa and i not in fi]
 
             # cardinality, and normalize forced completions to leaves

@@ -1,0 +1,13 @@
+Birds-foot 24 sites, k=9: swap-greedy
+==============================================================================
+start [0, 2, 5, 11, 12, 14, 17, 19, 20]: lambda_min 0.005106
+   pass 1: {'n_swaps': 135, 'n_infeasible': 38, 'n_pruned_by_bound': 75, 'n_evaluated': 22, 'accepted': {'out': 5, 'into': 9, 'lambda_before': 0.005106087306974301, 'lambda_after': 0.007552361900286817}, 'lambda_min': 0.007552361900286817}
+   pass 2: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 105, 'n_evaluated': 11, 'accepted': {'out': 17, 'into': 10, 'lambda_before': 0.007552361900286817, 'lambda_after': 0.008378585689476022}, 'lambda_min': 0.008378585689476022}
+   pass 3: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 102, 'n_evaluated': 14, 'accepted': {'out': 20, 'into': 21, 'lambda_before': 0.008378585689476022, 'lambda_after': 0.008503287429633705}, 'lambda_min': 0.008503287429633705}
+   pass 4: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 108, 'n_evaluated': 8, 'accepted': {'out': 10, 'into': 13, 'lambda_before': 0.008503287429633705, 'lambda_after': 0.008618695170677034}, 'lambda_min': 0.008618695170677034}
+   pass 5: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 114, 'n_evaluated': 2, 'accepted': {'out': 11, 'into': 7, 'lambda_before': 0.008618695170677034, 'lambda_after': 0.009405312249789953}, 'lambda_min': 0.009405312249789953}
+   pass 6: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 113, 'n_evaluated': 3, 'accepted': {'out': 12, 'into': 1, 'lambda_before': 0.009405312249789953, 'lambda_after': 0.009629937130798506}, 'lambda_min': 0.009629937130798506}
+   pass 7: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 110, 'n_evaluated': 6, 'accepted': None, 'lambda_min': 0.009629937130798506}
+final [0, 1, 2, 7, 9, 13, 14, 19, 21]: lambda_min 0.009630 (104.0% of old champion), converged True
+sets bounded 802, evaluated 58; 2408s
+total 2408s; Riemannian evaluations 58, leaf bound solves 802

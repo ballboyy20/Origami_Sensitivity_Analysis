@@ -1,0 +1,7 @@
+Birds-foot 24 sites, k=9: swap-champion
+==============================================================================
+start [0, 1, 2, 6, 8, 12, 13, 14, 20]: lambda_min 0.009263
+   pass 1: {'n_swaps': 135, 'n_infeasible': 39, 'n_pruned_by_bound': 79, 'n_evaluated': 17, 'accepted': None, 'lambda_min': 0.009262797970067453}
+final [0, 1, 2, 6, 8, 12, 13, 14, 20]: lambda_min 0.009263 (100.0% of old champion), converged True
+sets bounded 136, evaluated 18; 791s
+total 791s; Riemannian evaluations 18, leaf bound solves 136
