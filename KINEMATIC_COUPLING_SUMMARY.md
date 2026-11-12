@@ -777,6 +777,28 @@ swap search for C's incumbent took another ~5 min.)
   0.008969. It is its own mirror image, so symmetry can't remove it.
   §7.11 is the attempt to tighten these leaf bounds.
 
+**Branching on mirror pairs first (2026-11-12).** `BranchAndBound(...,
+branch_rule='symmetry_first')` picks the most-fractional coupling among
+the pairs the symmetry test is still waiting on (birds-foot: 3/9, then
+4/10, then 5/11), and falls back to most-fractional otherwise. Rerun of
+`bnb_validation.py` with configs Bs/Cs/Ds (= B/C/D with this rule); the
+old configs reproduced their earlier counts exactly:
+
+| birds-foot | B → Bs | C → Cs | D → Ds |
+|---|---|---|---|
+| branches | 213 → **97** | 189 → **97** | 193 → **97** |
+| Riemannian evals | 14 → 11 | 11 → 11 | 11 → 11 |
+| pruned by symmetry | 37 → 6 | 28 → 6 | 29 → 6 |
+
+- **Branches drop 54%** (213 → 97) and all three find 0.009263. Fewer
+  symmetry prunes but higher in the tree: 6 cuts near the root remove what
+  37 cuts near the leaves did before, and more.
+- **The starting incumbent no longer matters**: Bs, Cs and Ds visit the
+  same 97 nodes, because Bs reaches the champion early anyway.
+- Two-panel: 25 → 17 (B), 17 → 13 (C).
+- **The certified gap is unchanged** (17.6%), as expected: it is set by
+  leaf bounds, not by the search.
+
 **Lesson about symmetry verification.** The first run rejected the
 birds-foot mirror because it compared Riemannian λ_min values of each set
 and its mirror image, and those carry restart noise (mirror pairs differ
@@ -1123,6 +1145,7 @@ tighten the ~15 loose birds-foot leaves. Options:
 
 Then, whichever is chosen:
 - Branch on mirror pairs first, so symmetry prunes higher in the tree.
+  *Done 2026-11-12: birds-foot 213 → 97 branches (§7.10).*
 - Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
 - Phase 1 (coupling types): since built (§7.13); remaining items are
   scheduled in §8.7.
