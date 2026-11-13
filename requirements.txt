@@ -1,0 +1,17 @@
+# Kinematic-Coupling-Placement branch. Tested with Python 3.12.10.
+# Install: python -m pip install -r requirements.txt
+#
+# MOSEK needs a license file (free academic license) at
+#   Windows: %USERPROFILE%\mosek\mosek.lic
+# Only moment_leaf_test.py --solver MOSEK uses it; everything else runs
+# on Clarabel / SCS (installed with cvxpy).
+
+numpy==2.3.4
+scipy==1.16.2
+matplotlib==3.10.7
+cvxpy==1.9.2
+clarabel==0.11.1
+scs==3.2.11
+mosek==11.2.8
+ezdxf==1.4.4
+shapely==2.1.2

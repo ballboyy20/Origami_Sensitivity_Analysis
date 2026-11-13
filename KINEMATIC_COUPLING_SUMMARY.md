@@ -1002,6 +1002,71 @@ incumbent yet.
 
 Results: `results/mixed_types_validation_two_panel_{results.json,summary.txt}`.
 
+### 7.14 Scale test: birds-foot 24 sites (2026-11-12)
+
+**Question** (Day 2 of §8.7): does B&B still work at m = 24, k = 9 (§7.7,
+C(24,9) ≈ 1.3M designs, no exhaustive ground truth)?
+
+**Setup** (`birdsfoot24_scale_test.py`, three modes run as separate
+processes, 2 BLAS threads each, seed 31): one-swap search from greedy's
+set and from the old champion; B&B with mirror pairs first (§7.10) and
+three verified symmetries: the O-B ↔ O-A spoke mirror, the mid-thickness
+mirror (site j ↔ j+3 on every spoke) and both (exact geometry; bounds over
+300 designs each, max relative difference 7e-6, 0 feasibility
+mismatches). Each B&B was capped at 8 h.
+
+**Swap search found a better design than the old champion:**
+
+| start | final | λ_min | swaps | time |
+|---|---|---|---|---|
+| old champion `[0,1,2,6,8,12,13,14,20]` (0.009263) | unchanged: a one-swap local optimum | 0.009263 | 0 | 13 min |
+| greedy `[0,2,5,11,12,14,17,19,20]` (0.005106) | `[0,1,2,7,9,13,14,19,21]` | **0.009630** (104.0%) | 6 | 40 min |
+
+The new design keeps spoke 0's original sites and spoke 2's 80% top + 50%
+bottom; on spokes 1 and 3 it uses the 80% top site plus the *mirrored*
+20% site (on the bottom face). It is mirror-symmetric (O-B and O-A use
+the same layout). This settles §7.7's open question: mirrored sites do
+beat the 3-site champion. The old champion is a one-swap trap, 2 swaps
+from the new design (as in §7.9).
+
+**Branch-and-bound:**
+
+| | B&B from 0.009630 | B&B from old champion |
+|---|---|---|
+| complete | **yes**, 6.2 h (+13 min symmetry checks) | no, stopped at the 8 h cap |
+| best found | 0.009630 (no leaf beat it) | 0.009630, found itself at node 19,597 (via 0.009310, 0.009392, 0.009597) |
+| certified upper bound | 0.011143 (**gap 15.7%**) | none (incomplete) |
+| nodes | 23,725 | 26,694 |
+| pruned by bound / symmetry / rank / cut | 7,762 / 364 / 39 / 152 | 8,425 / 373 / 56 / 172 |
+| leaves: pruned by bound / evaluated | 2,887 / **633** | 3,406 / 873 |
+
+- **B&B works at 24 sites and certifies 0.009630 within 15.7%**: every
+  design either has a bound ≤ the incumbent or was evaluated, and none of
+  633 evaluated leaves beat it. As at 12 sites, the certificate is
+  relative to leaf evaluation.
+- **But it is ~3,000× slower than at 12 sites** (6.2 h vs. 7 s; 633
+  Riemannian evaluations vs. 11), and **without a strong starting
+  incumbent it doesn't finish in 8 h**. At 24 sites the incumbent matters,
+  unlike at 12 (§7.10).
+- **The cost is loose leaf bounds, not the tree.** Every evaluated leaf
+  had a bound above 0.009630 while achieving less: median bound/achieved
+  2.0, max 6.3 (vs. 1.14–1.55 at 12 sites). The loosest, bound 0.011143,
+  achieves only 0.005215. Each such leaf needs a full Riemannian run.
+- **Cut counting and the rank test pruned for the first time** on an
+  all-V-groove system (152 and 39 nodes), though bound pruning dominates.
+- Nearest rivals (all < 0.009630): 0.009597 `[0,2,7,9,12,13,16,19,21]`,
+  0.009392, 0.009391, 0.009380.
+
+**Verdict (Day 2 go/no-go): go at 24 sites, no-go as-is for the
+flasher.** B&B with a swap-search incumbent completes and certifies, but
+the 6 h cost comes from ~600 leaves whose bounds are about 2× their true
+value. Larger systems need either a cheaper screen for loose leaves
+(e.g. one Riemannian restart first, full evaluation only if close to
+the incumbent), enforced cyclic symmetry (Day 10), or the swap-based
+fallback (Day 3).
+
+Results: `results/birdsfoot24_{swap_greedy,swap_champion,bnb,bnb_inc}_{results.json,summary.txt}`.
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -1089,8 +1154,9 @@ Decisions (2026-10-13):
   - *Multiple random starts*: each start reaches the champion with
     probability ~0.48, so ~5 starts would very likely find it. Cheap,
     but only a statistical guarantee.
-- Not yet run: birds-foot 24 sites from greedy's set (§7.7; 4 swaps from
-  the old champion), and from the old champion itself.
+- Birds-foot 24 sites (2026-11-12, §7.14): from greedy's set, 6 swaps to
+  a new best 0.009630 (104% of the old champion); the old champion is a
+  one-swap local optimum.
 - Role going forward: supplies B&B's starting incumbent. Every birds-foot
   run ended at ≥ 90.6% of the champion, which is what B&B pruning needs.
 - For mixed coupling types, a swap must keep the row count exact.
@@ -1147,6 +1213,8 @@ Then, whichever is chosen:
 - Branch on mirror pairs first, so symmetry prunes higher in the tree.
   *Done 2026-11-12: birds-foot 213 → 97 branches (§7.10).*
 - Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
+  *Done 2026-11-12 (§7.14): completes in 6.2 h with a swap-search
+  incumbent, gap 15.7%; doesn't finish in 8 h without one.*
 - Phase 1 (coupling types): since built (§7.13); remaining items are
   scheduled in §8.7.
 
@@ -1222,7 +1290,7 @@ ends with a check that says it's done.
 | 1 | Mon 11/9 | Bring this doc up to date (§7.13). Close the gap decision (§8.4): one order-2 MOSEK solve on the worst leaf, stopped after 3 h, then adopt option 1 (accept and report the gap). Branch on mirror pairs first. | Decision recorded in §7.12/§8.4; birds-foot B&B still finds 0.009263 with fewer than 213 branches. |
 | 2 | Tue 11/10 | Scale test: birds-foot 24 sites (§7.7). Swap search from greedy's set and from the old champion for the incumbent; B&B in the background (`python -u`, 3 workers). | Go/no-go verdict on B&B at scale: nodes, evaluations, gap, time. |
 | 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. |
-| 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.14. |
+| 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.15. |
 | 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. |
 | 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. |
 | 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. |

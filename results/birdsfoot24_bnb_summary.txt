@@ -1,0 +1,22 @@
+Birds-foot 24 sites, k=9: bnb
+==============================================================================
+symmetry 'spoke mirror': verified {'point_err': 0.0, 'normal_err': 0.0, 'n_sets_checked': 300, 'bound_max_rel_diff': 3.0813175942376704e-06, 'feasibility_mismatches': 0}
+symmetry 'thickness mirror': verified {'point_err': 0.0, 'normal_err': 0.0, 'n_sets_checked': 300, 'bound_max_rel_diff': 6.861081197861166e-06, 'feasibility_mismatches': 0}
+symmetry 'both': verified {'point_err': 0.0, 'normal_err': 0.0, 'n_sets_checked': 300, 'bound_max_rel_diff': 7.011897137896011e-06, 'feasibility_mismatches': 0}
+symmetry verification 859s
+complete False; found 0.009630 [0, 1, 2, 7, 9, 13, 14, 19, 21] (start 0.009263)
+certified UB inf (gap inf%; root bound 0.014676)
+nodes 26694; pruned: bound 8425, symmetry 373, rank 56, cut 172, cardinality 0; sdp errors 0
+leaves 4317: 3406 pruned by bound, 38 infeasible, 873 evaluated; incumbent updates 4; 28800s
+loosest evaluated leaves (bound, achieved):
+   [0, 1, 2, 7, 10, 13, 14, 21, 23]: 0.011143, 0.005215
+   [1, 4, 7, 8, 12, 13, 14, 22, 23]: 0.011127, 0.007971
+   [0, 1, 2, 9, 11, 13, 14, 21, 23]: 0.011127, 0.009009
+   [0, 1, 2, 10, 11, 14, 17, 22, 23]: 0.011127, 0.007968
+   [0, 1, 2, 10, 11, 12, 15, 22, 23]: 0.011117, 0.008144
+   [0, 1, 2, 10, 11, 13, 16, 22, 23]: 0.011115, 0.007680
+   [0, 1, 2, 7, 10, 15, 17, 21, 23]: 0.011114, 0.005286
+   [0, 1, 2, 7, 8, 13, 16, 22, 23]: 0.011084, 0.008809
+   [0, 1, 2, 7, 8, 14, 17, 22, 23]: 0.011074, 0.009021
+   [0, 1, 2, 9, 11, 15, 17, 21, 23]: 0.011071, 0.009050
+total 29659s; Riemannian evaluations 874, leaf bound solves 5493
