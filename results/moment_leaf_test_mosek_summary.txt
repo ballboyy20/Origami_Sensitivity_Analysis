@@ -1,0 +1,16 @@
+Order-2 moment relaxation test, birds-foot leaf [0, 1, 2, 4, 5, 7, 8, 10, 11]
+disk (order-1) bound 0.010890; achieved 0.008969; champion 0.009263
+1. order 1: margin at 0.999x disk bound +1.09e-05, at 1.001x -1.09e-05 -> reproduces disk bound
+order 2: 7315 moments, M 190x190, L 342x342 (built in 0s)
+solver MOSEK, per-solve cap 90 min
+3. order 2 at tau 0.009264 (champion + tol): eps +4.263e-04 (optimal, 27s) -> not proved
+2. order 2 at tau 0.008968 (just below achieved): eps +5.332e-04 (optimal, 26s) -> valid
+4. bisecting for the order-2 bound:
+    tau 0.009929: eps +2.028e-04 (optimal, 30s)
+    tau 0.010409: eps +6.081e-05 (optimal, 29s)
+    tau 0.010649: eps +7.793e-06 (optimal, 37s)
+    tau 0.010770: eps -4.836e-05 (optimal, 32s)
+    tau 0.010709: eps -5.798e-06 (optimal, 34s)
+    tau 0.010679: eps +2.628e-06 (optimal, 31s)
+    tau 0.010694: eps -2.327e-07 (optimal, 34s)
+   order-2 bound 0.010694 (19.2% above achieved; disk bound was 21.4%)
