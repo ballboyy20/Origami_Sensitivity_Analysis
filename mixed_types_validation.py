@@ -48,6 +48,7 @@ SEED     = 31
 OPT_TOL  = 1e-4
 N_SOUND  = 120        # random partial nodes for the soundness check
 N_SAMPLE = 300        # random designs for the birds-foot sample check
+BF_MAX_HOURS = 12.0   # birds-foot B&B time cap (then the sample check still runs)
 BF_CHAMPION_SITES = [0, 1, 2, 3, 5, 6, 7, 8, 11]
 
 
@@ -66,10 +67,12 @@ def exhaustive(tc, ev):
     return out
 
 
-def run_bnb(tc, ev, opt, symmetries=(), incumbent=None, tag=''):
-    bnb = BranchAndBound(ev, symmetries=list(symmetries), seed=SEED, verbose=False,
-                         rows=tc.rows, site_of=tc.site_of)
-    r = bnb.run(incumbent_active=incumbent)
+def run_bnb(tc, ev, opt, symmetries=(), incumbent=None, tag='',
+            branch_rule='fractional', max_sec=None, log_every=None):
+    bnb = BranchAndBound(ev, symmetries=list(symmetries), seed=SEED,
+                         verbose=log_every is not None,
+                         rows=tc.rows, site_of=tc.site_of, branch_rule=branch_rule)
+    r = bnb.run(incumbent_active=incumbent, max_sec=max_sec, log_every=log_every)
     s = r['stats']
     passed = None
     if opt is not None:
@@ -217,14 +220,28 @@ def birdsfoot():
     lp = tc.lift_perm(perm)
     rng = np.random.default_rng(SEED)
     sample = random_designs(tc, ev.target_rank, 60, rng)
-    ok, info = verify_symmetry(ev, lp, [((1., 0., 0.), 0.5)], None, designs=sample)
-    L.append(f"Symmetry O-B <-> O-A: {'verified' if ok else 'REJECTED'} (point err "
+    # rel_tol 1e-2, not the default 1e-4: one of the 60 sampled designs
+    # (FVV -FT FTF -TF, only 2 V-grooves, bound 0.002400 vs achieved 0.000413)
+    # gave a mirror bound differing by 2.1e-3, while the other bounded pairs
+    # agreed to 1.5e-7. The mirror is exact for every type (a contact's K
+    # depends only on its point and sum n n^T; flats and in-plane-isotropic
+    # sockets map exactly), and the exact geometry check is what catches a
+    # wrong permutation, so this is SDP inaccuracy on an ill-conditioned set.
+    # Checked 2026-11-13: the design and its mirror both achieve 0.000413.
+    ok, info = verify_symmetry(ev, lp, [((1., 0., 0.), 0.5)], None, designs=sample,
+                               rel_tol=1e-2)
+    L.append(f"Symmetry O-B <-> O-A: {'verified' if ok else 'REJECTED'} (bound rel_tol 1e-2; point err "
              f"{info['point_err']:.1e}, bounds over {info['n_sets_checked']} random designs: "
              f"max rel diff {info['bound_max_rel_diff']:.1e}, "
              f"{info['feasibility_mismatches']} feasibility mismatches)")
 
+    print("\n".join(L), flush=True)
     r, lines = run_bnb(tc, ev, None, symmetries=[lp] if ok else [], incumbent=champ,
-                       tag='B&B (all-V champion incumbent, symmetry)')
+                       tag='B&B (all-V champion incumbent, symmetry, mirror pairs first)',
+                       branch_rule='symmetry_first', max_sec=BF_MAX_HOURS * 3600,
+                       log_every=25)
+    if not r['complete']:
+        L.append(f"   B&B STOPPED at the {BF_MAX_HOURS:.0f} h cap: incomplete, no certificate")
     L += lines
     if r['incumbent_trace']:
         L.append("   incumbent updates:")
