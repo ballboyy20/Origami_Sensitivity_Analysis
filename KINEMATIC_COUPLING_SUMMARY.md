@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-09.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-13.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -33,10 +33,10 @@ validated soundly, and reported honestly.
   evaluations instead of 206 (§7.10). **Its certified gap is 17.6% on
   birds-foot**, set by about 15 leaves whose own bound is loose. Arc
   branching (§7.11) and moment lifting (§7.12) both failed to tighten
-  them: per-coupling methods can't, and full order-2 lifting is too
-  expensive on this machine. **Open decision** (§8.4): accept the gap
-  with the supporting evidence, or try MOSEK for one definitive order-2
-  answer.
+  them: per-coupling methods can't, and full order-2 lifting (solved
+  definitively with MOSEK) only moves the worst leaf from 17.6% to 15.4%.
+  **Decided 2026-11-13** (§8.4): accept the gap and report it. At 24
+  sites B&B certifies a new best design, 0.009630, within 15.7% (§7.14).
 - **Coupling types (flat / V-groove / tetrahedral): built, validated on
   two-panel.** Every site may host any type under an exact row budget;
   the bound, branch-and-bound and evaluator all support it. On two-panel
@@ -892,6 +892,7 @@ robustness the code maximizes a margin ε (localizing matrix ⪰ εI):
 | linear-multiplier lifting (`LinearMultiplierRelaxation`), 4 / 8 / 16 directions per coupling | bound 0.010884 / 0.010880 / 0.010880 | no |
 | full order 2, Clarabel | ran out of memory: tried to allocate 27.5 GB (7.6 GB machine) | — |
 | full order 2, SCS (first-order solver) | margin **+4.6e-4** at τ = 0.009264; +5.6e-4 at τ = 0.008968 (validity). Both stopped at the 50-min limit, `optimal_inaccurate` | inconclusive, leans no |
+| **full order 2, MOSEK** (2026-11-13, lab machine, ~30 s per solve, all `optimal`) | margin **+4.3e-4** at τ = 0.009264; +5.3e-4 at τ = 0.008968 (valid). Bisection: **order-2 bound 0.010694** | **no** (definitive) |
 | needed | bound ≤ 0.009264 (margin < 0) | |
 
 - **Linear multipliers** ((1 + ⟨u, xᵢ⟩)·(K(x) − τI) ⪰ 0, valid on the
@@ -917,6 +918,18 @@ grooves, so it can't separate them from real designs. Only constraints
 that couple different grooves' angles (the full order-2 localizing
 matrix, with every E[xₐx_b(K(x) − τI)] in one PSD block) can, and that is
 exactly the expensive part.
+
+**MOSEK settles it (2026-11-13): order 2 does not prove the leaf.**
+(`moment_leaf_test.py --solver MOSEK`, 16 GB lab machine.) MOSEK works in
+the moment space, so each order-2 solve took ~30 s, not the hours SCS
+needed, and every solve returned `optimal`. The order-2 bound is
+0.010694: 19.2% above the leaf's achieved value (disk: 21.4%) and 15.4%
+above the champion (disk: 17.6%). Order 2 tightens this leaf by only
+1.8%. Even applied to every loose leaf, the birds-foot gap could fall at
+most from 17.6% to 15.4%, since this leaf would still set it. Order 3 is
+far larger. This confirms the interpretation above in practice: the
+looseness is collective, and the first lifted level barely touches it.
+Results: `results/moment_leaf_test_mosek_summary.txt`.
 
 **Possible next attempts, if this is revisited:**
 - **MOSEK** (free academic license via BYU) for one definitive order-2
@@ -1209,7 +1222,15 @@ tighten the ~15 loose birds-foot leaves. Options:
 3. **Keep researching tighter leaf bounds**: reduced/symmetric moment
    formulations, sparse hierarchies, interval methods. Open-ended.
 
-Then, whichever is chosen:
+**Decision (2026-11-13): option 1, accept the gap and report it.**
+Option 2 was run first: MOSEK solves order 2 accurately in ~30 s, and
+order 2 does *not* prove the worst leaf (bound 0.010890 → 0.010694, still
+15.4% above the champion; §7.12). So no affordable lifting closes the gap.
+Report B&B results as "certified relative to leaf evaluation, with a
+quantified gap": 17.6% at 12 sites, 15.7% at 24 sites (§7.14). Option 3
+stays open as future work, not on the critical path.
+
+Then:
 - Branch on mirror pairs first, so symmetry prunes higher in the tree.
   *Done 2026-11-12: birds-foot 213 → 97 branches (§7.10).*
 - Run birds-foot 24 sites (§7.7): the go/no-go test for scale.
