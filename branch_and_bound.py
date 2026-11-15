@@ -59,6 +59,19 @@ own bound. So
 and the certified gap is that minus the incumbent. The incumbent is only
 as good as the leaf evaluation (Riemannian is a local method); the gap
 quantifies exactly that uncertainty.
+
+ONE-RESTART SCREEN (screen_frac, sec 7.15). A leaf's achieved value never
+enters the certificate above -- only its bound does -- so evaluating a
+leaf is purely a search for a better incumbent. With screen_frac = f, a
+leaf runs one Riemannian restart first and the other n_restarts-1 only if
+that restart reaches f * incumbent. The certified upper bound and gap are
+therefore exactly what they would be unscreened for the same incumbent
+history; the risk is only to search quality (a leaf whose first restart
+is poor but whose later restarts would beat the incumbent). To limit
+that, after the search the top screen_recheck screened leaves (by
+first-restart value) get the full evaluation and may still update the
+incumbent. A leaf that passes the screen gets exactly its unscreened
+result (see SetEvaluator.evaluate).
 """
 
 import sys, os, time
@@ -174,13 +187,23 @@ class BranchAndBound:
     branch_rule : 'fractional' (most-fractional z) or 'symmetry_first'
         (most-fractional among the mirror pairs the symmetry test is
         waiting on; falls back to 'fractional' when there are none).
+    screen_frac : None (off: every evaluated leaf gets all restarts) or a
+        fraction f in (0, 1]: one-restart screen at f * incumbent (see
+        module docstring). 0.8 is the value proposed in sec 7.15.
+    screen_recheck : how many screened leaves (highest first-restart value)
+        get the full evaluation after the search. Ignored without a screen.
     """
 
     def __init__(self, evaluator, k=None, symmetries=None, fixed_active=(),
                  prune_rel_tol=1e-4, n_rank_draws=3, seed=0, verbose=True,
-                 rows=None, site_of=None, branch_rule='fractional'):
+                 rows=None, site_of=None, branch_rule='fractional',
+                 screen_frac=None, screen_recheck=20):
         if branch_rule not in ('fractional', 'symmetry_first'):
             raise ValueError(f"unknown branch_rule {branch_rule!r}")
+        if screen_frac is not None and not 0.0 < screen_frac <= 1.0:
+            raise ValueError(f"screen_frac must be in (0, 1], got {screen_frac}")
+        self.screen_frac = screen_frac
+        self.screen_recheck = int(screen_recheck)
         self.branch_rule = branch_rule
         self.ev = evaluator
         self.system = evaluator.system
@@ -320,15 +343,17 @@ class BranchAndBound:
         st = dict(nodes=0, pruned_cardinality=0, pruned_cut=0, pruned_symmetry=0,
                   pruned_rank=0, pruned_bound=0, sdp_errors=0, leaves=0,
                   leaves_pruned_bound=0, leaves_infeasible=0, leaves_evaluated=0,
-                  incumbent_updates=0)
+                  incumbent_updates=0, leaves_screened=0, screen_rechecked=0,
+                  screen_recheck_updates=0)
         inc_set, inc_lam = None, 0.0
         if incumbent_active is not None:
             r = self.ev.evaluate(incumbent_active)
             if r['feasible']:
                 inc_set, inc_lam = sorted(incumbent_active), r['lambda_min']
         start_lam = inc_lam
-        evaluated_leaves = []       # (set, bound, achieved)
+        evaluated_leaves = []       # (set, bound, achieved, screened)
         trace = []                  # incumbent history
+        rechecks = []               # (set, first-restart value, full value)
 
         def thresh():
             return inc_lam * (1 + self.prune_rel_tol)
@@ -341,9 +366,11 @@ class BranchAndBound:
             fa, fi = stack.pop()
             st['nodes'] += 1
             if log_every and st['nodes'] % log_every == 0:
+                n_scr = (f" ({st['leaves_screened']} screened)"
+                         if self.screen_frac else "")
                 print(f"    [{time.perf_counter() - t0:7.0f}s] nodes {st['nodes']}, "
                       f"stack {len(stack)}, depth {len(fa) + len(fi)}, incumbent "
-                      f"{inc_lam:.6f}, leaves evaluated {st['leaves_evaluated']}, "
+                      f"{inc_lam:.6f}, leaves evaluated {st['leaves_evaluated']}{n_scr}, "
                       f"pruned bound/sym/rank/cut {st['pruned_bound']}/"
                       f"{st['pruned_symmetry']}/{st['pruned_rank']}/{st['pruned_cut']}",
                       flush=True)
@@ -369,8 +396,14 @@ class BranchAndBound:
                     st['leaves_pruned_bound'] += 1
                     continue
                 st['leaves_evaluated'] += 1
-                r = self.ev.evaluate(leaf)
-                evaluated_leaves.append((leaf, b, r['lambda_min'] if r['feasible'] else 0.0))
+                if self.screen_frac is not None and inc_lam > 0:
+                    r = self.ev.evaluate(leaf, stop_below=self.screen_frac * inc_lam)
+                else:
+                    r = self.ev.evaluate(leaf)
+                screened = bool(r.get('screened', False))
+                st['leaves_screened'] += screened
+                evaluated_leaves.append([leaf, b, r['lambda_min'] if r['feasible'] else 0.0,
+                                         screened])
                 if r['feasible'] and r['lambda_min'] > inc_lam:
                     inc_set, inc_lam = leaf, r['lambda_min']
                     st['incumbent_updates'] += 1
@@ -420,12 +453,35 @@ class BranchAndBound:
             stack.extend([off, on] if z[j] >= 0.5 else [on, off])
 
         complete = not stack
-        ub = max([thresh()] + [b for _, b, _ in evaluated_leaves])
+
+        # Screen recheck: full evaluation of the most promising screened
+        # leaves. Can only raise the incumbent; the bound-based certificate
+        # below is unaffected (screened leaves' bounds are already in it).
+        if self.screen_frac is not None and self.screen_recheck > 0:
+            screened = sorted((e for e in evaluated_leaves if e[3]), key=lambda e: -e[2])
+            for e in screened[:self.screen_recheck]:
+                first = e[2]
+                r = self.ev.evaluate(e[0])
+                full = r['lambda_min'] if r['feasible'] else 0.0
+                e[2], e[3] = full, False
+                st['screen_rechecked'] += 1
+                rechecks.append(dict(active=e[0], first_restart=first, full=full))
+                if r['feasible'] and full > inc_lam:
+                    inc_set, inc_lam = e[0], full
+                    st['incumbent_updates'] += 1
+                    st['screen_recheck_updates'] += 1
+                    trace.append(dict(node='recheck', lambda_min=inc_lam, active=e[0],
+                                      elapsed_sec=time.perf_counter() - t0))
+                    if self.verbose:
+                        print(f"    new incumbent {inc_lam:.6f} {e[0]} (screen recheck)")
+
+        ub = max([thresh()] + [e[1] for e in evaluated_leaves])
         if not complete:
             ub = float('inf')
         return dict(active=inc_set, lambda_min=inc_lam, start_lambda_min=start_lam,
                     certified_upper_bound=ub, certified_gap=ub - inc_lam,
                     complete=complete, stats=st, incumbent_trace=trace,
-                    evaluated_leaves=[dict(active=s, bound=b, lambda_min=l)
-                                      for s, b, l in evaluated_leaves],
+                    evaluated_leaves=[dict(active=s, bound=b, lambda_min=l, screened=sc)
+                                      for s, b, l, sc in evaluated_leaves],
+                    screen_rechecks=rechecks,
                     elapsed_sec=time.perf_counter() - t0)

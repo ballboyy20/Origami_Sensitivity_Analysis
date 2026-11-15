@@ -105,7 +105,8 @@ def sdp_certified_bound(system, active_indices, length_scale=1.0,
 
 def riemannian_multistart(system, active_indices, length_scale=1.0,
                            target_rank=None, ref_thetas=None,
-                           n_restarts=5, rng=None, riemannian_kwargs=None):
+                           n_restarts=5, rng=None, riemannian_kwargs=None,
+                           stop_below=None):
     """
     Best-of-n_restarts Riemannian gradient sampling: the achieved
     lambda_min for this topology (see module docstring for why this,
@@ -135,7 +136,17 @@ def riemannian_multistart(system, active_indices, length_scale=1.0,
     cannot produce n_restarts successful starts, this raises rather than
     silently returning fewer restarts than requested.
 
+    stop_below: screen (sec 7.15). If the first successful restart
+    achieves less than this, stop there and return it with
+    'screened': True instead of running the rest. All random starts are
+    drawn before any optimization, and the rng sequence up to the
+    decision is the same with or without stop_below, so a set that
+    passes the screen gets exactly the result it would get unscreened.
+
     Returns dict:
+        'screened'        : bool -- True if stopped after one restart by
+                             stop_below ('lambda_min' is then that
+                             restart's value, a lower estimate)
         'lambda_min'      : float -- best achieved value across restarts
         'theta'           : ndarray -- the theta achieving it
         'all_results'     : list of the successful optimize_theta_
@@ -186,6 +197,11 @@ def riemannian_multistart(system, active_indices, length_scale=1.0,
             pending.append(rng.uniform(0, np.pi, size=n))  # fresh, unrelated draw
             continue
         results.append(r)
+        if (stop_below is not None and len(results) == 1
+                and r['lambda_min'] < stop_below):
+            return dict(lambda_min=r['lambda_min'], theta=r['theta'],
+                        all_results=results, n_start_failures=n_start_failures,
+                        screened=True)
 
     if len(results) < n_wanted:
         raise MultiplicityError(
@@ -198,7 +214,8 @@ def riemannian_multistart(system, active_indices, length_scale=1.0,
 
     best = max(results, key=lambda r: r['lambda_min'])
     return dict(lambda_min=best['lambda_min'], theta=best['theta'],
-                all_results=results, n_start_failures=n_start_failures)
+                all_results=results, n_start_failures=n_start_failures,
+                screened=False)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -265,13 +282,14 @@ def _evaluate_angle_free(system, active_indices, length_scale, target_rank):
     theta = np.array([system.couplings[i].theta for i in active_indices])
     return dict(t=lam, stage1_status='exact (no angles)', lambda_min=lam,
                 theta=theta, gap=0.0, all_riemannian_results=[],
-                n_start_failures=0, active_indices=active_indices)
+                n_start_failures=0, active_indices=active_indices,
+                screened=False)
 
 
 def bound_and_evaluate(system, active_indices, length_scale=1.0,
                         target_rank=None, ref_thetas=None, n_restarts=5,
                         rng=None, solver=None, riemannian_kwargs=None,
-                        polish=False, polish_kwargs=None):
+                        polish=False, polish_kwargs=None, stop_below=None):
     """
     Certified upper bound (SDP stage 1 only) + achieved value
     (Riemannian multi-start) for one FIXED topology -- the full split-
@@ -284,7 +302,13 @@ def bound_and_evaluate(system, active_indices, length_scale=1.0,
     report the stage-1 (pre-polish) result either way, so existing
     callers and saved results are unaffected.
 
+    stop_below: passed to riemannian_multistart (one-restart screen). A
+    screened result has 'screened': True and its 'lambda_min' comes from
+    one restart; polish is skipped for it. Angle-free designs are exact
+    and never screened.
+
     Returns dict:
+        'screened'               : bool -- see stop_below
         't'                      : float -- certified upper bound
         'stage1_status'          : str -- cvxpy status for the bound solve
         'lambda_min'             : float -- best achieved value
@@ -309,7 +333,7 @@ def bound_and_evaluate(system, active_indices, length_scale=1.0,
                                  target_rank, ref_thetas, solver)
     evald = riemannian_multistart(system, active_indices, length_scale,
                                    target_rank, ref_thetas, n_restarts, rng,
-                                   riemannian_kwargs)
+                                   riemannian_kwargs, stop_below=stop_below)
 
     out = dict(
         t=bound['t'],
@@ -320,8 +344,9 @@ def bound_and_evaluate(system, active_indices, length_scale=1.0,
         all_riemannian_results=evald['all_results'],
         n_start_failures=evald['n_start_failures'],
         active_indices=active_indices,
+        screened=evald['screened'],
     )
-    if polish:
+    if polish and not evald['screened']:
         out['polish'] = polish_tied_restarts(
             system, active_indices, evald['all_results'], length_scale,
             target_rank, polish_kwargs)

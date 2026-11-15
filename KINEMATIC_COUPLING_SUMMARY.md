@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-13.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-14.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -41,8 +41,11 @@ validated soundly, and reported honestly.
   two-panel.** Every site may host any type under an exact row budget;
   the bound, branch-and-bound and evaluator all support it. On two-panel
   a V + flat + socket design reaches 0.017142, 128.6% of the best
-  all-V-groove design (with unit row weights, §7.13). Birds-foot mixed
-  run, row weights and mixed-type incumbents are still to do.
+  all-V-groove design (with unit row weights, §7.13). **On birds-foot
+  (12 sites), mixed types beat the all-V champion by 11.8%**: 0.010358
+  vs. 0.009263, certified within 33.0% (§7.15). But that B&B took 9.6 h
+  and 1,977 leaf evaluations (all-V: 7 s, 11), and the win assumes unit
+  row weights. Row weights and mixed-type incumbents are still to do.
 - **Choosing among equally good angles: tool built, policy open.**
   Stage-2 log_product polish works, but on birds-foot it only helps if a
   small λ_min sacrifice is allowed (§7.5).
@@ -1007,9 +1010,9 @@ exhaustive ground truth):
 - Exhaustive 6-site search: 342 s and 126 Riemannian evaluations, vs. 14 s
   for B&B with symmetry.
 
-**Not yet done**: the `birds-foot` part of the script (B&B with the
-all-V champion as incumbent, plus a 300-design random-sample check) has
-not been run. Greedy is still V-groove only, and swap search in mixed
+**Not yet done** (as of 2026-10-26): the `birds-foot` part of the script
+(B&B with the all-V champion as incumbent, plus a 300-design
+random-sample check) had not been run; it ran 2026-11-13/14 (§7.15). Greedy is still V-groove only, and swap search in mixed
 mode only finds like-for-like swaps, so neither can produce a mixed-type
 incumbent yet.
 
@@ -1079,6 +1082,85 @@ the incumbent), enforced cyclic symmetry (Day 10), or the swap-based
 fallback (Day 3).
 
 Results: `results/birdsfoot24_{swap_greedy,swap_champion,bnb,bnb_inc}_{results.json,summary.txt}`.
+
+### 7.15 Mixed coupling types: birds-foot, 12 sites (2026-11-14)
+
+**Question** (Day 4 of §8.7): with flat / V-groove / tetrahedral socket
+allowed at every site, does any design beat the all-V champion 0.009263?
+
+**Setup** (`mixed_types_validation.py birds-foot`, lab machine, started
+11/13): the 12 birds-foot sites (§7.1) × 3 types = 36 candidates, exact
+budget of 18 rows, ≤ 1 type per site, unit row weights, socket walls at
+45°. About 1.7M valid designs, so no exhaustive ground truth. B&B started
+from the all-V champion as incumbent (its λ_min reproduced exactly), with
+mirror pairs first and the O-B ↔ O-A spoke symmetry (verified: bounds
+over 60 random designs, max relative difference 1.5e-7, 0 feasibility
+mismatches). 12 h cap; then a 300-design random-sample check. Design
+notation: one letter per site, 3 sites per spoke, `-` = no coupling.
+
+**Result: mixed types win, by 11.8%.**
+
+| | value |
+|---|---|
+| best found | **0.010358** `[FFT V-V V-T V-V]` (111.8% of the all-V champion) |
+| certified upper bound | 0.013780 (**gap 33.0%**; all-V at 12 sites: 17.6%) |
+| complete | yes, 9.6 h (34,470 s) |
+| nodes | 151,645 |
+| pruned by bound / symmetry / rank / cut / cardinality | 42,704 / 693 / 1,289 / 2,662 / 10,126 |
+| leaves: pruned by bound / infeasible / evaluated | 11,076 / 5,296 / **1,977** |
+| SDP errors | 0 (2 "solution may be inaccurate" solver warnings in the log) |
+| random-sample check | 300 designs, 83 full rank, none beat 0.010358 or had a bound above it: PASS |
+
+- **The best design is a near-tie, not a single winner.** Within 0.5%:
+  0.010358 (two distinct designs tie), 0.010350 `[FFT V-V T-V V-V]`, 0.010324, 0.010308, and the
+  mirror-symmetric `[F-T VFV F-T VFV]` at 0.010304.
+- **The symmetric design is nearly proven at its own angles**: its leaf
+  bound is 0.010305 vs. achieved 0.010304 (and two close relatives are
+  tight to within 1e-6). It is a strong design of record if a
+  defensible, symmetric design matters more than the last 0.5%.
+- **The win is broad**: 81 of the 1,977 evaluated leaves beat 0.009263.
+  It also beats the 24-site all-V best (0.009630, §7.14) using only 12
+  sites.
+- **Incumbent history**: 0.009298 (194 s) → 0.009875 → 0.010299
+  (3,064 s) → 0.010350 → 0.010358 at 11,602 s (3.2 h). The remaining
+  6.4 h was spent closing the tree.
+- **The gap comes from very loose leaf bounds, as in §7.10 and §7.14 but
+  worse.** Evaluated leaves had median bound/achieved 2.3 (90th
+  percentile 5.7, max 9.2; all-V at 12 sites: 1.14–1.55). The loosest,
+  `[FVF -VV VFT -VV]`, has bound 0.013780 but achieves 0.002514; its true
+  optimum is almost certainly near the latter. Per the 2026-11-13
+  decision (§8.4) the gap is accepted and reported.
+- **Cost: ~5,000× the all-V run** (9.6 h vs. 7 s; 1,977 evaluations vs.
+  11). From the progress log, roughly three-quarters of the wall time was
+  in intervals containing leaf evaluations (about 13–14 s per leaf at 5
+  restarts), the rest in node bounding.
+
+**Caveat: unit row weights.** The 11.8% assumes a flat contact row is as
+stiff as one groove wall or socket wall. Under Hertz contact, stiffness
+grows as F^(1/3), and one preload splits differently across a flat, a
+groove and a socket, so realistic weights could shrink or reverse the
+win. Day 5 (row weights) now gates this result.
+
+**Implications**:
+
+- Re-running a 10 h B&B per weight choice is too costly. Plan: re-score
+  the top ~100 evaluated leaves under 2–3 candidate W as a screen (not a
+  certificate: leaves pruned under W = I aren't pruned under other W),
+  then one full B&B for the chosen W.
+- **Cheaper leaf evaluation is now needed.** B&B's certified bound is
+  max(threshold, evaluated leaf bounds) and never uses a leaf's achieved
+  value, so evaluation only searches for a better incumbent. A 1-restart
+  screen (all 5 restarts only if the first comes within ~20% of the
+  incumbent) would keep the certificate unchanged. Even using best-of-5
+  as a stand-in for the first restart, 91% of evaluated leaves were below
+  80% of the running incumbent, so the screen would have cut evaluation
+  time by roughly 3–4×.
+- Mixed-type B&B on the flasher is out of reach without enforced cyclic
+  symmetry (Day 10), which makes the Day 3 two-swap fallback a
+  requirement rather than a backup.
+
+Results: `results/mixed_types_validation_birdsfoot_{results.json,summary.txt}`;
+full log `mixed_bf.log` (UTF-16).
 
 ---
 
@@ -1204,7 +1286,7 @@ feasibility, manual symmetry breaking, greedy + swap incumbent. Finds the
 optimum on two-panel and birds-foot; birds-foot certified gap 17.6%.
 Mixed-type mode (exact row budget, ≤ 1 type per site) added 2026-10-26
 and validated on two-panel against exhaustive ground truth (§7.13);
-birds-foot mixed run pending.*
+birds-foot mixed run done 2026-11-14: 0.010358, gap 33.0%, 9.6 h (§7.15).*
 
 **Where this was left (2026-10-20): an open decision on the certified
 gap.** Arc branching (§7.11) and moment lifting (§7.12) both failed to
@@ -1304,7 +1386,7 @@ Original Phase 2 design notes:
 ### 8.7 Schedule to Thanksgiving (drafted 2026-11-09)
 
 Twelve business days, Mon 11/9 – Tue 11/24; Wed 11/25 is buffer. Each day
-ends with a check that says it's done. Status (updated 2026-11-13):
+ends with a check that says it's done. Status (updated 2026-11-14):
 ✅ done · ⏳ running · 🟡 partial · ⬜ not started.
 
 | Day | Date | Task | Done when | Status |
@@ -1312,7 +1394,7 @@ ends with a check that says it's done. Status (updated 2026-11-13):
 | 1 | Mon 11/9 | Bring this doc up to date (§7.13). Close the gap decision (§8.4): one order-2 MOSEK solve on the worst leaf, stopped after 3 h, then adopt option 1 (accept and report the gap). Branch on mirror pairs first. | Decision recorded in §7.12/§8.4; birds-foot B&B still finds 0.009263 with fewer than 213 branches. | ✅ Done 11/13. MOSEK: order 2 doesn't prove the leaf (bound 0.010694); option 1 adopted (§7.12, §8.4). Mirror pairs first: 213 → 97 branches (§7.10). |
 | 2 | Tue 11/10 | Scale test: birds-foot 24 sites (§7.7). Swap search from greedy's set and from the old champion for the incumbent; B&B in the background (`python -u`, 3 workers). | Go/no-go verdict on B&B at scale: nodes, evaluations, gap, time. | ✅ Done 11/13. Go at 24 sites with a swap incumbent (6.2 h, gap 15.7%, new best 0.009630); no-go as-is for the flasher (§7.14). |
 | 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. | 🟡 Partial. `requirements.txt` done 11/13; two-swap escape, single-gore B&B and child RNG not started. |
-| 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.15. | ⏳ Running on the lab machine (started 11/13, 12 h cap). |
+| 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.15. | ✅ Done 11/14. Yes: 0.010358 `[FFT V-V V-T V-V]`, 111.8% of the all-V champion (unit weights), gap 33.0%, 9.6 h, 1,977 leaf evaluations (§7.15). |
 | 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. | ⬜ Not started |
 | 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. | ⬜ Not started |
 | 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. | ⬜ Not started |

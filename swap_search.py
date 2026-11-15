@@ -78,8 +78,10 @@ class SetEvaluator:
         self.registry = registry
         self._bound_cache = {}
         self._eval_cache = {}
+        self._screen_cache = {}    # one-restart results that fell below a floor
         self.n_bound_calls = 0
-        self.n_eval_calls = 0
+        self.n_eval_calls = 0      # Riemannian evaluations started (incl. screened)
+        self.n_screened = 0        # of those, stopped after one restart
 
     def _rng(self, key, salt):
         return np.random.default_rng([self.seed, salt, *key])
@@ -102,33 +104,48 @@ class SetEvaluator:
             self._bound_cache[key] = (r['status'], r['bound'], r['reference'])
         return self._bound_cache[key]
 
-    def evaluate(self, active):
-        """dict(lambda_min, theta, t, gap) for `active`, or lambda_min=0.0
-        with feasible=False if the set can't reach full rank."""
+    def evaluate(self, active, stop_below=None):
+        """dict(lambda_min, theta, t, gap, screened) for `active`, or
+        lambda_min=0.0 with feasible=False if the set can't reach full rank.
+
+        stop_below: one-restart screen (sec 7.15). If the first restart
+        achieves less than this, return that restart's result with
+        screened=True (cached separately, never as a full evaluation).
+        Otherwise the full n_restarts evaluation runs, identical to an
+        unscreened call (same per-set rng; see riemannian_multistart)."""
         key = tuple(sorted(int(i) for i in active))
-        if key not in self._eval_cache:
-            status, t, ref = self.bound(key)
-            if status != 'bounded':
-                self._eval_cache[key] = dict(feasible=False, lambda_min=0.0,
-                                             theta=None, t=None, gap=None)
-            else:
-                self.n_eval_calls += 1
-                try:
-                    r = bound_and_evaluate(self.system, list(key),
-                                           length_scale=self.length_scale,
-                                           target_rank=self.target_rank,
-                                           ref_thetas=ref, n_restarts=self.n_restarts,
-                                           rng=self._rng(key, 2))
-                    self._eval_cache[key] = dict(feasible=True,
-                                                 lambda_min=r['lambda_min'],
-                                                 theta=r['theta'], t=r['t'], gap=r['gap'])
-                except MultiplicityError:
-                    # Record and move on rather than abort the search (same
-                    # convention as bound_and_evaluate_sweep.py).
-                    self._eval_cache[key] = dict(feasible=False, lambda_min=0.0,
-                                                 theta=None, t=t, gap=None,
-                                                 error='multiplicity')
-        return self._eval_cache[key]
+        if key in self._eval_cache:
+            return self._eval_cache[key]
+        if (stop_below is not None and key in self._screen_cache
+                and self._screen_cache[key]['lambda_min'] < stop_below):
+            return self._screen_cache[key]
+        status, t, ref = self.bound(key)
+        if status != 'bounded':
+            self._eval_cache[key] = dict(feasible=False, lambda_min=0.0,
+                                         theta=None, t=None, gap=None, screened=False)
+            return self._eval_cache[key]
+        self.n_eval_calls += 1
+        try:
+            r = bound_and_evaluate(self.system, list(key),
+                                   length_scale=self.length_scale,
+                                   target_rank=self.target_rank,
+                                   ref_thetas=ref, n_restarts=self.n_restarts,
+                                   rng=self._rng(key, 2), stop_below=stop_below)
+        except MultiplicityError:
+            # Record and move on rather than abort the search (same
+            # convention as bound_and_evaluate_sweep.py).
+            self._eval_cache[key] = dict(feasible=False, lambda_min=0.0,
+                                         theta=None, t=t, gap=None,
+                                         error='multiplicity', screened=False)
+            return self._eval_cache[key]
+        res = dict(feasible=True, lambda_min=r['lambda_min'], theta=r['theta'],
+                   t=r['t'], gap=r['gap'], screened=r['screened'])
+        if r['screened']:
+            self.n_screened += 1
+            self._screen_cache[key] = res
+        else:
+            self._eval_cache[key] = res
+        return res
 
 
 def swap_search(evaluator, start_active, fixed=(), improve_rel_tol=1e-4,
