@@ -1,0 +1,26 @@
+Mixed coupling types: birds-foot (12 sites, 18 rows)
+==============================================================================
+No exhaustive ground truth (1.7M designs). Equal unit weights; socket walls at 45 deg.
+
+All-V champion [VVV V-V VVV --V]: lambda_min 0.009263 (sec 7.1: 0.009263)
+Symmetry O-B <-> O-A: verified (bound rel_tol 1e-2; point err 0.0e+00, bounds over 60 random designs: max rel diff 1.5e-07, 0 feasibility mismatches)
+   B&B (all-V champion incumbent, symmetry, mirror pairs first): found 0.010358 [FFT V-V V-T V-V]; certified UB 0.013780 (gap 33.036%), complete True
+      nodes 151645; pruned: bound 42704, symmetry 693, rank 1289, cut 2662, cardinality 10126; sdp errors 0
+      leaves 18349: 11076 pruned by bound, 5296 infeasible, 1977 evaluated; 34470s
+   incumbent updates:
+      0.009298 [FTV F-V V-T V-V] node 1831, 194s
+      0.009875 [FTV -VV -TF -VV] node 8348, 1467s
+      0.009968 [FTV -VF -VT -VV] node 8499, 1546s
+      0.009984 [FTV -VF -TV -VV] node 8510, 1555s
+      0.010299 [F-T VFV F-T VFV] node 16161, 3064s
+      0.010301 [F-T VFV F-T VVF] node 16199, 3076s
+      0.010304 [F-T VVF F-T VVF] node 16229, 3084s
+      0.010350 [FFT V-V T-V V-V] node 45015, 11582s
+      0.010358 [FFT V-V V-T V-V] node 45035, 11602s
+   loosest evaluated leaves (bound / achieved):
+      0.013780 / 0.002514  [FVF -VV VFT -VV]
+      0.013745 / 0.002514  [FVF -VV FVT -VV]
+      0.013698 / 0.002582  [FTF -VV VFV -VV]
+      0.013698 / 0.002582  [FTF -VV VVF -VV]
+      0.013698 / 0.002582  [FTF -VV FVV -VV]
+Random-sample check: 300 valid designs, 83 full rank, 0 with bound above B&B's best (evaluated), 0 beat it -- PASS
