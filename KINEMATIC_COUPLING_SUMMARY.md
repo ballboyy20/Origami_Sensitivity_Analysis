@@ -1317,6 +1317,20 @@ sets):
   per node and slower evaluations, not to loose leaves.
 - Incumbent: 0.005243 at 2 min, 0.006685 (98.8%) at 37 min, final
   0.006767 at 7.5 h (18 updates).
+- **Nearly as stiff as using every candidate**: all 27 couplings active
+  (54 rows, starting angles) give λ_min 0.006829. The exactly
+  constrained design reaches 99.1% of that with 6 fewer couplings and
+  12 fewer rows.
+- Couplings per crease: P0-P1 2, P0-P4 2, P0-P5 3 (forced leaf), P1-P6 2,
+  P1-P2 2, P1-P3 2, P2-P7 3, P3-P4 3, P6-P7 2.
+- Figures (`gore_bnb_full_gore_allv_figures.py`, 2026-11-16):
+  re-evaluating the best set on the laptop with the same seed reproduces
+  λ_min 0.006767 to within 4.6e-6. Its own leaf bound is 0.006768, so
+  the design is essentially proven optimal at its angles. Clarabel
+  reported "solution may be inaccurate" on one SDP during that
+  re-evaluation, which is relevant to the single-gore soundness flag
+  above. Saved: `results/gore_bnb_full_gore_allv_{3d_before_after,hinges,incumbent}.png`
+  and the angles in `results/gore_bnb_full_gore_allv_design.json`.
 
 **Full gore, mixed types, exactly 42 rows** (27 sites × 3 types = 81
 candidates; 24 h cap):
