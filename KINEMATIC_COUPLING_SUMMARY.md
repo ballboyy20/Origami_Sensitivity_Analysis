@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-14.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-16.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -37,6 +37,15 @@ validated soundly, and reported honestly.
   definitively with MOSEK) only moves the worst leaf from 17.6% to 15.4%.
   **Decided 2026-11-13** (§8.4): accept the gap and report it. At 24
   sites B&B certifies a new best design, 0.009630, within 15.7% (§7.14).
+  **A one-restart screen** (stop a leaf after one restart if it is
+  below 80% of the incumbent) never changes the certificate and cuts
+  B&B time 1.4–2.6×. With it, the 24-site run finishes from a weak
+  incumbent in 2.9 h. The cost is that the incumbent becomes "best
+  found": a replay showed it can skip a leaf that would have raised the
+  incumbent (§7.16). **On flasher gores the bound is nearly tight**:
+  B&B matches the single-gore exhaustive optimum within 0.15% using 6
+  evaluations instead of 216, and certifies the full gore within 1.74%
+  (§7.17).
 - **Coupling types (flat / V-groove / tetrahedral): built, validated on
   two-panel.** Every site may host any type under an exact row budget;
   the bound, branch-and-bound and evaluator all support it. On two-panel
@@ -51,9 +60,15 @@ validated soundly, and reported honestly.
   small λ_min sacrifice is allowed (§7.5).
 - **Physical answer for the assembled flasher: not yet available.** Gore
   tests are algorithm stress tests with one arbitrary boundary
-  condition, and the full-gore result is over-constrained (46 rows for
-  42 DOFs), so it isn't a valid design under the exact-constraint
-  requirement (§8.2).
+  condition. **The full gore now has a valid, exactly constrained
+  baseline**: 21 V-grooves (42 rows for 42 DOFs), λ_min 0.006767,
+  certified within 1.74%, 130.5% of the earlier over-constrained 46-row
+  design (§7.17). Mixed-type 42-row designs exist, but the first search
+  (no incumbent) stopped at the 24 h cap below the all-V result, so
+  mixed vs. all-V on the gore is still open.
+- **Open soundness flag**: the single-gore exhaustive sweep found one
+  set whose bound sits 1.68e-6 below its achieved value. This is probably
+  SDP solver tolerance, but unconfirmed (§7.17).
 
 **Roadmap** (§8): swap search after greedy (built) → branch-and-bound
 (prototype built; needs tighter leaf bounds) → generalize the coupling
@@ -1162,6 +1177,180 @@ win. Day 5 (row weights) now gates this result.
 Results: `results/mixed_types_validation_birdsfoot_{results.json,summary.txt}`;
 full log `mixed_bf.log` (UTF-16).
 
+### 7.16 One-restart screen: validation (2026-11-16)
+
+**Question**: does the one-restart screen proposed in §7.15 leave the
+search and certificate unchanged, and how much time does it save?
+
+**Method** (`branch_and_bound.py` `screen_frac`, `screen_validation.py`;
+lab machine, weekend of 11/14, 8 runs in parallel at 2 BLAS threads each,
+see `LAB_QUEUE.md`). With screen fraction f, an evaluated leaf runs one
+Riemannian restart first. If that restart is below f × the running
+incumbent, the leaf stops there; otherwise it gets all 5 restarts and
+the same result it would get unscreened. Random starts are drawn the
+same way in both cases. The certified bound never uses a leaf's achieved
+value, so the certificate can't change. Only the incumbent can be worse.
+After the search, the 20 screened leaves with the highest first-restart
+values get a full evaluation (the "recheck"). All runs used f = 0.8.
+
+**Results**:
+
+| run | unscreened | screened | same certificate | same tree |
+|---|---|---|---|---|
+| small systems (two-panel 3 and 6 sites, birds-foot all-V 12 sites) | optimum each | optimum each | yes | yes (PASS) |
+| birds-foot mixed, 12 sites (§7.15) | 34,470 s | 25,244 s (**73%**) | yes, 0.013780 | yes, identical incumbent and best 0.010358 |
+| birds-foot 24, from best 0.009630 (§7.14) | 22,489 s | 8,474 s (**38%**) | yes, 0.011143 | nearly (see below) |
+| birds-foot 24, from old champion (§7.14) | incomplete at 8 h | **complete in 10,311 s (2.9 h)** | now certified, 0.011143 | n/a |
+
+- **The certificate was identical in every run, and so was the best
+  design.** The small differences in tree counts on the 24-site run from
+  0.009630 come from re-evaluating the starting incumbent: it came out
+  1e-8 lower than in the saved run, which shifted a handful of pruning
+  decisions. The 633 evaluated leaves and the bound are the same.
+- **Most leaves stop after one restart**: 1,806 of 1,998 evaluations
+  (mixed), 541 of 654 and 779 of 905 (24 sites).
+- **The 24-site run from the old champion now finishes.** It finds
+  0.009630 by itself (via 0.009310, 0.009392, 0.009597) and certifies it
+  within 15.7%. Unscreened, it hit the 8 h cap with no certificate.
+  B&B is therefore much less dependent on a strong starting incumbent
+  than §7.14 concluded.
+- **The mixed-run saving (27%) is well short of the 3–4× predicted in
+  §7.15**, even though the screen cut restarts from 9,885 to 2,661 (−73%).
+  Either node bounding is a bigger share of that run than §7.15
+  estimated, or the 8 parallel runs slowed it. The 24-site runs did save
+  2.6×.
+- **The recheck never changed anything**: 0 incumbent updates in any
+  run. On birds-foot, a rechecked leaf's full value was at most 1.4%
+  above its first restart.
+
+**Replay check: the screen can lose an incumbent.** The `replay` mode
+re-ran the first restart for every leaf of the saved 9.6 h mixed run
+(§7.15) whose best-of-5 was ≥ 0.6 × the running incumbent (570 leaves),
+and checked whether any incumbent-raising leaf would have been screened.
+Re-evaluating the 9 incumbent-raising leaves reproduced them exactly.
+
+- Restart 1 vs. best of 5: median ratio 1.000, 10th percentile 0.889,
+  min 0.218. Restart 1 was the best of the 5 in only 125 of 570 leaves.
+- Screened share: f = 0.7: 87%; f = 0.8: 91%; f = 0.9: 97%.
+- **At every f, one incumbent-raising leaf is lost**:
+  `[0,5,7,13,15,22,26,31,34]`, best-of-5 0.009968 but restart 1 only
+  0.003835, at a time when the incumbent was 0.009875. Lowering f to 0.7
+  doesn't save it; it would need f < 0.39.
+- In the actual screened run this cost nothing: 0.009984 turned up 162
+  nodes later and the tree was unchanged. On a less forgiving problem
+  it could lose the best design.
+
+**Verdict: adopt the screen (f = 0.8) for long runs.** It never changes
+the certificate and saves 1.4–2.6× here. The tradeoff is that the
+incumbent is now a heuristic, as with greedy and swap search: a
+screened run's best design is "best found", not "best among evaluated
+leaves". For a design of record, either re-run the final top leaves
+unscreened or run without the screen when time allows. The 20-leaf recheck
+selects by first-restart value, so it can't catch a leaf like the one
+above (first restart 38% of its best). A recheck ranked by leaf bound
+would.
+
+Results: `results/screen_validation_{small,replay,birdsfoot_mixed,birdsfoot24_best,birdsfoot24_champion}_{results.json,summary.txt}` and `.log`.
+
+### 7.17 Gore B&B: single gore vs. exhaustive, full gore under exact constraint (2026-11-16)
+
+**Questions** (Days 3 and 6 of §8.7): does B&B find the exhaustive
+optimum on the single gore? Is there an exactly constrained (42-row)
+full-gore design, all V-grooves or mixed, and how good is it?
+
+**Setup** (`gore_bnb.py`; same lab-machine batch as §7.16). Geometry,
+sites and forced leaf couplings as in §7.4. Every B&B here started with
+no incumbent and no symmetry, and the full-gore runs used the screen at
+f = 0.8 (they started before §7.16's validation finished). Design
+notation for mixed runs: one letter per site, 3 sites per crease.
+
+**Single gore** (m = 18, k = 15, target rank 30; forced 6, choose 9 of
+12 = 220 sets):
+
+| | value |
+|---|---|
+| exhaustive | 216 of 220 feasible; optimum **0.013044** `[0,1,4,5,6,7,8,9,10,11,12,13,14,16,17]`; 12,741 s (~59 s per evaluation) |
+| runner-up | 0.012925 (99.1%) |
+| greedy (§7.4) | 0.012351 (94.7% of optimum) |
+| B&B, unscreened | finds 0.013044; certified UB 0.013064 (**gap 0.15%**); 89 nodes, **6** evaluations, 339 s |
+| B&B, screened | identical tree and result, 0 leaves screened, 395 s |
+
+- **B&B matches the exhaustive optimum** with 6 Riemannian evaluations
+  instead of 216, and the gap is far tighter than on birds-foot.
+- **The run reports OVERALL: FAIL, but only because of the soundness
+  check on the exhaustive sweep.** One set's bound was **1.68e-6 below its
+  achieved value**. The check allows 1e-8 relative error (1.3e-10 here).
+  The violation is about 1e-4 relative to the optimum; earlier systems
+  stayed under about 1e-9 (§7.1, §7.6). The likely cause is SDP solver
+  accuracy on the larger gore SDPs, but this is **unconfirmed**: the
+  exhaustive results store only λ_min per set, so the offending set is
+  unknown. A bound that low could in principle prune a leaf that is
+  within 1.7e-6 of the incumbent. Here it didn't matter, since B&B's
+  result matches ground truth.
+- To do: store each set's bound in the exhaustive sweep, find the
+  offending set, and re-solve its SDP with tighter solver tolerances.
+
+**Full gore, all V-grooves, exactly constrained** (m = 27, k = 21,
+target rank 42; panel 5's 3 couplings forced, choose 18 of 24 = 134,596
+sets):
+
+- **Rank sweep (17 s): 46,656 sets (34.7%) reach full rank at generic
+  angles.** So the 23-coupling result in §7.4 wasn't necessary: greedy
+  just missed the 21-coupling sets. There are 400 distinct per-crease
+  count patterns. The smallest relative σ₄₂ among feasible sets is 4.9e-12
+  (median 8.1e-5), close to the ~1e-13 level where rank decisions get
+  suspect, so a few sets are only marginally full rank.
+- **B&B: best 0.006767**, `[0,1,4,5,6,7,8,9,11,12,14,15,17,18,19,20,21,22,23,25,26]`
+  (couplings per crease 2,2,3,2,2,2,3,3,2), **certified UB 0.006885 (gap
+  1.74%), complete in 32,448 s (9.0 h)**.
+- **130.5% of §7.4's over-constrained greedy design** (0.005185, 23 V =
+  46 rows). Using fewer couplings and the exact row count gives a better
+  design.
+- Tree: 7,625 nodes; pruned by bound / rank / cut 2,736 / 180 / 117;
+  leaves 780: 289 pruned by bound, 329 infeasible, **162 evaluated**, 0
+  screened.
+- **Leaf bounds are nearly tight on the gore**: evaluated leaves had
+  median bound/achieved 1.02 (90th percentile 1.03, max 1.06), vs.
+  2.0–2.4 on birds-foot (§7.14–§7.15). That's why the gap is small and
+  why the screen never fired: every evaluated leaf had a bound above the
+  incumbent, so it also achieved close to it. The 9 h goes to larger SDPs
+  per node and slower evaluations, not to loose leaves.
+- Incumbent: 0.005243 at 2 min, 0.006685 (98.8%) at 37 min, final
+  0.006767 at 7.5 h (18 updates).
+
+**Full gore, mixed types, exactly 42 rows** (27 sites × 3 types = 81
+candidates; 24 h cap):
+
+- **A valid exactly constrained mixed design exists**: the first full-rank
+  design appeared at 178 s.
+- **Incomplete at the cap** (87,599 s), no certificate. Best found
+  **0.006644** `[-VT F-T VFT -VT VVF FVV FFT FFV --T]` (22 couplings),
+  reached at 10.3 h. Nothing better turned up in the remaining 14 h.
+- **That is 98.2% of the all-V result**, but it says nothing about mixed
+  vs. all-V. Every 21-V design is also a valid mixed design, so the
+  mixed optimum is at least 0.006767. Without an incumbent or symmetry,
+  this search simply never reached that region.
+- Tree: 81,414 nodes; pruned by bound / rank / cut / cardinality
+  15,461 / 4,901 / 17,032 / 422; leaves 2,875: 282 pruned by bound,
+  2,233 infeasible, 360 evaluated (61 screened). Bounds are looser than
+  all-V but still far tighter than birds-foot mixed: median
+  bound/achieved 1.13, 90th percentile 1.64, max 3.28.
+
+**Implications**:
+
+- **Day 6 answered: yes, a valid full-gore baseline exists for Day 10**:
+  all-V 0.006767, certified within 1.7%. This replaces §7.4's
+  over-constrained design.
+- **On gores, B&B is limited by tree size and per-node cost, not by loose
+  bounds.** That changes the outlook for the flasher. The certificate
+  should stay tight, and the work is in keeping the tree small (cyclic
+  symmetry, a strong incumbent).
+- **Next run: mixed full gore seeded with the all-V incumbent** (and
+  mirror symmetry if the gore has one). Whether mixed types beat all-V on
+  the gore is still open, and still depends on Day 5 row weights.
+
+Results: `results/gore_bnb_{single_gore,full_gore_allv,full_gore_mixed}_{results.json,summary.txt}` and `.log`.
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -1386,17 +1575,17 @@ Original Phase 2 design notes:
 ### 8.7 Schedule to Thanksgiving (drafted 2026-11-09)
 
 Twelve business days, Mon 11/9 – Tue 11/24; Wed 11/25 is buffer. Each day
-ends with a check that says it's done. Status (updated 2026-11-14):
+ends with a check that says it's done. Status (updated 2026-11-16):
 ✅ done · ⏳ running · 🟡 partial · ⬜ not started.
 
 | Day | Date | Task | Done when | Status |
 |---|---|---|---|---|
 | 1 | Mon 11/9 | Bring this doc up to date (§7.13). Close the gap decision (§8.4): one order-2 MOSEK solve on the worst leaf, stopped after 3 h, then adopt option 1 (accept and report the gap). Branch on mirror pairs first. | Decision recorded in §7.12/§8.4; birds-foot B&B still finds 0.009263 with fewer than 213 branches. | ✅ Done 11/13. MOSEK: order 2 doesn't prove the leaf (bound 0.010694); option 1 adopted (§7.12, §8.4). Mirror pairs first: 213 → 97 branches (§7.10). |
 | 2 | Tue 11/10 | Scale test: birds-foot 24 sites (§7.7). Swap search from greedy's set and from the old champion for the incumbent; B&B in the background (`python -u`, 3 workers). | Go/no-go verdict on B&B at scale: nodes, evaluations, gap, time. | ✅ Done 11/13. Go at 24 sites with a swap incumbent (6.2 h, gap 15.7%, new best 0.009630); no-go as-is for the flasher (§7.14). |
-| 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. | 🟡 Partial. `requirements.txt` done 11/13; two-swap escape, single-gore B&B and child RNG not started. |
+| 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. | 🟡 Partial. `requirements.txt` done 11/13. Single-gore B&B done 11/15: matches the exhaustive optimum 0.013044 with 6 evaluations vs. 216, gap 0.15% (§7.17). One open item: the exhaustive sweep flagged a 1.68e-6 bound violation, probably SDP tolerance (§7.17). Selection method: B&B with the one-restart screen (§7.16); keep the two-swap escape as the flasher fallback. Two-swap escape and child RNG not started. |
 | 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.15. | ✅ Done 11/14. Yes: 0.010358 `[FFT V-V V-T V-V]`, 111.8% of the all-V champion (unit weights), gap 33.0%, 9.6 h, 1,977 leaf evaluations (§7.15). |
 | 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. | ⬜ Not started |
-| 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. | ⬜ Not started |
+| 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. | ✅ Done 11/16 (ran over the weekend). Yes for both. All-V: 21 couplings, best 0.006767, certified within 1.74%, 9.0 h, 130.5% of §7.4's over-constrained design. Mixed: valid designs exist, but the 24 h run without an incumbent stopped incomplete at 0.006644 (§7.17). Follow-up: mixed run seeded with the all-V incumbent. |
 | 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. | ⬜ Not started |
 | 8 | Wed 11/18 | Arm experiments on two-panel and birds-foot, with and without arms; sweep `length_scale` and k_arm. | When arms win, and by how much, logged. | ⬜ Not started |
 | 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types and arm sites. | System loads; panel and crease counts checked; rotational symmetry permutations verified. | ⬜ Not started |
