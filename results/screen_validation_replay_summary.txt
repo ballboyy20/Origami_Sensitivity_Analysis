@@ -1,0 +1,12 @@
+Screen replay on the saved birds-foot mixed run (sec 7.15)
+==============================================================================
+1977 evaluated leaves; 570 with best-of-5 >= 0.6 x running incumbent (all others are screened at any f <= 0.6, since restart 1 <= best-of-5); 9 raised the incumbent
+Reproducibility (full evaluation of the 9 incumbent-raising leaves): max rel diff 0.0e+00 -- OK (131s)
+First restarts: 570 leaves, 3413s (6.0s each)
+   restart 1 / best-of-5: median 1.000, 10th pct 0.889, min 0.218; restart 1 was the best in 125/570
+   f = 0.7: 1714/1977 leaves screened (87%; restarts 9885 -> 3029); incumbent-raising leaves screened: 1 -- FAIL
+      lost [0, 5, 7, 13, 15, 22, 26, 31, 34]: restart 1 0.003835, best-of-5 0.009968, incumbent then 0.009875
+   f = 0.8: 1806/1977 leaves screened (91%; restarts 9885 -> 2661); incumbent-raising leaves screened: 1 -- FAIL
+      lost [0, 5, 7, 13, 15, 22, 26, 31, 34]: restart 1 0.003835, best-of-5 0.009968, incumbent then 0.009875
+   f = 0.9: 1914/1977 leaves screened (97%; restarts 9885 -> 2229); incumbent-raising leaves screened: 1 -- FAIL
+      lost [0, 5, 7, 13, 15, 22, 26, 31, 34]: restart 1 0.003835, best-of-5 0.009968, incumbent then 0.009875

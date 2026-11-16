@@ -1,0 +1,19 @@
+Birds-foot mixed (12 sites, 18 rows) with screen f = 0.8, recheck 20
+==============================================================================
+Symmetry O-B <-> O-A: verified
+   B&B (screened): found 0.010358 [0, 3, 8, 10, 16, 19, 26, 28, 34]; certified UB 0.013780 (gap 33.04%), complete True
+      nodes 151645; leaves evaluated 1977 (1806 screened, 20 rechecked, 0 recheck updates); 25244s
+   vs. saved unscreened run (sec 7.15):
+      unscreened: 0.010358, UB 0.013780, 1977 leaves evaluated, 34470s
+      screened:   0.010358, UB 0.013780, 1977 leaves evaluated (1806 screened, 20 rechecked, 0 recheck updates), 25244s (73% of unscreened)
+      same best True, same certified UB True, tree counts identical
+   PASS: identical search, only cheaper
+      incumbent 0.009298 [FTV F-V V-T V-V] node 1831, 232s
+      incumbent 0.009875 [FTV -VV -TF -VV] node 8348, 1302s
+      incumbent 0.009984 [FTV -VF -TV -VV] node 8510, 1402s
+      incumbent 0.010299 [F-T VFV F-T VFV] node 16161, 2803s
+      incumbent 0.010301 [F-T VFV F-T VVF] node 16199, 2827s
+      incumbent 0.010304 [F-T VVF F-T VVF] node 16229, 2844s
+      incumbent 0.010350 [FFT V-V T-V V-V] node 45015, 8944s
+      incumbent 0.010358 [FFT V-V V-T V-V] node 45035, 8964s
+   evaluator: 1998 Riemannian evaluations started, 1806 stopped after restart 1

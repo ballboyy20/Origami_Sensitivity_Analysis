@@ -1,0 +1,45 @@
+   repro [0, 5, 7, 9, 16, 19, 26, 28, 34]: saved 0.009298, now 0.009298
+   repro [0, 5, 7, 13, 16, 23, 24, 31, 34]: saved 0.009875, now 0.009875
+   repro [0, 5, 7, 13, 15, 22, 26, 31, 34]: saved 0.009968, now 0.009968
+   repro [0, 5, 7, 13, 15, 23, 25, 31, 34]: saved 0.009984, now 0.009984
+   repro [0, 8, 10, 12, 16, 18, 26, 28, 30, 34]: saved 0.010299, now 0.010299
+   repro [0, 8, 10, 12, 16, 18, 26, 28, 31, 33]: saved 0.010301, now 0.010301
+   repro [0, 8, 10, 13, 15, 18, 26, 28, 31, 33]: saved 0.010304, now 0.010304
+   repro [0, 3, 8, 10, 16, 20, 25, 28, 34]: saved 0.010350, now 0.010350
+   repro [0, 3, 8, 10, 16, 19, 26, 28, 34]: saved 0.010358, now 0.010358
+   [    88s] 25/570 first restarts
+   [   173s] 50/570 first restarts
+   [   277s] 75/570 first restarts
+   [   401s] 100/570 first restarts
+   [   578s] 125/570 first restarts
+   [   726s] 150/570 first restarts
+   [   878s] 175/570 first restarts
+   [  1045s] 200/570 first restarts
+   [  1205s] 225/570 first restarts
+   [  1343s] 250/570 first restarts
+   [  1499s] 275/570 first restarts
+   [  1664s] 300/570 first restarts
+   [  1810s] 325/570 first restarts
+   [  1967s] 350/570 first restarts
+   [  2128s] 375/570 first restarts
+   [  2293s] 400/570 first restarts
+   [  2456s] 425/570 first restarts
+   [  2623s] 450/570 first restarts
+   [  2796s] 475/570 first restarts
+   [  2963s] 500/570 first restarts
+   [  3118s] 525/570 first restarts
+   [  3290s] 550/570 first restarts
+
+Screen replay on the saved birds-foot mixed run (sec 7.15)
+==============================================================================
+1977 evaluated leaves; 570 with best-of-5 >= 0.6 x running incumbent (all others are screened at any f <= 0.6, since restart 1 <= best-of-5); 9 raised the incumbent
+Reproducibility (full evaluation of the 9 incumbent-raising leaves): max rel diff 0.0e+00 -- OK (131s)
+First restarts: 570 leaves, 3413s (6.0s each)
+   restart 1 / best-of-5: median 1.000, 10th pct 0.889, min 0.218; restart 1 was the best in 125/570
+   f = 0.7: 1714/1977 leaves screened (87%; restarts 9885 -> 3029); incumbent-raising leaves screened: 1 -- FAIL
+      lost [0, 5, 7, 13, 15, 22, 26, 31, 34]: restart 1 0.003835, best-of-5 0.009968, incumbent then 0.009875
+   f = 0.8: 1806/1977 leaves screened (91%; restarts 9885 -> 2661); incumbent-raising leaves screened: 1 -- FAIL
+      lost [0, 5, 7, 13, 15, 22, 26, 31, 34]: restart 1 0.003835, best-of-5 0.009968, incumbent then 0.009875
+   f = 0.9: 1914/1977 leaves screened (97%; restarts 9885 -> 2229); incumbent-raising leaves screened: 1 -- FAIL
+      lost [0, 5, 7, 13, 15, 22, 26, 31, 34]: restart 1 0.003835, best-of-5 0.009968, incumbent then 0.009875
+Saved: C:\Users\craftyb\Documents\GitHub\Origami_Sensitivity_Analysis\results\screen_validation_replay_summary.txt / _results.json

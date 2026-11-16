@@ -1,0 +1,37 @@
+Single gore: m = 18, k = 15 (target rank 30); forced [6, 7, 8, 9, 10, 11]; choose 9 of 12
+==============================================================================
+   [   983s] exhaustive 20/220
+   [  2145s] exhaustive 40/220
+   [  3514s] exhaustive 60/220
+   [  4764s] exhaustive 80/220
+   [  5848s] exhaustive 100/220
+   [  7028s] exhaustive 120/220
+   [  8226s] exhaustive 140/220
+   [  9529s] exhaustive 160/220
+   [ 10669s] exhaustive 180/220
+   [ 11796s] exhaustive 200/220
+   [ 12741s] exhaustive 220/220
+
+Single gore: m = 18, k = 15 (target rank 30); forced [6, 7, 8, 9, 10, 11]; choose 9 of 12
+==============================================================================
+Exhaustive: 220 sets, 216 feasible, optimum 0.013044 (12741s, 216 Riemannian evaluations); min (bound - achieved) -1.68e-06 -- soundness VIOLATED
+   greedy (sec 7.4): 0.012351; best 8:
+      0.013044  [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]
+      0.012925  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+      0.012834  [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 17]
+      0.012812  [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17]
+      0.012734  [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17]
+      0.012729  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
+      0.012715  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 17]
+      0.012713  [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17]
+   B&B unscreened: PASS: found 0.013044 [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]; certified UB 0.013064 (gap 0.15%), complete True
+      nodes 89; leaves evaluated 6 (0 screened, 0 rechecked, 0 recheck updates); 339s
+   B&B screened f = 0.8: PASS: found 0.013044 [0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]; certified UB 0.013064 (gap 0.15%), complete True
+      nodes 89; leaves evaluated 6 (0 screened, 0 rechecked, 0 recheck updates); 395s
+   screened vs. unscreened:
+      unscreened: 0.013044, UB 0.013064, 6 leaves evaluated, 339s
+      screened:   0.013044, UB 0.013064, 6 leaves evaluated (0 screened, 0 rechecked, 0 recheck updates), 395s (116% of unscreened)
+      same best True, same certified UB True, tree counts identical
+
+OVERALL: FAIL
+Saved: C:\Users\craftyb\Documents\GitHub\Origami_Sensitivity_Analysis\results\gore_bnb_single_gore_summary.txt / _results.json

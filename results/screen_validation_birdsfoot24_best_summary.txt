@@ -1,0 +1,12 @@
+Birds-foot 24 sites, k = 9, from best [0, 1, 2, 7, 9, 13, 14, 19, 21], screen f = 0.8, recheck 20
+==============================================================================
+symmetry 'spoke mirror': verified
+symmetry 'thickness mirror': verified
+symmetry 'both': verified
+   B&B (screened): found 0.009630 [0, 1, 2, 7, 9, 13, 14, 19, 21]; certified UB 0.011143 (gap 15.71%), complete True
+      nodes 23729; leaves evaluated 633 (541 screened, 20 rechecked, 0 recheck updates); 8474s
+   vs. saved unscreened run (birdsfoot24_bnb_inc, complete True):
+      unscreened: 0.009630, UB 0.011143, 633 leaves evaluated, 22489s
+      screened:   0.009630, UB 0.011143, 633 leaves evaluated (541 screened, 20 rechecked, 0 recheck updates), 8474s (38% of unscreened)
+      same best False, same certified UB True, tree counts DIFFER in nodes, pruned_symmetry, pruned_rank, pruned_bound, leaves, leaves_pruned_bound
+   evaluator: 654 Riemannian evaluations started, 541 stopped after restart 1

@@ -1,0 +1,16 @@
+Birds-foot 24 sites, k = 9, from champion [0, 1, 2, 6, 8, 12, 13, 14, 20], screen f = 0.8, recheck 20
+==============================================================================
+symmetry 'spoke mirror': verified
+symmetry 'thickness mirror': verified
+symmetry 'both': verified
+   B&B (screened): found 0.009630 [0, 1, 2, 7, 9, 13, 14, 19, 21]; certified UB 0.011143 (gap 15.71%), complete True
+      nodes 26917; leaves evaluated 884 (779 screened, 20 rechecked, 0 recheck updates); 10311s
+   vs. saved unscreened run (birdsfoot24_bnb, complete False):
+      unscreened: 0.009630, UB inf, 873 leaves evaluated, 28800s
+      screened:   0.009630, UB 0.011143, 884 leaves evaluated (779 screened, 20 rechecked, 0 recheck updates), 10311s (36% of unscreened)
+      same best False, same certified UB True, tree counts DIFFER in nodes, pruned_cut, pruned_symmetry, pruned_rank, pruned_bound, leaves, leaves_pruned_bound, leaves_infeasible, leaves_evaluated
+      incumbent 0.009310 [1, 2, 6, 10, 12, 13, 14, 18, 22] node 8457, 2898s
+      incumbent 0.009392 [1, 2, 6, 8, 12, 13, 14, 18, 22] node 8553, 2947s
+      incumbent 0.009597 [0, 2, 7, 9, 12, 13, 16, 19, 21] node 15628, 4515s
+      incumbent 0.009630 [0, 1, 2, 7, 9, 13, 14, 19, 21] node 19599, 6377s
+   evaluator: 905 Riemannian evaluations started, 779 stopped after restart 1

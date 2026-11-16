@@ -1,0 +1,16 @@
+Screen regression on small systems (f = 0.8, recheck 20)
+==============================================================================
+two-panel mixed, 3 sites (optimum 0.017142): PASS
+      unscreened: 0.017142, UB 0.017144, 1 leaves evaluated, 1s
+      screened:   0.017142, UB 0.017144, 1 leaves evaluated (0 screened, 0 rechecked, 0 recheck updates), 1s (113% of unscreened)
+      same best True, same certified UB True, tree counts identical
+two-panel mixed, 6 sites, 3 symmetries (optimum 0.017142): PASS
+      unscreened: 0.017142, UB 0.017144, 4 leaves evaluated, 23s
+      screened:   0.017142, UB 0.017144, 4 leaves evaluated (0 screened, 0 rechecked, 0 recheck updates), 23s (99% of unscreened)
+      same best True, same certified UB True, tree counts identical
+birds-foot all-V, 12 sites (optimum 0.009263): PASS
+      unscreened: 0.009263, UB 0.010890, 11 leaves evaluated, 173s
+      screened:   0.009263, UB 0.010890, 11 leaves evaluated (5 screened, 5 rechecked, 0 recheck updates), 320s (185% of unscreened)
+      same best True, same certified UB True, tree counts identical
+
+OVERALL: PASS

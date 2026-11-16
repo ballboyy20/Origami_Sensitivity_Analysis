@@ -1,0 +1,16 @@
+Full gore, mixed types: 27 sites x 3 types = 81 candidates, exactly 42 rows; screen f = 0.8; cap 24 h
+==============================================================================
+   B&B (no incumbent, no symmetry): found 0.006644 [4, 8, 9, 17, 18, 22, 26, 31, 35, 37, 40, 42, 45, 49, 52, 54, 57, 62, 63, 66, 70, 80]; certified UB inf (gap inf%), complete False
+      nodes 81414; leaves evaluated 360 (61 screened, 20 rechecked, 0 recheck updates); 87599s
+      incumbent 0.002516 [V-T VFT VFT -VT VVF VV- FFT FFF --T] node 59, 178s
+      incumbent 0.005953 [VFT VFT TFV -VT VVF V-- FFT FFV --T] node 217, 477s
+      incumbent 0.006295 [VFT VFT VFT -VT VVF V-- FFT FFV --T] node 219, 591s
+      incumbent 0.006476 [FVT VFT VFT -VT VVF V-- FFT FFV --T] node 527, 1055s
+      incumbent 0.006476 [FVT VFT FVT -VT VVF V-- FFT FFV --T] node 947, 1633s
+      incumbent 0.006541 [-VT -V- FVT -VT VVF VFT FFT FFT --T] node 9923, 11961s
+      incumbent 0.006598 [FVT -V- FVT -VT VVF V-T FFT FFT --T] node 10477, 12843s
+      incumbent 0.006601 [-VT -FT VFT -VT VVF FVV FFT FFV --T] node 29189, 36774s
+      incumbent 0.006644 [-VT F-T VFT -VT VVF FVV FFT FFV --T] node 29228, 36919s
+      incumbent 0.006644 [-VT F-T FVT -VT VVF FVV FFT FFV --T] node 29232, 36980s
+   first full-rank design found at 178s: a valid exactly constrained mixed design EXISTS
+   (sec 7.4's over-constrained all-V greedy design, 46 rows: 0.005185)
