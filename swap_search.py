@@ -38,9 +38,21 @@ measured in sec 7.2 (<= 1.1e-5), so noise can't drive a swap.
 
 No global guarantee: the result is a 1-swap local optimum. Combined with
 a root bound it gives a bracket, not a proof.
+
+Two-swap escape (two_swap=True; KINEMATIC_COUPLING_SUMMARY.md sec 8.4 /
+sec 8.7 Day 3): when a pass finds no improving 1-swap, try every 2-swap
+(remove 2 non-fixed active couplings, add 2 inactive ones) with the same
+bound screening and best-bound-first evaluation. If one improves, accept
+it and go back to 1-swaps; otherwise stop at a 2-swap local optimum. The
+main birds-foot trap ([0,1,2,4,5,7,8,10,11], 96.8%) is exactly 2 swaps
+from the champion (sec 7.9). Neighborhood size C(k-f, 2) * C(m-k, 2):
+108 on birds-foot (k = 9, m = 12), 3,780 at 24 sites. With
+two_swap=False the search is identical to before (same moves, same
+order, same pass records apart from the added 'two_swap' key).
 """
 
 import sys, os, time
+from itertools import combinations
 
 import numpy as np
 
@@ -148,21 +160,65 @@ class SetEvaluator:
         return res
 
 
+def _best_move(evaluator, current, moves, threshold, bounded, evaluated):
+    """Best-improvement step over `moves` (iterable of (outs, ins) tuples):
+    bound-screen every move, then evaluate survivors best-bound-first until
+    no remaining bound can beat the best achieved value. Returns
+    (best, stats): best is (result, outs, ins, trial) or None."""
+    candidates, n_moves, n_infeasible, n_pruned = [], 0, 0, 0
+    for outs, ins in moves:
+        n_moves += 1
+        trial = sorted([c for c in current if c not in outs] + list(ins))
+        status, b, _ = evaluator.bound(trial)
+        bounded.add(tuple(trial))
+        if status != 'bounded':
+            n_infeasible += 1
+        elif b <= threshold:
+            n_pruned += 1
+        else:
+            candidates.append((b, outs, ins, trial))
+
+    candidates.sort(key=lambda c: -c[0])
+    best, n_evaluated = None, 0
+    for b, outs, ins, trial in candidates:
+        best_lam = best[0]['lambda_min'] if best else threshold
+        if b <= best_lam:
+            n_pruned += 1      # can't beat the best found this pass
+            continue
+        n_evaluated += 1
+        r = evaluator.evaluate(trial)
+        evaluated.add(tuple(trial))
+        if r['feasible'] and r['lambda_min'] > best_lam:
+            best = (r, outs, ins, trial)
+    return best, dict(n_swaps=n_moves, n_infeasible=n_infeasible,
+                      n_pruned_by_bound=n_pruned, n_evaluated=n_evaluated)
+
+
 def swap_search(evaluator, start_active, fixed=(), improve_rel_tol=1e-4,
-                max_passes=50, verbose=True):
+                max_passes=50, verbose=True, two_swap=False):
     """
     Best-improvement 1-swap local search from `start_active` (see module
     docstring). `fixed` couplings (e.g. mandatory leaf couplings) are never
     removed. A rank-deficient start is allowed (lambda_min 0): any feasible
     swap then counts as an improvement.
 
+    two_swap: when no 1-swap improves, try every 2-swap before stopping
+    (module docstring). An accepted 2-swap counts as a pass.
+
     Returns dict:
         'active', 'lambda_min', 'theta', 't'   -- final set and its evaluation
         'start_active', 'start_lambda_min'
         'passes' : list of per-pass dicts (n_swaps, n_infeasible,
-                   n_pruned_by_bound, n_evaluated, accepted swap or None,
+                   n_pruned_by_bound, n_evaluated -- all for the 1-swap
+                   neighborhood; 'two_swap': the same four counts for the
+                   2-swap neighborhood if it was searched this pass, else
+                   None; accepted move or None, with 'kind' 'one_swap'
+                   (out/into ints) or 'two_swap' (out/into 2-lists);
                    lambda_min after)
-        'converged' : True if stopped at a 1-swap local optimum
+        'converged' : True if stopped at a local optimum (1-swap, or
+                   2-swap when two_swap=True)
+        'n_two_swap_searches', 'n_two_swap_escapes' : 2-swap neighborhoods
+                   searched / 2-swaps accepted
         'n_sets_evaluated', 'n_sets_bounded' : distinct sets this run needed
                    (cost of the run on a cold cache, even if the shared
                    evaluator already had them)
@@ -177,56 +233,52 @@ def swap_search(evaluator, start_active, fixed=(), improve_rel_tol=1e-4,
     start_lam = cur['lambda_min']
     passes = []
     converged = False
+    n_two_searches = n_two_escapes = 0
 
     for _ in range(max_passes):
         threshold = cur['lambda_min'] * (1 + improve_rel_tol) if cur['lambda_min'] > 0 else 0.0
-        candidates, n_swaps, n_infeasible, n_pruned = [], 0, 0, 0
-        for out_c in current:
-            if out_c in fixed:
-                continue
-            for in_c in range(m):
-                if in_c in current:
-                    continue
-                n_swaps += 1
-                trial = sorted([c for c in current if c != out_c] + [in_c])
-                status, b, _ = evaluator.bound(trial)
-                bounded.add(tuple(trial))
-                if status != 'bounded':
-                    n_infeasible += 1
-                elif b <= threshold:
-                    n_pruned += 1
-                else:
-                    candidates.append((b, out_c, in_c, trial))
-
-        candidates.sort(key=lambda c: -c[0])
-        best, n_evaluated = None, 0
-        for b, out_c, in_c, trial in candidates:
-            best_lam = best[0]['lambda_min'] if best else threshold
-            if b <= best_lam:
-                n_pruned += 1      # can't beat the best found this pass
-                continue
-            n_evaluated += 1
-            r = evaluator.evaluate(trial)
-            evaluated.add(tuple(trial))
-            if r['feasible'] and r['lambda_min'] > best_lam:
-                best = (r, out_c, in_c, trial)
+        removable = [c for c in current if c not in fixed]
+        inactive = [c for c in range(m) if c not in current]
+        one_moves = (((o,), (i,)) for o in removable for i in inactive)
+        best, stats = _best_move(evaluator, current, one_moves, threshold,
+                                 bounded, evaluated)
+        kind, stats2 = 'one_swap', None
+        if best is None and two_swap:
+            n_two_searches += 1
+            two_moves = ((o, i) for o in combinations(removable, 2)
+                         for i in combinations(inactive, 2))
+            best, stats2 = _best_move(evaluator, current, two_moves, threshold,
+                                      bounded, evaluated)
+            kind = 'two_swap'
 
         accepted = None
         if best is not None:
-            r, out_c, in_c, trial = best
-            accepted = dict(out=out_c, into=in_c, lambda_before=cur['lambda_min'],
-                            lambda_after=r['lambda_min'])
+            r, outs, ins, trial = best
+            if kind == 'one_swap':
+                out_v, in_v = outs[0], ins[0]
+            else:
+                out_v, in_v = list(outs), list(ins)
+                n_two_escapes += 1
+            accepted = dict(kind=kind, out=out_v, into=in_v,
+                            lambda_before=cur['lambda_min'], lambda_after=r['lambda_min'])
             current, cur = trial, r
-        passes.append(dict(n_swaps=n_swaps, n_infeasible=n_infeasible,
-                           n_pruned_by_bound=n_pruned, n_evaluated=n_evaluated,
-                           accepted=accepted, lambda_min=cur['lambda_min']))
+        passes.append(dict(**stats, two_swap=stats2, accepted=accepted,
+                           lambda_min=cur['lambda_min']))
         if verbose:
-            msg = (f"  pass {len(passes)}: {n_swaps} swaps, {n_infeasible} infeasible, "
-                   f"{n_pruned} pruned by bound, {n_evaluated} evaluated -> ")
-            msg += (f"swap {accepted['out']}->{accepted['into']}, lambda_min "
-                    f"{accepted['lambda_before']:.6f} -> {accepted['lambda_after']:.6f}"
-                    if accepted else "no improving swap (local optimum)")
-            print(msg)
+            msg = (f"  pass {len(passes)}: {stats['n_swaps']} swaps, "
+                   f"{stats['n_infeasible']} infeasible, {stats['n_pruned_by_bound']} "
+                   f"pruned by bound, {stats['n_evaluated']} evaluated")
+            if stats2 is not None:
+                msg += (f"; 2-swaps: {stats2['n_swaps']}, {stats2['n_infeasible']} "
+                        f"infeasible, {stats2['n_pruned_by_bound']} pruned, "
+                        f"{stats2['n_evaluated']} evaluated")
+            msg += " -> "
+            msg += (f"{'2-swap' if kind == 'two_swap' else 'swap'} {accepted['out']}->"
+                    f"{accepted['into']}, lambda_min {accepted['lambda_before']:.6f} -> "
+                    f"{accepted['lambda_after']:.6f}"
+                    if accepted else
+                    f"no improving {'1- or 2-swap' if two_swap else 'swap'} (local optimum)")
+            print(msg, flush=True)
         if accepted is None:
             converged = True
             break
@@ -234,5 +286,6 @@ def swap_search(evaluator, start_active, fixed=(), improve_rel_tol=1e-4,
     return dict(active=current, lambda_min=cur['lambda_min'], theta=cur['theta'],
                 t=cur['t'], start_active=sorted(int(i) for i in start_active),
                 start_lambda_min=start_lam, passes=passes, converged=converged,
+                n_two_swap_searches=n_two_searches, n_two_swap_escapes=n_two_escapes,
                 n_sets_evaluated=len(evaluated), n_sets_bounded=len(bounded),
                 elapsed_sec=time.perf_counter() - t0)

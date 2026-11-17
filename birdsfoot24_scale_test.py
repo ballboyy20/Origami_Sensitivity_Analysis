@@ -22,9 +22,12 @@ Symmetries (each verified with verify_symmetry before use):
   thickness mirror  site j <-> j+3 on every spoke, plane z = -t/2
   both
 
-Saves: results/birdsfoot24_<mode>_{results.json,summary.txt}
+--two-swap (swap modes): use the two-swap escape (sec 8.7 Day 3); output
+names then end in _two_swap.
 
-Run: python -u birdsfoot24_scale_test.py <mode> [--max-hours H]
+Saves: results/birdsfoot24_<mode>[_inc|_two_swap]_{results.json,summary.txt}
+
+Run: python -u birdsfoot24_scale_test.py <mode> [--max-hours H] [--two-swap]
 """
 
 import sys, os, json, time, argparse
@@ -65,12 +68,15 @@ def main():
     ap.add_argument('--incumbent', type=int, nargs='+', default=None,
                     help="bnb starting design (default: old champion); also "
                          "suffixes the output file name with '_inc'")
+    ap.add_argument('--two-swap', action='store_true',
+                    help="swap modes: two-swap escape; output suffix '_two_swap'")
     args = ap.parse_args()
 
     system = build_six_site_birdsfoot()
     target_rank = system.total_dofs - 6
     ev = SetEvaluator(system, target_rank, START_THETAS_DEG, seed=SEED)
-    lines = [f"Birds-foot 24 sites, k={K}: {args.mode}", "=" * 78]
+    lines = [f"Birds-foot 24 sites, k={K}: {args.mode}"
+             + (" with two-swap escape" if args.two_swap else ""), "=" * 78]
 
     def log(msg):
         print(msg, flush=True)
@@ -79,13 +85,15 @@ def main():
     t0 = time.perf_counter()
     if args.mode.startswith('swap'):
         start = GREEDY_24 if args.mode == 'swap-greedy' else CHAMPION_24
-        r = swap_search(ev, start, verbose=True)
+        r = swap_search(ev, start, verbose=True, two_swap=args.two_swap)
         log(f"start {start}: lambda_min {r['start_lambda_min']:.6f}")
         for i, p in enumerate(r['passes']):
             log(f"   pass {i + 1}: {p}")
         log(f"final {r['active']}: lambda_min {r['lambda_min']:.6f} "
             f"({100 * r['lambda_min'] / 0.009263:.1f}% of old champion), "
-            f"converged {r['converged']}")
+            f"converged {r['converged']}"
+            + (f"; 2-swap searches {r['n_two_swap_searches']}, escapes "
+               f"{r['n_two_swap_escapes']}" if args.two_swap else ""))
         log(f"sets bounded {r['n_sets_bounded']}, evaluated {r['n_sets_evaluated']}; "
             f"{r['elapsed_sec']:.0f}s")
         out = r
@@ -123,7 +131,8 @@ def main():
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
     base = os.path.join(RESULTS_DIR, f"birdsfoot24_{args.mode.replace('-', '_')}"
-                        + ('_inc' if args.incumbent else ''))
+                        + ('_inc' if args.incumbent else '')
+                        + ('_two_swap' if args.two_swap and args.mode != 'bnb' else ''))
     with open(base + '_results.json', 'w', encoding='utf-8') as f:
         json.dump(out, f, indent=1, default=lambda o: o.tolist()
                   if isinstance(o, np.ndarray) else float(o))
