@@ -1,0 +1,10 @@
+Birds-foot 24 sites, k=9: swap-champion with two-swap escape
+==============================================================================
+start [0, 1, 2, 6, 8, 12, 13, 14, 20]: lambda_min 0.009263
+   pass 1: {'n_swaps': 135, 'n_infeasible': 39, 'n_pruned_by_bound': 79, 'n_evaluated': 17, 'two_swap': {'n_swaps': 3780, 'n_infeasible': 1600, 'n_pruned_by_bound': 2109, 'n_evaluated': 71}, 'accepted': {'kind': 'two_swap', 'out': [0, 20], 'into': [18, 22], 'lambda_before': 0.009263155400366896, 'lambda_after': 0.009392292286905768}, 'lambda_min': 0.009392292286905768}
+   pass 2: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 113, 'n_evaluated': 3, 'two_swap': {'n_swaps': 3780, 'n_infeasible': 1165, 'n_pruned_by_bound': 2578, 'n_evaluated': 37}, 'accepted': {'kind': 'two_swap', 'out': [8, 13], 'into': [0, 10], 'lambda_before': 0.009392292286905768, 'lambda_after': 0.009623053503351377}, 'lambda_min': 0.009623053503351377}
+   pass 3: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 105, 'n_evaluated': 11, 'two_swap': {'n_swaps': 3780, 'n_infeasible': 1168, 'n_pruned_by_bound': 2573, 'n_evaluated': 39}, 'accepted': {'kind': 'two_swap', 'out': [12, 14], 'into': [16, 17], 'lambda_before': 0.009623053503351377, 'lambda_after': 0.009625521662644514}, 'lambda_min': 0.009625521662644514}
+   pass 4: {'n_swaps': 135, 'n_infeasible': 19, 'n_pruned_by_bound': 102, 'n_evaluated': 14, 'two_swap': {'n_swaps': 3780, 'n_infeasible': 1168, 'n_pruned_by_bound': 2573, 'n_evaluated': 39}, 'accepted': None, 'lambda_min': 0.009625521662644514}
+final [0, 1, 2, 6, 10, 16, 17, 18, 22]: lambda_min 0.009626 (103.9% of old champion), converged True; 2-swap searches 4, escapes 3
+sets bounded 13924, evaluated 190; 10970s
+total 10970s; Riemannian evaluations 190, leaf bound solves 13924

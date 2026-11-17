@@ -1,0 +1,138 @@
+{
+ "active": [
+  0,
+  1,
+  2,
+  6,
+  10,
+  16,
+  17,
+  18,
+  22
+ ],
+ "lambda_min": 0.009625521662644514,
+ "theta": [
+  1.2783119440895565,
+  1.677215154341253,
+  2.6942722725498127,
+  1.4103587909895674,
+  1.2817170404018712,
+  1.0377384752008199,
+  3.139989009579957,
+  1.4121227035730428,
+  1.2835493741602348
+ ],
+ "t": 0.009625531329035814,
+ "start_active": [
+  0,
+  1,
+  2,
+  6,
+  8,
+  12,
+  13,
+  14,
+  20
+ ],
+ "start_lambda_min": 0.009263155400366896,
+ "passes": [
+  {
+   "n_swaps": 135,
+   "n_infeasible": 39,
+   "n_pruned_by_bound": 79,
+   "n_evaluated": 17,
+   "two_swap": {
+    "n_swaps": 3780,
+    "n_infeasible": 1600,
+    "n_pruned_by_bound": 2109,
+    "n_evaluated": 71
+   },
+   "accepted": {
+    "kind": "two_swap",
+    "out": [
+     0,
+     20
+    ],
+    "into": [
+     18,
+     22
+    ],
+    "lambda_before": 0.009263155400366896,
+    "lambda_after": 0.009392292286905768
+   },
+   "lambda_min": 0.009392292286905768
+  },
+  {
+   "n_swaps": 135,
+   "n_infeasible": 19,
+   "n_pruned_by_bound": 113,
+   "n_evaluated": 3,
+   "two_swap": {
+    "n_swaps": 3780,
+    "n_infeasible": 1165,
+    "n_pruned_by_bound": 2578,
+    "n_evaluated": 37
+   },
+   "accepted": {
+    "kind": "two_swap",
+    "out": [
+     8,
+     13
+    ],
+    "into": [
+     0,
+     10
+    ],
+    "lambda_before": 0.009392292286905768,
+    "lambda_after": 0.009623053503351377
+   },
+   "lambda_min": 0.009623053503351377
+  },
+  {
+   "n_swaps": 135,
+   "n_infeasible": 19,
+   "n_pruned_by_bound": 105,
+   "n_evaluated": 11,
+   "two_swap": {
+    "n_swaps": 3780,
+    "n_infeasible": 1168,
+    "n_pruned_by_bound": 2573,
+    "n_evaluated": 39
+   },
+   "accepted": {
+    "kind": "two_swap",
+    "out": [
+     12,
+     14
+    ],
+    "into": [
+     16,
+     17
+    ],
+    "lambda_before": 0.009623053503351377,
+    "lambda_after": 0.009625521662644514
+   },
+   "lambda_min": 0.009625521662644514
+  },
+  {
+   "n_swaps": 135,
+   "n_infeasible": 19,
+   "n_pruned_by_bound": 102,
+   "n_evaluated": 14,
+   "two_swap": {
+    "n_swaps": 3780,
+    "n_infeasible": 1168,
+    "n_pruned_by_bound": 2573,
+    "n_evaluated": 39
+   },
+   "accepted": null,
+   "lambda_min": 0.009625521662644514
+  }
+ ],
+ "converged": true,
+ "n_two_swap_searches": 4,
+ "n_two_swap_escapes": 3,
+ "n_sets_evaluated": 190,
+ "n_sets_bounded": 13924,
+ "elapsed_sec": 10969.83965790004
+}
