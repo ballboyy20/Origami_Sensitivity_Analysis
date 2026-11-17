@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-16.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-17.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -28,7 +28,9 @@ validated soundly, and reported honestly.
   sites are near-duplicates (55–73% of optimum, §7.6–§7.7). One-swap local
   search fixes every two-panel case but only 48% of birds-foot starts:
   birds-foot has real one-swap traps (96.8% and 90.6% of the champion,
-  §7.8–§7.9). A branch-and-bound prototype now finds the exhaustive
+  §7.8–§7.9). **A two-swap escape fixes them: all 220 birds-foot starts
+  now reach the champion**, and at 24 sites it climbs from the old
+  champion to within 0.04% of the best known design (§7.18). A branch-and-bound prototype now finds the exhaustive
   optimum every time on two-panel and birds-foot, with 11 Riemannian
   evaluations instead of 206 (§7.10). **Its certified gap is 17.6% on
   birds-foot**, set by about 15 leaves whose own bound is loose. Arc
@@ -66,9 +68,12 @@ validated soundly, and reported honestly.
   design (§7.17). Mixed-type 42-row designs exist, but the first search
   (no incumbent) stopped at the 24 h cap below the all-V result, so
   mixed vs. all-V on the gore is still open.
-- **Open soundness flag**: the single-gore exhaustive sweep found one
-  set whose bound sits 1.68e-6 below its achieved value. This is probably
-  SDP solver tolerance, but unconfirmed (§7.17).
+- **Soundness flag resolved: solver tolerance, not a modelling error**
+  (§7.18). On the single gore, default Clarabel returns
+  "optimal_inaccurate" on 212 of 216 sets and underestimates the bound by
+  up to 2.0e-6 (1.5e-4 of the optimum). MOSEK solves every flagged set to
+  "optimal" with the bound above λ_min. B&B's leaf bounds carry the same
+  small error, so they need MOSEK or a safety margin (§8.5).
 
 **Roadmap** (§8): swap search after greedy (built) → branch-and-bound
 (prototype built; needs tighter leaf bounds) → generalize the coupling
@@ -279,6 +284,7 @@ which passes every cut.
 | Split-responsibility pipeline (`bound_and_evaluate.py`) | Validated at full scale. | SDP for the certified bound, Riemannian for the achieved value (§6, §7.1). |
 | Forward bound-guided greedy (`forward_greedy_topology.py`) | Works on birds-foot; unreliable in general. | Exact birds-foot champion in seconds (§7.3). Misses with near-duplicate sites: 72.8% (two-panel) and 55% (birds-foot 24 sites), because tied bound scores leave early choices to tie order. Can't see mandatory couplings without forcing (§7.4). |
 | One-swap local search (`swap_search.py`) | Validated on two scales; reliable only on two-panel. | Two-panel: 20/20 starts reach the optimum (1 swap each). Birds-foot: 105/220 (48%); the rest stop at one-swap local optima (96.8%, 90.6%). Bound screening prunes most swaps; ~5 min per birds-foot run (§7.8–§7.9). |
+| Two-swap escape (`swap_search(two_swap=True)`) | Validated on birds-foot 12 and 24 sites; heuristic. | Birds-foot: 220/220 starts reach the champion, each stuck start with one escape (~15 extra evaluations). 24 sites from the old champion: 3 escapes to 0.009626, 99.96% of the best known; ~45 min per 2-swap search, dominated by 3,780 bound solves (§7.18). |
 | Branch-and-bound (`branch_and_bound.py`) | Prototype validated on two-panel and birds-foot; mixed-type mode validated on two-panel. | Finds the optimum every time; birds-foot with 11 Riemannian evaluations instead of 206. Certified gap 0.01% (two-panel), 17.6% (birds-foot), limited by loose leaf bounds (§7.10). Mixed types (exact row budget, ≤ 1 type per site): two-panel 6 sites, exhaustive optimum found, gap 0.01% (§7.13). |
 | Mixed coupling types (`coupling_types.py`, `RigidBodyModel.py`) | Validated (`test_coupling_types.py`, all checks pass). | Flat / V-groove / socket per site. Kelvin couplings reach rank 6 in every placement; two sockets leave rank 5. Flats and sockets have Kc = Ks = 0. V-groove-only designs reproduce the original C exactly (§7.13). |
 | Arc branching on loose leaves (`arc_refine.py`) | Sound; ineffective here. | 3,000 nodes moved the worst leaf's bound 0.010890 → 0.010881. Our relaxation has no product terms, so per-coupling arc cuts can't reach the collective looseness (§2.6, §7.11). |
@@ -367,7 +373,8 @@ the final set can't reach full rank.
 | `bound_and_evaluate.py` | Split-responsibility pipeline, multistart, polish hook |
 | `log_product_polish.py` | Stage-2 polish |
 | `forward_greedy_topology.py` | Forward greedy; birds-foot run |
-| `swap_search.py` | One-swap local search (`swap_search`) and the cached, per-set-seeded `SetEvaluator` |
+| `swap_search.py` | One-swap local search with optional two-swap escape (`swap_search`, `two_swap=True`) and the cached, per-set-seeded `SetEvaluator` |
+| `single_gore_soundness.py` | Bound-only soundness audit of the single-gore sweep: both bounds on every feasible set, exact re-solves (Clarabel / SCS / MOSEK) and a three-way λ_min check on violators; `--reverdict` (§7.18) |
 | `dxf_to_panels.py`, `gore_system_common.py`, `flasher_gore_system.py`, `full_flasher_gore_system.py` | DXF geometry loading and gore systems |
 | `forward_greedy_gore.py`, `forward_greedy_full_gore.py` | Gore greedy runs |
 | `polish_birdsfoot_champion.py`, `two_panel_six_sites.py`, `birdsfoot_six_sites.py` | 2026-10-13 experiments |
@@ -1287,8 +1294,9 @@ notation for mixed runs: one letter per site, 3 sites per crease.
   unknown. A bound that low could in principle prune a leaf that is
   within 1.7e-6 of the incumbent. Here it didn't matter, since B&B's
   result matches ground truth.
-- To do: store each set's bound in the exhaustive sweep, find the
-  offending set, and re-solve its SDP with tighter solver tolerances.
+- *Resolved 2026-11-17 (§7.18)*: solver tolerance. Default Clarabel
+  underestimates the bound by up to 2.0e-6; MOSEK puts every flagged
+  set's bound above its achieved value.
 
 **Full gore, all V-grooves, exactly constrained** (m = 27, k = 21,
 target rank 42; panel 5's 3 couplings forced, choose 18 of 24 = 134,596
@@ -1364,6 +1372,102 @@ candidates; 24 h cap):
   the gore is still open, and still depends on Day 5 row weights.
 
 Results: `results/gore_bnb_{single_gore,full_gore_allv,full_gore_mixed}_{results.json,summary.txt}` and `.log`.
+
+### 7.18 Soundness audit and two-swap escape (2026-11-17)
+
+**Questions** (Day 3 of §8.7): is the single-gore soundness flag (§7.17)
+solver tolerance or a real error? Does a two-swap escape get swap search
+out of the birds-foot traps (§7.9), and what does it cost at 24 sites?
+
+**Soundness audit** (`single_gore_soundness.py`, lab machine; bound sweep 218 s).
+Bound-only: both bounds recomputed for all 216 feasible single-gore sets
+with the sweep's seed (same references), compared with the saved λ_min.
+Every violating set, plus the 3 tightest, was re-solved with tight
+Clarabel, tight SCS and MOSEK, and its λ_min was recomputed at the
+achieved angles three independent ways.
+
+| check | result |
+|---|---|
+| t (`sdp_certified_bound`, default Clarabel) | **18 of 216 below achieved**; worst −1.68e-6 at `[0,1,2,3,4,5,6,7,8,9,10,11,15,16,17]`: **the §7.17 flag, reproduced** |
+| b_node (`bound_node`, what B&B prunes with) | **22 of 216 below achieved**; worst −2.01e-6 at `[0,…,14]` |
+| default solver status | "optimal_inaccurate" on **212 of 216** sets |
+| MOSEK on the 23 flagged sets | status "optimal" on all 23; bound **above** λ_min by +1.8e-7 to +1.2e-6 |
+| Clarabel, tolerances at 1e-12 | still "optimal_inaccurate", same values: tighter settings don't help |
+| SCS, tolerances at 1e-10 | doesn't converge (values 0.06–2.0, meaningless) |
+| Riemannian re-run (same seed) | reproduces every saved λ_min exactly |
+| λ_min at the achieved angles: Riemannian convention / SDP reduced model / CᵀC from geometry | agree to 9 digits on every set |
+
+- **Verdict: solver tolerance, not a modelling error.** The bound and the
+  evaluator measure the same matrix. Default Clarabel stops short on the
+  30×30 gore SDPs and underestimates by up to 2.0e-6, i.e. **1.5e-4 of the
+  optimum**. Earlier systems stayed under about 1e-9 (§7.1, §7.6).
+- **B&B is affected the same way.** A leaf within about 1.5e-4 of the
+  incumbent could be pruned wrongly, and a certified upper bound can be
+  low by about as much. That's negligible next to the gaps reported here
+  (0.15% to 33%), and the single-gore B&B still matched ground truth, but
+  it should be fixed before the flasher: MOSEK for leaf bounds, or a
+  safety margin of about 3e-4 relative (§8.5).
+- The log's last line reads "REAL VIOLATION": a bug in the first version
+  of the verdict, which counted "optimal_inaccurate" re-solves as exact.
+  Fixed and recomputed from the saved results (`--reverdict`); the
+  summary and JSON have the correct verdict.
+
+**Two-swap escape** (`swap_search(two_swap=True)`). When no 1-swap
+improves, try every 2-swap (remove 2 non-fixed couplings, add 2) with the
+same bound screening and best-bound-first evaluation; accept the best and
+return to 1-swaps. With `two_swap=False` the search is unchanged.
+
+- **Birds-foot 12 sites, all 220 starts** (`birdsfoot_swap_validation.py
+  --two-swap`, 5,886 s with a shared cache vs. 5,786 s for one-swap only):
+
+  | | one-swap only (§7.9) | with two-swap escape |
+  |---|---|---|
+  | starts reaching the champion 0.009263 | 105 / 220 | **220 / 220** |
+  | escapes needed | n/a | exactly 1 in each of the 115 previously stuck starts |
+  | swaps accepted per run | median 2, max 3 | median 2, max 4 |
+  | distinct sets evaluated per run (cold cache) | median 11, max 19 | median 19, max 25 |
+  | distinct sets bounded per run | median 59, max 74 | median 185, max 198 (of 220) |
+
+  Runs end at the champion (43) or its mirror twin `[0,1,2,5,6,7,8,9,11]`
+  (177), both 0.009263. From the main trap `[0,1,2,4,5,7,8,10,11]`
+  (96.8%), one 2-swap `[4,10] → [6,9]` reaches the champion: 108 moves,
+  98 pruned by bound, 7 evaluated, 125 s.
+- **Birds-foot 24 sites from the old champion** (`birdsfoot24_scale_test.py
+  swap-champion --two-swap`; the old champion is a one-swap local
+  optimum, §7.14):
+
+  | pass | accepted 2-swap | λ_min |
+  |---|---|---|
+  | 1 | `[0,20] → [18,22]` | 0.009263 → 0.009392 |
+  | 2 | `[8,13] → [0,10]` | → 0.009623 |
+  | 3 | `[12,14] → [16,17]` | → 0.009626 |
+  | 4 | none: 2-swap local optimum | 0.009626 |
+
+  Final `[0,1,2,6,10,16,17,18,22]`, **0.009626 = 99.96% of B&B's best
+  0.009630** `[0,1,2,7,9,13,14,19,21]`, and not an image of it under any
+  of the three verified symmetries. No 1-swap ever improved; every gain
+  came from an escape. Each 2-swap search: 3,780 moves, 1,165–1,600
+  infeasible, 2,109–2,578 pruned by bound, 37–71 evaluated. Total 13,924
+  bound solves, 190 Riemannian evaluations, 10,970 s (3.0 h), so bound
+  solves dominate the cost at this size.
+
+**Implications**:
+
+- **The escape removes every birds-foot trap**, at the cost of about 15
+  extra evaluations per stuck start. Swap search with the escape is a
+  reliable incumbent supplier for B&B.
+- **It's still a heuristic.** At 24 sites it stops at a 2-swap local
+  optimum 0.04% below the best known design. B&B (with the one-restart
+  screen, §7.16) stays the selection method; the escape is the fallback
+  if the flasher tree is too large, and a strong incumbent either way.
+- **Cost grows with C(k, 2) · C(m − k, 2)**: 108 moves at 12 sites, 3,780
+  at 24. At flasher size, cyclic symmetry (choosing per gore) is what
+  keeps this affordable.
+
+Results: `results/single_gore_soundness_{summary.txt,results.json}` and
+`.log`; `results/birdsfoot_swap_validation_two_swap_{results.json,summary.txt,starts.png}`
+and `.log`; `results/birdsfoot24_swap_champion_two_swap_{results.json,summary.txt}`
+and `.log` (the `.log` files from the two-swap runs are UTF-16).
 
 ---
 
@@ -1445,10 +1549,10 @@ Decisions (2026-10-13):
 - Done: one-swap, best-improvement search with rigorous bound screening
   (`swap_search.py`). Two-panel: 20/20 starts reach the optimum.
   Birds-foot: 105/220; the rest stop at one-swap local optima.
-- Options still open (can be combined):
-  - *Two-swap escape when stuck*: the main birds-foot trap is exactly 2
-    swaps from the champion. 108 extra sets per escape on birds-foot,
-    ~3,800 at 24 sites (bound screening carries the load there).
+- Done 2026-11-17 (§7.18): *two-swap escape when stuck*
+  (`two_swap=True`). Birds-foot: 220/220 starts reach the champion. 24
+  sites from the old champion: 0.009626, 99.96% of the best known.
+- Still open:
   - *Multiple random starts*: each start reaches the champion with
     probability ~0.48, so ~5 starts would very likely find it. Cheap,
     but only a statistical guarantee.
@@ -1574,8 +1678,12 @@ Original Phase 2 design notes:
   design policy (§7.5).
 - **Gore plateau vs. ridge**: run `polish_tied_restarts` on the gore
   results (re-run once an exactly constrained full-gore design exists).
-- **Housekeeping**: independent child RNG per restart (§6.3); a
-  `requirements.txt`; the polish's trust-region-floor stopping on
+- **Leaf-bound solver accuracy** (§7.18): default Clarabel returns
+  "optimal_inaccurate" on the gore SDPs and underestimates bounds by up
+  to 1.5e-4 relative. Before the flasher runs, switch leaf bounds to
+  MOSEK or add a safety margin of about 3e-4 relative.
+- **Housekeeping**: independent child RNG per restart (§6.3; deferred
+  from Day 3 of §8.7); the polish's trust-region-floor stopping on
   birds-foot (§7.5).
 
 ### 8.6 Later
@@ -1589,14 +1697,14 @@ Original Phase 2 design notes:
 ### 8.7 Schedule to Thanksgiving (drafted 2026-11-09)
 
 Twelve business days, Mon 11/9 – Tue 11/24; Wed 11/25 is buffer. Each day
-ends with a check that says it's done. Status (updated 2026-11-16):
+ends with a check that says it's done. Status (updated 2026-11-17):
 ✅ done · ⏳ running · 🟡 partial · ⬜ not started.
 
 | Day | Date | Task | Done when | Status |
 |---|---|---|---|---|
 | 1 | Mon 11/9 | Bring this doc up to date (§7.13). Close the gap decision (§8.4): one order-2 MOSEK solve on the worst leaf, stopped after 3 h, then adopt option 1 (accept and report the gap). Branch on mirror pairs first. | Decision recorded in §7.12/§8.4; birds-foot B&B still finds 0.009263 with fewer than 213 branches. | ✅ Done 11/13. MOSEK: order 2 doesn't prove the leaf (bound 0.010694); option 1 adopted (§7.12, §8.4). Mirror pairs first: 213 → 97 branches (§7.10). |
 | 2 | Tue 11/10 | Scale test: birds-foot 24 sites (§7.7). Swap search from greedy's set and from the old champion for the incumbent; B&B in the background (`python -u`, 3 workers). | Go/no-go verdict on B&B at scale: nodes, evaluations, gap, time. | ✅ Done 11/13. Go at 24 sites with a swap incumbent (6.2 h, gap 15.7%, new best 0.009630); no-go as-is for the flasher (§7.14). |
-| 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. | 🟡 Partial. `requirements.txt` done 11/13. Single-gore B&B done 11/15: matches the exhaustive optimum 0.013044 with 6 evaluations vs. 216, gap 0.15% (§7.17). One open item: the exhaustive sweep flagged a 1.68e-6 bound violation, probably SDP tolerance (§7.17). Selection method: B&B with the one-restart screen (§7.16); keep the two-swap escape as the flasher fallback. Two-swap escape and child RNG not started. |
+| 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. | ✅ Done 11/17. `requirements.txt` done 11/13. Single-gore B&B done 11/15: matches the exhaustive optimum 0.013044 with 6 evaluations vs. 216, gap 0.15% (§7.17). Soundness flag resolved 11/17: solver tolerance (default Clarabel low by up to 2.0e-6; MOSEK clears every set), §7.18. Two-swap escape done 11/17: birds-foot 220/220 starts reach the champion; 24 sites 0.009626 from the old champion (§7.18). Selection method: B&B with the one-restart screen (§7.16), two-swap escape as fallback and incumbent supplier. Child RNG deferred to §8.5 housekeeping. |
 | 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.15. | ✅ Done 11/14. Yes: 0.010358 `[FFT V-V V-T V-V]`, 111.8% of the all-V champion (unit weights), gap 33.0%, 9.6 h, 1,977 leaf evaluations (§7.15). |
 | 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. | ⬜ Not started |
 | 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. | ✅ Done 11/16 (ran over the weekend). Yes for both. All-V: 21 couplings, best 0.006767, certified within 1.74%, 9.0 h, 130.5% of §7.4's over-constrained design. Mixed: valid designs exist, but the 24 h run without an incumbent stopped incomplete at 0.006644 (§7.17). Follow-up: mixed run seeded with the all-V incumbent. |
