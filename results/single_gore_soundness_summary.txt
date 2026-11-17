@@ -1,0 +1,241 @@
+Single-gore soundness audit: 216 feasible sets, optimum 0.013044, tolerance 1e-08 relative (1.3e-10 absolute)
+==============================================================================
+Bound sweep (218s): 216 sets bounded, 0 not (status != bounded or solve error)
+   t (sdp_certified_bound, default solver): 18 below achieved; min t - lambda -1.68e-06 at [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17]
+   b_node (bound_node, used by B&B):        22 below achieved; min b_node - lambda -2.01e-06 at [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+   default-solver status != 'optimal': 212 sets (['optimal_inaccurate'])
+   original flag (-1.68e-6) REPRODUCED by the worst t - lambda
+
+Detail on 23 set(s) (violators + 3 tightest):
+   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]: saved lambda 0.008052035
+      t default   0.008050754 (optimal_inaccurate), t - lambda -1.28e-06
+      b_node      0.008050024, b_node - lambda -2.01e-06
+      t clarabel_tight0.008050754 (optimal_inaccurate), t - lambda -1.28e-06
+      t scs_tight   0.163056838 (optimal_inaccurate), t - lambda +1.55e-01
+      t mosek       0.008052413 (optimal), t - lambda +3.79e-07
+      Riemannian re-run 0.008052035 (diff from saved +0.0e+00; 25s)
+      lambda at its theta, riemannian_convention  0.008052035 (vs t default -1.28e-06)
+      lambda at its theta, sdp_reduced_model      0.008052035 (vs t default -1.28e-06)
+      lambda at its theta, geometry_CtC           0.008052035 (vs t default -1.28e-06)
+   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17]: saved lambda 0.009419336
+      t default   0.009419146 (optimal_inaccurate), t - lambda -1.90e-07
+      b_node      0.009419274, b_node - lambda -6.17e-08
+      t clarabel_tight0.009419146 (optimal_inaccurate), t - lambda -1.90e-07
+      t scs_tight   1.201262666 (optimal_inaccurate), t - lambda +1.19e+00
+      t mosek       0.009419628 (optimal), t - lambda +2.92e-07
+      Riemannian re-run 0.009419336 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.009419336 (vs t default -1.90e-07)
+      lambda at its theta, sdp_reduced_model      0.009419336 (vs t default -1.90e-07)
+      lambda at its theta, geometry_CtC           0.009419336 (vs t default -1.90e-07)
+   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16]: saved lambda 0.008805517
+      t default   0.008805414 (optimal_inaccurate), t - lambda -1.03e-07
+      b_node      0.008805418, b_node - lambda -9.89e-08
+      t clarabel_tight0.008805414 (optimal_inaccurate), t - lambda -1.03e-07
+      t scs_tight   0.516614381 (optimal_inaccurate), t - lambda +5.08e-01
+      t mosek       0.008805772 (optimal), t - lambda +2.55e-07
+      Riemannian re-run 0.008805517 (diff from saved +0.0e+00; 27s)
+      lambda at its theta, riemannian_convention  0.008805517 (vs t default -1.03e-07)
+      lambda at its theta, sdp_reduced_model      0.008805517 (vs t default -1.03e-07)
+      lambda at its theta, geometry_CtC           0.008805517 (vs t default -1.03e-07)
+   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 17]: saved lambda 0.005819500
+      t default   0.005817825 (optimal_inaccurate), t - lambda -1.68e-06
+      b_node      0.005817534, b_node - lambda -1.97e-06
+      t clarabel_tight0.005817825 (optimal_inaccurate), t - lambda -1.68e-06
+      t scs_tight   0.173204600 (optimal_inaccurate), t - lambda +1.67e-01
+      t mosek       0.005819996 (optimal), t - lambda +4.96e-07
+      Riemannian re-run 0.005819500 (diff from saved +0.0e+00; 24s)
+      lambda at its theta, riemannian_convention  0.005819500 (vs t default -1.68e-06)
+      lambda at its theta, sdp_reduced_model      0.005819500 (vs t default -1.68e-06)
+      lambda at its theta, geometry_CtC           0.005819500 (vs t default -1.68e-06)
+   [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]: saved lambda 0.011772975
+      t default   0.011772744 (optimal_inaccurate), t - lambda -2.31e-07
+      b_node      0.011772745, b_node - lambda -2.31e-07
+      t clarabel_tight0.011772744 (optimal_inaccurate), t - lambda -2.31e-07
+      t scs_tight   1.015839581 (optimal_inaccurate), t - lambda +1.00e+00
+      t mosek       0.011773564 (optimal), t - lambda +5.89e-07
+      Riemannian re-run 0.011772975 (diff from saved +0.0e+00; 25s)
+      lambda at its theta, riemannian_convention  0.011772975 (vs t default -2.31e-07)
+      lambda at its theta, sdp_reduced_model      0.011772975 (vs t default -2.31e-07)
+      lambda at its theta, geometry_CtC           0.011772975 (vs t default -2.31e-07)
+   [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15, 17]: saved lambda 0.000142876
+      t default   0.000141637 (optimal_inaccurate), t - lambda -1.24e-06
+      b_node      0.000141651, b_node - lambda -1.22e-06
+      t clarabel_tight0.000141637 (optimal_inaccurate), t - lambda -1.24e-06
+      t scs_tight   1.187041677 (optimal_inaccurate), t - lambda +1.19e+00
+      t mosek       0.000143085 (optimal), t - lambda +2.09e-07
+      Riemannian re-run 0.000142876 (diff from saved +0.0e+00; 5s)
+      lambda at its theta, riemannian_convention  0.000142876 (vs t default -1.24e-06)
+      lambda at its theta, sdp_reduced_model      0.000142876 (vs t default -1.24e-06)
+      lambda at its theta, geometry_CtC           0.000142876 (vs t default -1.24e-06)
+   [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17]: saved lambda 0.000206486
+      t default   0.000206272 (optimal_inaccurate), t - lambda -2.14e-07
+      b_node      0.000206309, b_node - lambda -1.77e-07
+      t clarabel_tight0.000206272 (optimal_inaccurate), t - lambda -2.14e-07
+      t scs_tight   0.985990810 (optimal_inaccurate), t - lambda +9.86e-01
+      t mosek       0.000206936 (optimal), t - lambda +4.50e-07
+      Riemannian re-run 0.000206486 (diff from saved +0.0e+00; 24s)
+      lambda at its theta, riemannian_convention  0.000206486 (vs t default -2.14e-07)
+      lambda at its theta, sdp_reduced_model      0.000206486 (vs t default -2.14e-07)
+      lambda at its theta, geometry_CtC           0.000206486 (vs t default -2.14e-07)
+   [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 15, 16, 17]: saved lambda 0.000185598
+      t default   0.000185455 (optimal_inaccurate), t - lambda -1.43e-07
+      b_node      0.000185471, b_node - lambda -1.27e-07
+      t clarabel_tight0.000185455 (optimal_inaccurate), t - lambda -1.43e-07
+      t scs_tight   0.280013008 (optimal_inaccurate), t - lambda +2.80e-01
+      t mosek       0.000185939 (optimal), t - lambda +3.41e-07
+      Riemannian re-run 0.000185598 (diff from saved +0.0e+00; 27s)
+      lambda at its theta, riemannian_convention  0.000185598 (vs t default -1.43e-07)
+      lambda at its theta, sdp_reduced_model      0.000185598 (vs t default -1.43e-07)
+      lambda at its theta, geometry_CtC           0.000185598 (vs t default -1.43e-07)
+   [0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]: saved lambda 0.011516933
+      t default   0.011516737 (optimal_inaccurate), t - lambda -1.96e-07
+      b_node      0.011516730, b_node - lambda -2.03e-07
+      t clarabel_tight0.011516737 (optimal_inaccurate), t - lambda -1.96e-07
+      t scs_tight   0.214766424 (optimal_inaccurate), t - lambda +2.03e-01
+      t mosek       0.011517183 (optimal), t - lambda +2.50e-07
+      Riemannian re-run 0.011516933 (diff from saved +0.0e+00; 25s)
+      lambda at its theta, riemannian_convention  0.011516933 (vs t default -1.96e-07)
+      lambda at its theta, sdp_reduced_model      0.011516933 (vs t default -1.96e-07)
+      lambda at its theta, geometry_CtC           0.011516933 (vs t default -1.96e-07)
+   [0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]: saved lambda 0.011695899
+      t default   0.011694951 (optimal_inaccurate), t - lambda -9.48e-07
+      b_node      0.011694883, b_node - lambda -1.02e-06
+      t clarabel_tight0.011694951 (optimal_inaccurate), t - lambda -9.48e-07
+      t scs_tight   0.948475357 (optimal_inaccurate), t - lambda +9.37e-01
+      t mosek       0.011696137 (optimal), t - lambda +2.38e-07
+      Riemannian re-run 0.011695899 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.011695899 (vs t default -9.48e-07)
+      lambda at its theta, sdp_reduced_model      0.011695899 (vs t default -9.48e-07)
+      lambda at its theta, geometry_CtC           0.011695899 (vs t default -9.48e-07)
+   [0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]: saved lambda 0.009831025
+      t default   0.009830462 (optimal_inaccurate), t - lambda -5.63e-07
+      b_node      0.009830145, b_node - lambda -8.80e-07
+      t clarabel_tight0.009830462 (optimal_inaccurate), t - lambda -5.63e-07
+      t scs_tight   0.201205491 (optimal_inaccurate), t - lambda +1.91e-01
+      t mosek       0.009831300 (optimal), t - lambda +2.75e-07
+      Riemannian re-run 0.009831025 (diff from saved +0.0e+00; 25s)
+      lambda at its theta, riemannian_convention  0.009831025 (vs t default -5.63e-07)
+      lambda at its theta, sdp_reduced_model      0.009831025 (vs t default -5.63e-07)
+      lambda at its theta, geometry_CtC           0.009831025 (vs t default -5.63e-07)
+   [0, 1, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17]: saved lambda 0.011440870
+      t default   0.011440816 (optimal_inaccurate), t - lambda -5.46e-08
+      b_node      0.011440822, b_node - lambda -4.87e-08
+      t clarabel_tight0.011440608 (optimal_inaccurate), t - lambda -2.63e-07
+      t scs_tight   0.315512240 (optimal_inaccurate), t - lambda +3.04e-01
+      t mosek       0.011441299 (optimal), t - lambda +4.29e-07
+      Riemannian re-run 0.011440870 (diff from saved +0.0e+00; 27s)
+      lambda at its theta, riemannian_convention  0.011440870 (vs t default -5.46e-08)
+      lambda at its theta, sdp_reduced_model      0.011440870 (vs t default -5.46e-08)
+      lambda at its theta, geometry_CtC           0.011440870 (vs t default -5.46e-08)
+   [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16]: saved lambda 0.006763366
+      t default   0.006763350 (optimal_inaccurate), t - lambda -1.63e-08
+      b_node      0.006763157, b_node - lambda -2.09e-07
+      t clarabel_tight0.006763350 (optimal_inaccurate), t - lambda -1.63e-08
+      t scs_tight   0.607936699 (optimal_inaccurate), t - lambda +6.01e-01
+      t mosek       0.006763959 (optimal), t - lambda +5.93e-07
+      Riemannian re-run 0.006763366 (diff from saved +0.0e+00; 25s)
+      lambda at its theta, riemannian_convention  0.006763366 (vs t default -1.63e-08)
+      lambda at its theta, sdp_reduced_model      0.006763366 (vs t default -1.63e-08)
+      lambda at its theta, geometry_CtC           0.006763366 (vs t default -1.63e-08)
+   [0, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17]: saved lambda 0.000147717
+      t default   0.000147350 (optimal_inaccurate), t - lambda -3.67e-07
+      b_node      0.000147346, b_node - lambda -3.71e-07
+      t clarabel_tight0.000147350 (optimal_inaccurate), t - lambda -3.67e-07
+      t scs_tight   0.818793902 (optimal_inaccurate), t - lambda +8.19e-01
+      t mosek       0.000148029 (optimal), t - lambda +3.12e-07
+      Riemannian re-run 0.000147717 (diff from saved +0.0e+00; 10s)
+      lambda at its theta, riemannian_convention  0.000147717 (vs t default -3.67e-07)
+      lambda at its theta, sdp_reduced_model      0.000147717 (vs t default -3.67e-07)
+      lambda at its theta, geometry_CtC           0.000147717 (vs t default -3.67e-07)
+   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 17]: saved lambda 0.010194169
+      t default   0.010194076 (optimal_inaccurate), t - lambda -9.34e-08
+      b_node      0.010194742, b_node - lambda +5.73e-07
+      t clarabel_tight0.010194076 (optimal_inaccurate), t - lambda -9.34e-08
+      t scs_tight   1.480433482 (optimal_inaccurate), t - lambda +1.47e+00
+      t mosek       0.010194863 (optimal), t - lambda +6.94e-07
+      Riemannian re-run 0.010194169 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.010194169 (vs t default -9.34e-08)
+      lambda at its theta, sdp_reduced_model      0.010194169 (vs t default -9.34e-08)
+      lambda at its theta, geometry_CtC           0.010194169 (vs t default -9.34e-08)
+   [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17]: saved lambda 0.000207947
+      t default   0.000207374 (optimal_inaccurate), t - lambda -5.73e-07
+      b_node      0.000207392, b_node - lambda -5.55e-07
+      t clarabel_tight0.000207374 (optimal_inaccurate), t - lambda -5.73e-07
+      t scs_tight   0.721004751 (optimal_inaccurate), t - lambda +7.21e-01
+      t mosek       0.000208192 (optimal), t - lambda +2.45e-07
+      Riemannian re-run 0.000207947 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.000207947 (vs t default -5.73e-07)
+      lambda at its theta, sdp_reduced_model      0.000207947 (vs t default -5.73e-07)
+      lambda at its theta, geometry_CtC           0.000207947 (vs t default -5.73e-07)
+   [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]: saved lambda 0.011722886
+      t default   0.011722601 (optimal_inaccurate), t - lambda -2.85e-07
+      b_node      0.011722700, b_node - lambda -1.86e-07
+      t clarabel_tight0.011722601 (optimal_inaccurate), t - lambda -2.85e-07
+      t scs_tight   1.060860002 (optimal_inaccurate), t - lambda +1.05e+00
+      t mosek       0.011724050 (optimal), t - lambda +1.16e-06
+      Riemannian re-run 0.011722886 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.011722886 (vs t default -2.85e-07)
+      lambda at its theta, sdp_reduced_model      0.011722886 (vs t default -2.85e-07)
+      lambda at its theta, geometry_CtC           0.011722886 (vs t default -2.85e-07)
+   [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]: saved lambda 0.005276201
+      t default   0.005274618 (optimal_inaccurate), t - lambda -1.58e-06
+      b_node      0.005274634, b_node - lambda -1.57e-06
+      t clarabel_tight0.005274618 (optimal_inaccurate), t - lambda -1.58e-06
+      t scs_tight   0.059507026 (optimal_inaccurate), t - lambda +5.42e-02
+      t mosek       0.005276428 (optimal), t - lambda +2.27e-07
+      Riemannian re-run 0.005276201 (diff from saved +0.0e+00; 13s)
+      lambda at its theta, riemannian_convention  0.005276201 (vs t default -1.58e-06)
+      lambda at its theta, sdp_reduced_model      0.005276201 (vs t default -1.58e-06)
+      lambda at its theta, geometry_CtC           0.005276201 (vs t default -1.58e-06)
+   [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 16]: saved lambda 0.007788093
+      t default   0.007788341 (optimal_inaccurate), t - lambda +2.48e-07
+      b_node      0.007787946, b_node - lambda -1.47e-07
+      t clarabel_tight0.007788341 (optimal_inaccurate), t - lambda +2.48e-07
+      t scs_tight   0.189272297 (optimal_inaccurate), t - lambda +1.81e-01
+      t mosek       0.007788564 (optimal), t - lambda +4.71e-07
+      Riemannian re-run 0.007788093 (diff from saved +0.0e+00; 27s)
+      lambda at its theta, riemannian_convention  0.007788093 (vs t default +2.48e-07)
+      lambda at its theta, sdp_reduced_model      0.007788093 (vs t default +2.48e-07)
+      lambda at its theta, geometry_CtC           0.007788093 (vs t default +2.48e-07)
+   [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16]: saved lambda 0.005161555
+      t default   0.005161598 (optimal_inaccurate), t - lambda +4.24e-08
+      b_node      0.005161374, b_node - lambda -1.81e-07
+      t clarabel_tight0.005161598 (optimal_inaccurate), t - lambda +4.24e-08
+      t scs_tight   2.011456411 (optimal_inaccurate), t - lambda +2.01e+00
+      t mosek       0.005161813 (optimal), t - lambda +2.58e-07
+      Riemannian re-run 0.005161555 (diff from saved +0.0e+00; 23s)
+      lambda at its theta, riemannian_convention  0.005161555 (vs t default +4.24e-08)
+      lambda at its theta, sdp_reduced_model      0.005161555 (vs t default +4.24e-08)
+      lambda at its theta, geometry_CtC           0.005161555 (vs t default +4.24e-08)
+   [0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]: saved lambda 0.011534830
+      t default   0.011534855 (optimal_inaccurate), t - lambda +2.48e-08
+      b_node      0.011534807, b_node - lambda -2.31e-08
+      t clarabel_tight0.011534855 (optimal_inaccurate), t - lambda +2.48e-08
+      t scs_tight   0.133521572 (optimal_inaccurate), t - lambda +1.22e-01
+      t mosek       0.011535008 (optimal), t - lambda +1.78e-07
+      Riemannian re-run 0.011534830 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.011534830 (vs t default +2.48e-08)
+      lambda at its theta, sdp_reduced_model      0.011534830 (vs t default +2.48e-08)
+      lambda at its theta, geometry_CtC           0.011534830 (vs t default +2.48e-08)
+   [0, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]: saved lambda 0.011874449
+      t default   0.011874822 (optimal_inaccurate), t - lambda +3.73e-07
+      b_node      0.011873927, b_node - lambda -5.21e-07
+      t clarabel_tight0.011874822 (optimal_inaccurate), t - lambda +3.73e-07
+      t scs_tight   0.757502174 (optimal_inaccurate), t - lambda +7.46e-01
+      t mosek       0.011874849 (optimal), t - lambda +4.00e-07
+      Riemannian re-run 0.011874449 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.011874449 (vs t default +3.73e-07)
+      lambda at its theta, sdp_reduced_model      0.011874449 (vs t default +3.73e-07)
+      lambda at its theta, geometry_CtC           0.011874449 (vs t default +3.73e-07)
+   [0, 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17]: saved lambda 0.005920995
+      t default   0.005921534 (optimal_inaccurate), t - lambda +5.38e-07
+      b_node      0.005920691, b_node - lambda -3.04e-07
+      t clarabel_tight0.005921534 (optimal_inaccurate), t - lambda +5.38e-07
+      t scs_tight   0.301773402 (optimal_inaccurate), t - lambda +2.96e-01
+      t mosek       0.005921573 (optimal), t - lambda +5.77e-07
+      Riemannian re-run 0.005920995 (diff from saved +0.0e+00; 26s)
+      lambda at its theta, riemannian_convention  0.005920995 (vs t default +5.38e-07)
+      lambda at its theta, sdp_reduced_model      0.005920995 (vs t default +5.38e-07)
+      lambda at its theta, geometry_CtC           0.005920995 (vs t default +5.38e-07)
+
+VERDICT: SOLVER TOLERANCE: all 23 violating sets are resolved by an exact (status 'optimal') re-solve, which puts t above lambda by 1.8e-07 to 1.2e-06. The default Clarabel solve ('optimal_inaccurate') underestimates by up to 2.0e-06 (1.5e-04 of the optimum); tighter Clarabel tolerances don't fix it. Not a modelling error, but B&B leaf bounds (b_node) carry the same error: use MOSEK or a safety margin.
