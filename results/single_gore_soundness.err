@@ -1,0 +1,4 @@
+C:\Users\craftyb\Documents\GitHub\Origami_Sensitivity_Analysis\sdp_theta_optimizer.py:264: UserWarning: Solution may be inaccurate. Try another solver, adjusting the solver settings, or solve with verbose=True for more information.
+  problem.solve(solver=cp.CLARABEL, **solver_kwargs)
+C:\Users\craftyb\Documents\GitHub\Origami_Sensitivity_Analysis\sdp_theta_optimizer.py:261: UserWarning: Solution may be inaccurate. Try another solver, adjusting the solver settings, or solve with verbose=True for more information.
+  problem.solve(solver=solver, **solver_kwargs)
