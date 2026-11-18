@@ -386,6 +386,7 @@ the final set can't reach full rank.
 | `coupling_types.py` | `TypedCandidates`: expands each site into one candidate per type (index = site × n_kinds + kind), row counts, design rules, exhaustive enumeration, symmetry lifting (`lift_perm`) |
 | `test_coupling_types.py` | Coupling-type validation: rows vs. hand derivation, Kelvin/Maxwell rank, affine structure, regression, `ref_dir` |
 | `mixed_types_validation.py` | Mixed-type bound and B&B vs. exhaustive ground truth (`two-panel`, `birds-foot`, `all`) |
+| `gore_bnb_full_gore_allv_figures.py`, `birdsfoot_mixed_figures.py` | Design figures: full-gore all-V best (§7.17); birds-foot all-V vs. mixed best (§7.15) |
 | `OPTIMIZATION_STRUCTURE.md` | How the pipeline's pieces fit together (call graph, B&B node steps, certificate); companion to this document |
 | `test_*.py` | Validation suites (one per major module) |
 
@@ -1181,6 +1182,16 @@ win. Day 5 (row weights) now gates this result.
   symmetry (Day 10), which makes the Day 3 two-swap fallback a
   requirement rather than a backup.
 
+Figures (`birdsfoot_mixed_figures.py`, 2026-11-17): the all-V champion
+`[VVV V-V VVV --V]` next to the mixed best `[FFT V-V V-T V-V]`, as 3-D
+views at the achieved angles (contacts marked by type with their normals,
+weakest eigenmode overlaid) and as per-spoke hinge slices. Both designs
+were re-evaluated with the same `SetEvaluator` settings (seed 31) and
+reproduce the saved λ_min (0.009263 and 0.010358). Their own leaf bounds
+are 0.009271 (all-V) and 0.012215 (mixed). Saved:
+`results/birdsfoot_mixed_vs_allv_{3d,hinges}.png` and the angles in
+`results/birdsfoot_mixed_vs_allv_designs.json`.
+
 Results: `results/mixed_types_validation_birdsfoot_{results.json,summary.txt}`;
 full log `mixed_bf.log` (UTF-16).
 
@@ -1464,8 +1475,8 @@ return to 1-swaps. With `two_swap=False` the search is unchanged.
   at 24. At flasher size, cyclic symmetry (choosing per gore) is what
   keeps this affordable.
 
-Results: `results/single_gore_soundness_{summary.txt,results.json}` and
-`.log`; `results/birdsfoot_swap_validation_two_swap_{results.json,summary.txt,starts.png}`
+Results: `results/single_gore_soundness_{summary.txt,results.json}`,
+`.log` and `.err` (stderr: the Clarabel "may be inaccurate" warnings); `results/birdsfoot_swap_validation_two_swap_{results.json,summary.txt,starts.png}`
 and `.log`; `results/birdsfoot24_swap_champion_two_swap_{results.json,summary.txt}`
 and `.log` (the `.log` files from the two-swap runs are UTF-16).
 
