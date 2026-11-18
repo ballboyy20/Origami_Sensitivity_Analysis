@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-17.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-18.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -55,8 +55,10 @@ validated soundly, and reported honestly.
   all-V-groove design (with unit row weights, §7.13). **On birds-foot
   (12 sites), mixed types beat the all-V champion by 11.8%**: 0.010358
   vs. 0.009263, certified within 33.0% (§7.15). But that B&B took 9.6 h
-  and 1,977 leaf evaluations (all-V: 7 s, 11), and the win assumes unit
-  row weights. Row weights and mixed-type incumbents are still to do.
+  and 1,977 leaf evaluations (all-V: 7 s, 11). **Decision (2026-11-18):
+  equal row weights (K = CᵀC) for the foreseeable future**, so these
+  comparisons stand as reported (§8.4 Phase 1). Mixed-type incumbents are
+  still to do.
 - **Choosing among equally good angles: tool built, policy open.**
   Stage-2 log_product polish works, but on birds-foot it only helps if a
   small λ_min sacrifice is allowed (§7.5).
@@ -79,8 +81,8 @@ validated soundly, and reported honestly.
 (prototype built; needs tighter leaf bounds) → generalize the coupling
 model (flat / V-groove / tetrahedral, any face orientation: built) →
 branch-and-bound selection under an exact row budget (built, two-panel
-validated) → couplings on arms → flasher. Day-by-day schedule to
-Thanksgiving: §8.7.
+validated) → flasher → couplings on arms (moved after the flasher
+2026-11-18, §8.6). Day-by-day schedule to Thanksgiving: §8.7.
 
 ---
 
@@ -1018,9 +1020,9 @@ exhaustive ground truth):
   The socket goes at the bottom-face midpoint p3; the V-groove and flat
   at the two top-face ends. Next best: socket at an end (0.014106); all-V
   is third (0.013330).
-- **Caveat: unit row weights.** This ranking assumes a flat row is as
-  stiff as a groove wall. It can change once row weights are decided
-  (§8.4 Phase 1).
+- **Assumes unit row weights**: a flat row is as stiff as a groove wall.
+  Equal weights were adopted on 2026-11-18 (§8.4 Phase 1); the ranking
+  could change under non-uniform weights.
 - Symmetries (thickness mirror, y-mirror, both) verified by exact
   geometry and certified bounds over 300 designs (max relative bound
   difference 2.3e-7).
@@ -1162,14 +1164,16 @@ notation: one letter per site, 3 sites per spoke, `-` = no coupling.
 stiff as one groove wall or socket wall. Under Hertz contact, stiffness
 grows as F^(1/3), and one preload splits differently across a flat, a
 groove and a socket, so realistic weights could shrink or reverse the
-win. Day 5 (row weights) now gates this result.
+win. *2026-11-18: equal row weights adopted for the foreseeable future
+(§8.4 Phase 1), so the result stands as reported under that assumption.*
 
 **Implications**:
 
-- Re-running a 10 h B&B per weight choice is too costly. Plan: re-score
-  the top ~100 evaluated leaves under 2–3 candidate W as a screen (not a
-  certificate: leaves pruned under W = I aren't pruned under other W),
-  then one full B&B for the chosen W.
+- If non-uniform weights are revisited later: re-running a 10 h B&B per
+  weight choice is too costly. Re-score the top ~100 evaluated leaves
+  under 2–3 candidate W as a screen (not a certificate: leaves pruned
+  under W = I aren't pruned under other W), then one full B&B for the
+  chosen W.
 - **Cheaper leaf evaluation is now needed.** B&B's certified bound is
   max(threshold, evaluated leaf bounds) and never uses a leaf's achieved
   value, so evaluation only searches for a better incumbent. A 1-restart
@@ -1380,7 +1384,7 @@ candidates; 24 h cap):
   symmetry, a strong incumbent).
 - **Next run: mixed full gore seeded with the all-V incumbent** (and
   mirror symmetry if the gore has one). Whether mixed types beat all-V on
-  the gore is still open, and still depends on Day 5 row weights.
+  the gore is still open (equal row weights, §8.4 Phase 1).
 
 Results: `results/gore_bnb_{single_gore,full_gore_allv,full_gore_mixed}_{results.json,summary.txt}` and `.log`.
 
@@ -1576,16 +1580,19 @@ Decisions (2026-10-13):
 
 **Phase 1 — generalize the coupling model (goal B + groundwork for C).**
 *Built and validated (2026-10-26, §7.13): all three types, explicit
-`ref_dir`, unit tests passing. Still open: the row-weight decision below,
-and a mixed-type incumbent (row-aware greedy; swaps that trade types at
-equal row count, e.g. V+V ↔ flat+socket).*
+`ref_dir`, unit tests passing. Row weights decided 2026-11-18 (below).
+Still open: a mixed-type incumbent (row-aware greedy; swaps that trade
+types at equal row count, e.g. V+V ↔ flat+socket).*
 - A contact = a set of unit normals at a point, built in a local frame
   (face normal + explicit in-plane reference vector), with a type:
   flat (1 normal), V-groove (2, rotated by θ), tetrahedral (3, evenly
   spaced, fixed tilt).
 - Replace the +Z assumption with an explicit reference vector so faces
   can have any orientation.
-- **Open decision: stiffness per row.** Today every row has unit weight
+- **Decided 2026-11-18: equal row weights (K = CᵀC) for the foreseeable
+  future.** All type comparisons are reported under that assumption; the
+  W plumbing below is deferred. Original note:
+- *Stiffness per row.* Today every row has unit weight
   (K = CᵀC), which implicitly says a flat contact is as stiff as a groove
   wall, and treats arms as perfectly rigid. Use K = CᵀWC with a weight per
   row (contact stiffness, and later arm compliance in series:
@@ -1670,6 +1677,9 @@ Original Phase 2 design notes:
   the over-constrained k = 23.)
 
 **Phase 3 — arms and other planes (goal C).**
+*Moved to Later (§8.6) on 2026-11-18, after the flasher: with equal row
+weights, arm compliance can't be modelled (watch-outs below). Planned
+for the week of 11/30.*
 - Mostly candidate generation once Phases 1–2 exist: arm candidates are
   just more sites with their own points and face frames.
 - Needs `draw_hinge_layout` generalized beyond vertical faces.
@@ -1699,6 +1709,15 @@ Original Phase 2 design notes:
 
 ### 8.6 Later
 
+- **Arms (Phase 3 of §8.4; former Days 7–8 of §8.7).** Moved here
+  2026-11-18; planned for the week of 11/30. Candidate generation (fixed
+  arm lengths, contacts on the neighbor, any face orientation via
+  `ref_dir`); then two-panel and birds-foot with and without arms, and
+  the `length_scale` sweep. Decide first how to handle arm compliance
+  under equal row weights: rigid arms favour the longest arm (§8.4
+  Phase 3), so either report arms as an upper bound or make arm
+  compliance the one exception to W = I. Also: arm sites in the flasher
+  system, and `draw_hinge_layout` generalized for arms.
 - **Continuous arm length / contact position.** Note that K is quadratic
   in contact position (C is linear in r), so the affine-in-θ structure
   and the per-coupling SDP registry don't cover it. It would need
@@ -1708,8 +1727,8 @@ Original Phase 2 design notes:
 ### 8.7 Schedule to Thanksgiving (drafted 2026-11-09)
 
 Twelve business days, Mon 11/9 – Tue 11/24; Wed 11/25 is buffer. Each day
-ends with a check that says it's done. Status (updated 2026-11-17):
-✅ done · ⏳ running · 🟡 partial · ⬜ not started.
+ends with a check that says it's done. Status (updated 2026-11-18):
+✅ done · ⏳ running · 🟡 partial · ⬜ not started · ➡️ moved.
 
 | Day | Date | Task | Done when | Status |
 |---|---|---|---|---|
@@ -1717,18 +1736,31 @@ ends with a check that says it's done. Status (updated 2026-11-17):
 | 2 | Tue 11/10 | Scale test: birds-foot 24 sites (§7.7). Swap search from greedy's set and from the old champion for the incumbent; B&B in the background (`python -u`, 3 workers). | Go/no-go verdict on B&B at scale: nodes, evaluations, gap, time. | ✅ Done 11/13. Go at 24 sites with a swap incumbent (6.2 h, gap 15.7%, new best 0.009630); no-go as-is for the flasher (§7.14). |
 | 3 | Wed 11/11 | Two-swap escape in `swap_search.py` (fallback if B&B didn't scale). B&B on the single gore (6 forced + 9 of 12 = 220 sets) vs. an exhaustive sweep. Child RNG per restart; `requirements.txt`. | Single-gore B&B matches ground truth; selection method for the rest of the plan chosen. | ✅ Done 11/17. `requirements.txt` done 11/13. Single-gore B&B done 11/15: matches the exhaustive optimum 0.013044 with 6 evaluations vs. 216, gap 0.15% (§7.17). Soundness flag resolved 11/17: solver tolerance (default Clarabel low by up to 2.0e-6; MOSEK clears every set), §7.18. Two-swap escape done 11/17: birds-foot 220/220 starts reach the champion; 24 sites 0.009626 from the old champion (§7.18). Selection method: B&B with the one-restart screen (§7.16), two-swap escape as fallback and incumbent supplier. Child RNG deferred to §8.5 housekeeping. |
 | 4 | Thu 11/12 | Run `mixed_types_validation.py birds-foot`. Does a mixed design beat 0.009263? | Results saved and logged as §7.15. | ✅ Done 11/14. Yes: 0.010358 `[FFT V-V V-T V-V]`, 111.8% of the all-V champion (unit weights), gap 33.0%, 9.6 h, 1,977 leaf evaluations (§7.15). |
-| 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. | ⬜ Not started |
+| 5 | Fri 11/13 | Decide row weights: K = CᵀWC, plumbed through with W = I default. Mixed-type incumbents: row-aware greedy, and swaps that trade types at equal row count. | Weight convention documented; greedy + swap produce a valid mixed design on birds-foot. | 🟡 Weights decided 11/18: equal row weights (W = I) for the foreseeable future; no plumbing needed. Mixed-type incumbents not started. |
 | 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. | ✅ Done 11/16 (ran over the weekend). Yes for both. All-V: 21 couplings, best 0.006767, certified within 1.74%, 9.0 h, 130.5% of §7.4's over-constrained design. Mixed: valid designs exist, but the 24 h run without an incumbent stopped incomplete at 0.006644 (§7.17). Follow-up: mixed run seeded with the all-V incumbent. |
-| 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. | ⬜ Not started |
-| 8 | Wed 11/18 | Arm experiments on two-panel and birds-foot, with and without arms; sweep `length_scale` and k_arm. | When arms win, and by how much, logged. | ⬜ Not started |
-| 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types and arm sites. | System loads; panel and crease counts checked; rotational symmetry permutations verified. | ⬜ Not started |
+| 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. | ➡️ Moved to §8.6 (11/18). |
+| 8 | Wed 11/18 | Arm experiments on two-panel and birds-foot, with and without arms; sweep `length_scale` and k_arm. | When arms win, and by how much, logged. | ➡️ Moved to §8.6 (11/18). |
+| 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types (no arm sites; §8.6). | System loads; panel and crease counts checked; rotational symmetry permutations verified. | ⬜ Not started |
 | 10 | Fri 11/20 | Flasher selection with cyclically symmetric designs enforced (the same choice in every gore): greedy + swap incumbent, then B&B or the Day 3 fallback. | Exactly constrained design with certified bound and gap, or a record of where it stopped scaling. | ⬜ Not started |
 | 11 | Mon 11/23 | Scale the flasher up: more gores, or the cyclic-symmetry (Bloch-wave) reduction of §8.5 if time allows. Final evaluation (5 restarts, optional polish). | Best flasher design evaluated; trend with gore count recorded. | ⬜ Not started |
-| 12 | Tue 11/24 | Figures (generalize `draw_hinge_layout` for arms if quick) and write-up: Status, §4, §7, roadmap. | Results committed; this doc reflects what's done and what's open. | ⬜ Not started |
+| 12 | Tue 11/24 | Figures and write-up: Status, §4, §7, roadmap. | Results committed; this doc reflects what's done and what's open. | ⬜ Not started |
 
-**If behind, cut in this order**: MOSEK (Day 1); the `length_scale`
-sweep (Day 8); generalizing `draw_hinge_layout`; flasher size (Day 11:
-stay at 2 gores).
+**Replan 2026-11-18** (equal row weights; arms moved to §8.6):
+
+| Date | Work |
+|---|---|
+| Wed 11/18 | Day 5 remainder: mixed-type incumbents (row-aware greedy, type-trading swaps). Leaf-bound safety margin or MOSEK (§8.5). Lab machine overnight: mixed full gore seeded with the all-V incumbent (§7.17). |
+| Thu 11/19 | Day 9: flasher test system. |
+| Fri 11/20 | Day 10: flasher selection (lab machine over the weekend if long). |
+| Mon 11/23 | Day 11: scale up the flasher, final evaluation. |
+| Tue 11/24 | Day 12: figures and write-up. |
+| Wed 11/25 | Buffer. |
+
+**If behind, cut in this order**: flasher size (Day 11: stay at 2
+gores); mixed-type incumbents (use all-V incumbents for mixed B&B).
+(Original list: MOSEK (Day 1); the `length_scale` sweep (Day 8);
+generalizing `draw_hinge_layout`; flasher size. The first three are
+done or moved to §8.6.)
 
 **Biggest risk**: Day 2. If B&B can't handle 24 sites it won't handle the
 flasher. That is why Day 3 builds the two-swap fallback and Day 10
