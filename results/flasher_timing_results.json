@@ -1,0 +1,155 @@
+{
+ "root_allv": [
+  {
+   "solver": "MOSEK",
+   "sec": 2.998001000029035,
+   "t": 0.0013355594835746775,
+   "status": "optimal",
+   "error": null,
+   "timing": {
+    "compile_sec": 0.6458961963653564,
+    "solver_sec": 2.2252359,
+    "solver": "MOSEK"
+   }
+  }
+ ],
+ "leaves": [
+  {
+   "active": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    16,
+    18,
+    20,
+    22
+   ],
+   "bounds": [
+    {
+     "solver": "MOSEK",
+     "sec": 1.378663899959065,
+     "status": "bounded",
+     "bound": 0.00017326946689668547,
+     "solver_status": "optimal",
+     "error": null,
+     "timing": {
+      "compile_sec": 0.2550692558288574,
+      "solver_sec": 1.0487427,
+      "solver": "MOSEK"
+     }
+    }
+   ]
+  },
+  {
+   "active": [
+    0,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    11,
+    14,
+    15,
+    17,
+    18,
+    20,
+    21,
+    22
+   ],
+   "bounds": [
+    {
+     "solver": "MOSEK",
+     "sec": 1.44461979996413,
+     "status": "bounded",
+     "bound": 0.0007855041393574824,
+     "solver_status": "optimal",
+     "error": null,
+     "timing": {
+      "compile_sec": 0.2615470886230469,
+      "solver_sec": 1.1100747,
+      "solver": "MOSEK"
+     }
+    }
+   ]
+  },
+  {
+   "active": [
+    0,
+    1,
+    2,
+    3,
+    7,
+    10,
+    12,
+    13,
+    14,
+    16,
+    19,
+    20,
+    21,
+    22,
+    23
+   ],
+   "bounds": [
+    {
+     "solver": "MOSEK",
+     "sec": 1.2808672999963164,
+     "status": "bounded",
+     "bound": 2.6270671791630626e-05,
+     "solver_status": "optimal",
+     "error": null,
+     "timing": {
+      "compile_sec": 0.2598090171813965,
+      "solver_sec": 0.9435252,
+      "solver": "MOSEK"
+     }
+    }
+   ]
+  }
+ ],
+ "evaluation": {
+  "active": [
+   0,
+   1,
+   4,
+   5,
+   6,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   16,
+   18,
+   20,
+   22
+  ],
+  "sec": 140.91035659995396,
+  "lambda_min": 9.454916811862279e-05,
+  "feasible": true,
+  "t": 0.00017326946380321048,
+  "error": null
+ },
+ "root_mixed": {
+  "sec": 4.414117999956943,
+  "t": 0.0015616542786811823,
+  "status": "optimal",
+  "error": null,
+  "timing": {
+   "compile_sec": 1.4034078121185303,
+   "solver_sec": 2.7872676,
+   "solver": "MOSEK"
+  }
+ }
+}
