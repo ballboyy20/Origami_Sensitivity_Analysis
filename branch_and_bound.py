@@ -376,7 +376,7 @@ class BranchAndBound:
         seconds. log_every: print progress every this many nodes."""
         t0 = time.perf_counter()
         st = dict(nodes=0, pruned_cardinality=0, pruned_cut=0, pruned_symmetry=0,
-                  pruned_rank=0, pruned_bound=0, sdp_errors=0, leaves=0,
+                  pruned_rank=0, pruned_bound=0, sdp_errors=0, leaves_sdp_errors=0, leaves=0,
                   leaves_pruned_bound=0, leaves_infeasible=0, leaves_evaluated=0,
                   incumbent_updates=0, leaves_screened=0, screen_rechecked=0,
                   screen_recheck_updates=0)
@@ -423,7 +423,12 @@ class BranchAndBound:
                     st['pruned_symmetry'] += 1
                     continue
                 st['leaves'] += 1
-                status, b, _ = self.ev.bound(leaf)
+                status, b, lref = self.ev.bound(leaf)
+                if status == 'unresolved' and lref is not None:
+                    # a reference WAS found, so the SDP itself failed: this
+                    # leaf can't be bounded or ruled out -> no certificate
+                    st['leaves_sdp_errors'] += 1
+                    continue
                 if status != 'bounded':
                     st['leaves_infeasible'] += 1
                     continue
@@ -512,8 +517,8 @@ class BranchAndBound:
                         print(f"    new incumbent {inc_lam:.6f} {e[0]} (screen recheck)")
 
         ub = max([thresh()] + [e[1] for e in evaluated_leaves])
-        if not complete:
-            ub = float('inf')
+        if not complete or st['leaves_sdp_errors']:
+            ub = float('inf')      # unfinished, or a leaf whose bound SDP failed
         return dict(active=inc_set, lambda_min=inc_lam, start_lambda_min=start_lam,
                     certified_upper_bound=ub, certified_gap=ub - inc_lam,
                     complete=complete, stats=st, incumbent_trace=trace,

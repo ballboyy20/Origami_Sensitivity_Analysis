@@ -150,6 +150,13 @@ class SetEvaluator:
                                          theta=None, t=t, gap=None,
                                          error='multiplicity', screened=False)
             return self._eval_cache[key]
+        except RuntimeError as e:
+            # certified-bound SDP failed (e.g. an inaccurate SCS fallback):
+            # record and move on; an overnight search shouldn't die on one set
+            self._eval_cache[key] = dict(feasible=False, lambda_min=0.0,
+                                         theta=None, t=t, gap=None,
+                                         error=f'sdp: {e}'[:300], screened=False)
+            return self._eval_cache[key]
         res = dict(feasible=True, lambda_min=r['lambda_min'], theta=r['theta'],
                    t=r['t'], gap=r['gap'], screened=r['screened'])
         if r['screened']:

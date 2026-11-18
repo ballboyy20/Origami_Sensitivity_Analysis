@@ -23,8 +23,8 @@ reach full rank.
 
 Saves: results/flasher_timing_{summary.txt,results.json}.
 
-Run: python -u flasher_timing.py     (lab machine; set *_NUM_THREADS as for
-                                      the other lab runs)
+Run: python -u flasher_timing.py [--threads=N] [--clarabel]
+     (MOSEK only by default, all cores; --threads=N caps MOSEK's threads)
 """
 import sys, os, json, time
 import numpy as np
@@ -36,7 +36,7 @@ from coupling_types import TypedCandidates
 from swap_search import SetEvaluator
 from branch_and_bound import BranchAndBound, _rank_full
 from sdp_topology_bound import sdp_topology_bound, bound_node
-from sdp_theta_optimizer import LAST_SOLVE_TIMING
+from sdp_theta_optimizer import LAST_SOLVE_TIMING, set_default_solver
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), 'results')
 SEED = 31
@@ -69,12 +69,20 @@ def main():
         print(s, flush=True)
         L.append(s)
 
-    solvers = [('Clarabel (default)', None)]
-    if 'MOSEK' in cp.installed_solvers():
-        solvers.append(('MOSEK', cp.MOSEK))
+    # First lab run (2026-11-18): Clarabel fails at this size and its SCS
+    # fallback took ~900 s per SDP with values ~1e3x too high; MOSEK took
+    # 1-3 s, status optimal. So MOSEK only, set as the process default so
+    # the evaluation's certified-bound SDP uses it too. --clarabel adds the
+    # old comparison back.
+    threads = int(next((a.split('=')[1] for a in sys.argv if a.startswith('--threads=')), 0))
+    mosek_kw = dict(mosek_params={'MSK_IPAR_NUM_THREADS': threads}) if threads else {}
+    set_default_solver(cp.MOSEK, **mosek_kw)
+    solvers = [('MOSEK', None)]
+    if '--clarabel' in sys.argv:
+        solvers.append(('Clarabel', cp.CLARABEL))
     log("Full flasher timing check: 26 bodies, 156 DOFs, target rank 150, 24 orbits, "
         f"k = {K} (all-V)")
-    log(f"Solvers: {', '.join(n for n, _ in solvers)}; threads: "
+    log(f"Solvers: {', '.join(n for n, _ in solvers)}; MOSEK threads {threads or 'all'}; BLAS threads: "
         f"OMP={os.environ.get('OMP_NUM_THREADS')}, OPENBLAS={os.environ.get('OPENBLAS_NUM_THREADS')}, "
         f"MKL={os.environ.get('MKL_NUM_THREADS')}")
     log("=" * 78)
@@ -124,8 +132,8 @@ def main():
                 f"solver status {b['solver_status']}" + (f", ERROR {b['error']}" if b['error'] else ''))
         vals = [b['bound'] for b in rec['bounds'] if b['bound'] is not None]
         if len(vals) == 2:
-            log(f"   Clarabel - MOSEK: {vals[0] - vals[1]:.2e} "
-                f"({(vals[0] - vals[1]) / vals[1]:.2e} relative; margin is {MARGIN:.0e})")
+            log(f"   Clarabel - MOSEK: {vals[1] - vals[0]:.2e} "
+                f"({(vals[1] - vals[0]) / vals[0]:.2e} relative; margin is {MARGIN:.0e})")
         out['leaves'].append(rec)
 
     # ── 3. one 5-restart evaluation ──
@@ -133,7 +141,7 @@ def main():
     r, dt = timed(ev.evaluate, S)
     out['evaluation'] = dict(active=S, sec=dt, lambda_min=r.get('lambda_min'),
                              feasible=r.get('feasible'), t=r.get('t'), error=r.get('error'))
-    log(f"\nEvaluation of {S} (5 restarts, includes its Clarabel bound, cached): {dt:.1f}s, "
+    log(f"\nEvaluation of {S} (5 restarts + certified-bound SDP; leaf bound cached): {dt:.1f}s, "
         f"lambda_min {r.get('lambda_min')}, bound t {r.get('t')}")
     if r.get('feasible') and r.get('t') is not None:
         ok = r['t'] * (1 + MARGIN) >= r['lambda_min']
@@ -153,7 +161,7 @@ def main():
                   ref_thetas=refm, registry=evm.registry, rows=tc.rows, sites=tc.site_of)
     out['root_mixed'] = dict(sec=dt, t=r.get('t'), status=r.get('solver_status'), error=r.get('error'),
                              timing=dict(LAST_SOLVE_TIMING))
-    log(f"Root bound (mixed, 72 undecided), Clarabel: {dt:.1f}s{split()}, t = {r.get('t')}, "
+    log(f"Root bound (mixed, 72 undecided), MOSEK: {dt:.1f}s{split()}, t = {r.get('t')}, "
         f"status {r.get('solver_status')}" + (f", ERROR {r.get('error')}" if r.get('error') else ''))
 
     # ── verdict inputs ──

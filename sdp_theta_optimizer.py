@@ -253,10 +253,34 @@ def _K_expr_and_box(K0_reduced, Kc_reduced, Ks_reduced, active_indices):
     return u, v, K_expr, box
 
 
+DEFAULT_SOLVER = None          # process-wide override, see set_default_solver
+DEFAULT_SOLVER_KWARGS = {}
+
+
+def set_default_solver(solver, **solver_kwargs):
+    """Use `solver` (e.g. cp.MOSEK) for every SDP solved with solver=None
+    in this process -- bounds, certified bounds and B&B nodes -- without
+    plumbing a solver argument through every layer. solver_kwargs (e.g.
+    mosek_params={'MSK_IPAR_NUM_THREADS': 7}) are merged under any
+    per-call kwargs. set_default_solver(None) restores Clarabel -> SCS.
+    Needed on the full flasher (150x150 SDPs): Clarabel fails there and
+    the SCS fallback takes ~15 min per solve and returns 'optimal_
+    inaccurate' values ~1e3x too high; MOSEK solves in 1-3 s."""
+    global DEFAULT_SOLVER, DEFAULT_SOLVER_KWARGS
+    DEFAULT_SOLVER, DEFAULT_SOLVER_KWARGS = solver, dict(solver_kwargs)
+
+
 def _solve(problem, solver, solver_kwargs):
     """Shared solve-with-fallback: try cp.CLARABEL first (or the given
-    solver), fall back to cp.SCS -- both open-source, no MOSEK license
-    assumed. Returns problem.status."""
+    solver, or the process default from set_default_solver), fall back to
+    cp.SCS -- both open-source, no MOSEK license assumed. Returns
+    problem.status. An SCS fallback that is not 'optimal' is reported as
+    'scs_<status>', which every caller treats as a failed solve: SCS's
+    inaccurate answers on large SDPs can be off by orders of magnitude."""
+    if solver is None and DEFAULT_SOLVER is not None:
+        solver = DEFAULT_SOLVER
+        solver_kwargs = {**DEFAULT_SOLVER_KWARGS, **solver_kwargs}
+    used_scs = False
     if solver is not None:
         problem.solve(solver=solver, **solver_kwargs)
     else:
@@ -264,8 +288,10 @@ def _solve(problem, solver, solver_kwargs):
             problem.solve(solver=cp.CLARABEL, **solver_kwargs)
         except cp.error.SolverError:
             problem.solve(solver=cp.SCS, **solver_kwargs)
+            used_scs = True
         if problem.status not in ('optimal', 'optimal_inaccurate'):
             problem.solve(solver=cp.SCS, **solver_kwargs)
+            used_scs = True
     # timing of the last solve (cvxpy compile vs. solver), for profiling
     try:
         LAST_SOLVE_TIMING.update(compile_sec=problem.compilation_time,
@@ -273,6 +299,8 @@ def _solve(problem, solver, solver_kwargs):
                                  solver=problem.solver_stats.solver_name)
     except AttributeError:
         pass
+    if used_scs and problem.status != 'optimal':
+        return f'scs_{problem.status}'
     return problem.status
 
 
