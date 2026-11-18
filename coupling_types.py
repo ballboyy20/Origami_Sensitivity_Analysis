@@ -68,13 +68,18 @@ class TypedCandidates:
         self.system = CouplingSystem(base_system.panels)
         for s, c in enumerate(base_system.couplings):
             for kind in self.kinds:
-                self.system.add_coupling(KinematicCoupling(
-                    c.panel_A, c.panel_B, c.point, c.face_normal,
-                    theta=thetas[s], kind=kind, ref_dir=c.ref_dir))
+                if hasattr(c, 'with_kind'):     # composite site, e.g. CyclicCoupling
+                    self.system.add_coupling(c.with_kind(kind, theta=thetas[s]))
+                else:
+                    self.system.add_coupling(KinematicCoupling(
+                        c.panel_A, c.panel_B, c.point, c.face_normal,
+                        theta=thetas[s], kind=kind, ref_dir=c.ref_dir))
 
         self.site_of = np.repeat(np.arange(self.n_sites), K)
         self.kind_of = [k for _ in range(self.n_sites) for k in self.kinds]
-        self.rows = np.array([KinematicCoupling.N_ROWS[k] for k in self.kind_of])
+        # rows per candidate from the coupling itself (a CyclicCoupling orbit
+        # has one copy per gore); equals N_ROWS[kind] for a plain coupling
+        self.rows = np.array([c.n_rows for c in self.system.couplings])
 
     # ── indexing ────────────────────────────────────────────────────────
     def index(self, site, kind):

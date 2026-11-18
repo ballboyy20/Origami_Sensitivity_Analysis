@@ -192,12 +192,29 @@ class BranchAndBound:
         module docstring). 0.8 is the value proposed in sec 7.15.
     screen_recheck : how many screened leaves (highest first-restart value)
         get the full evaluation after the search. Ignored without a screen.
+    bound_margin : relative safety margin on every SDP bound (sec 7.18):
+        a bound b is used as b * (1 + bound_margin) for pruning and in the
+        certified upper bound, covering solver inaccuracy ("optimal_
+        inaccurate" Clarabel solves were low by up to 1.5e-4 relative on
+        the gore). Default 0 reproduces earlier runs.
+
+    Composite candidates (e.g. full_flasher_system.CyclicCoupling orbits,
+    which have .copies): rows per candidate come from .n_rows, the
+    per-crease rule (<= 6 rows between two panels) is applied per copy,
+    and the panel-subset cut rules are skipped (they assume one panel pair
+    per candidate, and enumerating 2^(n_panels-1) subsets is infeasible
+    for the flasher). The subset cuts also need n_panels <= MAX_CUT_PANELS.
     """
+
+    MAX_CUT_PANELS = 14
 
     def __init__(self, evaluator, k=None, symmetries=None, fixed_active=(),
                  prune_rel_tol=1e-4, n_rank_draws=3, seed=0, verbose=True,
                  rows=None, site_of=None, branch_rule='fractional',
-                 screen_frac=None, screen_recheck=20):
+                 screen_frac=None, screen_recheck=20, bound_margin=0.0):
+        if bound_margin < 0:
+            raise ValueError(f"bound_margin must be >= 0, got {bound_margin}")
+        self.bound_margin = float(bound_margin)
         if branch_rule not in ('fractional', 'symmetry_first'):
             raise ValueError(f"unknown branch_rule {branch_rule!r}")
         if screen_frac is not None and not 0.0 < screen_frac <= 1.0:
@@ -218,9 +235,14 @@ class BranchAndBound:
                             else np.asarray(site_of, dtype=int))
             self.budget = self.target_rank
         else:
-            self.rows = np.full(self.m, ROWS_PER_COUPLING)
+            # V-groove-only: rows from the couplings (2, or 10 for a 5-copy orbit)
+            self.rows = np.array([getattr(c, 'n_rows', ROWS_PER_COUPLING)
+                                  for c in self.system.couplings], dtype=int)
+            if len(set(self.rows.tolist())) != 1:
+                raise ValueError("V-groove-only mode needs equal rows per candidate; "
+                                 "pass rows/site_of for mixed types")
             self.site_of = np.arange(self.m)
-            self.budget = ROWS_PER_COUPLING * k
+            self.budget = int(self.rows[0]) * k
         self.siblings = [[j for j in range(self.m)
                           if j != i and self.site_of[j] == self.site_of[i]]
                          for i in range(self.m)]
@@ -234,13 +256,23 @@ class BranchAndBound:
         # Panel pair per coupling, for cut counting
         self.n_panels = len(self.system.panels)
         self.ends = [(c.panel_A.id, c.panel_B.id) for c in self.system.couplings]
+        # (panel pair, rows) per physical copy, for the per-crease rule
+        self.pair_rows = [[(frozenset((q.panel_A.id, q.panel_B.id)), q.n_rows)
+                           for q in c.copies] if hasattr(c, 'copies')
+                          else [(frozenset(self.ends[i]), None)]
+                          for i, c in enumerate(self.system.couplings)]
+        self.composite = any(hasattr(c, 'copies') for c in self.system.couplings)
         panels = list(range(self.n_panels))
         self.cuts = []                     # (S as frozenset), each split once
-        for r in range(1, self.n_panels):
-            for S in combinations(panels[1:], r - 1):
-                S = frozenset((0,) + S)
-                if len(S) < self.n_panels:
-                    self.cuts.append(S)
+        if not self.composite and self.n_panels <= self.MAX_CUT_PANELS:
+            for r in range(1, self.n_panels):
+                for S in combinations(panels[1:], r - 1):
+                    S = frozenset((0,) + S)
+                    if len(S) < self.n_panels:
+                        self.cuts.append(S)
+        elif not self.composite:
+            raise ValueError(f"{self.n_panels} panels: subset cut rules would enumerate "
+                             f"2^{self.n_panels - 1} subsets")
 
     # ── node tests ──────────────────────────────────────────────────────
     def _site_rows(self, fa, und):
@@ -273,10 +305,13 @@ class BranchAndBound:
             return True
         crease_rows = {}
         for i in fa:
-            pair = frozenset(self.ends[i])
-            crease_rows[pair] = crease_rows.get(pair, 0) + int(self.rows[i])
-            if crease_rows[pair] > 6:
-                return False
+            for pair, r in self.pair_rows[i]:
+                r = int(self.rows[i]) if r is None else int(r)
+                crease_rows[pair] = crease_rows.get(pair, 0) + r
+                if crease_rows[pair] > 6:
+                    return False
+        if self.composite:
+            return True
         site_rows, _ = self._site_rows(fa, und)
         site_ends = {int(self.site_of[i]): self.ends[i] for i in range(self.m)}
         for S in self.cuts:
@@ -392,6 +427,7 @@ class BranchAndBound:
                 if status != 'bounded':
                     st['leaves_infeasible'] += 1
                     continue
+                b = b * (1 + self.bound_margin)     # solver-accuracy margin (sec 7.18)
                 if b <= thresh():
                     st['leaves_pruned_bound'] += 1
                     continue
@@ -431,7 +467,7 @@ class BranchAndBound:
                                          length_scale=self.length_scale,
                                          target_rank=self.target_rank, ref_thetas=ref,
                                          registry=self.ev.registry, **mixed_kw)
-                b, z = res['t'], res['z']
+                b, z = res['t'] * (1 + self.bound_margin), res['z']
             except (RuntimeError, ValueError):
                 st['sdp_errors'] += 1          # can't bound: branch, never prune
                 b, z = float('inf'), np.full(len(und), 0.5)

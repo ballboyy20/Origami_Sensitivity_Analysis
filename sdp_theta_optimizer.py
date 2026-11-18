@@ -266,7 +266,17 @@ def _solve(problem, solver, solver_kwargs):
             problem.solve(solver=cp.SCS, **solver_kwargs)
         if problem.status not in ('optimal', 'optimal_inaccurate'):
             problem.solve(solver=cp.SCS, **solver_kwargs)
+    # timing of the last solve (cvxpy compile vs. solver), for profiling
+    try:
+        LAST_SOLVE_TIMING.update(compile_sec=problem.compilation_time,
+                                 solver_sec=problem.solver_stats.solve_time,
+                                 solver=problem.solver_stats.solver_name)
+    except AttributeError:
+        pass
     return problem.status
+
+
+LAST_SOLVE_TIMING = {}
 
 
 # ══════════════════════════════════════════════════════════════════════
