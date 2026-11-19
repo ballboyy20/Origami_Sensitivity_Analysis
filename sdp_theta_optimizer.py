@@ -282,7 +282,14 @@ def _solve(problem, solver, solver_kwargs):
         solver_kwargs = {**DEFAULT_SOLVER_KWARGS, **solver_kwargs}
     used_scs = False
     if solver is not None:
-        problem.solve(solver=solver, **solver_kwargs)
+        try:
+            problem.solve(solver=solver, **solver_kwargs)
+        except cp.error.SolverError as e:
+            # e.g. MOSEK returning a status cvxpy can't unpack. Callers
+            # treat RuntimeError as "this SDP failed" (B&B: branch, don't
+            # prune; swap search: record and move on) -- a bare
+            # SolverError escapes those handlers and kills the run.
+            raise RuntimeError(f"{solver} failed: {e}") from e
     else:
         try:
             problem.solve(solver=cp.CLARABEL, **solver_kwargs)
