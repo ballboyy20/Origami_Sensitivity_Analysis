@@ -96,7 +96,8 @@ def summarize(L, r, describe):
              f"{s['pruned_cut']}/{s['pruned_cardinality']}; leaves {s['leaves']} "
              f"(pruned by bound {s['leaves_pruned_bound']}, infeasible "
              f"{s['leaves_infeasible']}, evaluated {s['leaves_evaluated']}); SDP errors: "
-             f"nodes {s['sdp_errors']}, leaves {s['leaves_sdp_errors']}")
+             f"nodes {s['sdp_errors']}, leaves {s['leaves_sdp_errors']}; node bounds at "
+             f"relaxed tolerance {s['sdp_relaxed']}")
     if r['active'] is not None:
         L.append(f"   best design: {describe(r['active'])}")
     L.append("   incumbent history:")

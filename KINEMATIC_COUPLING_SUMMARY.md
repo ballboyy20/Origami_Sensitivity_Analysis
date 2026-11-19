@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-18.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-19.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -379,6 +379,8 @@ the final set can't reach full rank.
 | `single_gore_soundness.py` | Bound-only soundness audit of the single-gore sweep: both bounds on every feasible set, exact re-solves (Clarabel / SCS / MOSEK) and a three-way λ_min check on violators; `--reverdict` (§7.18) |
 | `dxf_to_panels.py`, `gore_system_common.py`, `flasher_gore_system.py`, `full_flasher_gore_system.py` | DXF geometry loading and gore systems |
 | `forward_greedy_gore.py`, `forward_greedy_full_gore.py` | Gore greedy runs |
+| `full_flasher_system.py` | Whole flasher: hub + 5 gores (26 bodies, target rank 150), 24 cyclic orbit candidates with tied angles |
+| `flasher_timing.py`, `flasher_bnb.py` | Full-flasher per-solve timing check; full-flasher B&B (`allv`, `mixed`), MOSEK only (§7.19) |
 | `polish_birdsfoot_champion.py`, `two_panel_six_sites.py`, `birdsfoot_six_sites.py` | 2026-10-13 experiments |
 | `two_panel_swap_validation.py`, `birdsfoot_swap_validation.py` | 2026-10-20 swap-search validations |
 | `branch_and_bound.py` | B&B prototype (`BranchAndBound`), `verify_symmetry`, `reflect` |
@@ -422,6 +424,11 @@ the final set can't reach full rank.
   the cut and rank tests (the leaf bound's reference search does the rank
   check). In a mixed design with at least one V-groove, flats and sockets
   still get (zero-gradient) θ variables in Riemannian.
+- **MOSEK stalls on full-flasher B&B nodes** (§7.19): status UNKNOWN,
+  which cvxpy raises as `SolverError`. `_solve` now retries once at
+  relaxed tolerances and reports the result as "optimal_inaccurate"
+  (B&B pads those node bounds by 1%); if the retry fails it raises
+  `RuntimeError`, which every caller already handles.
 - **Bugs fixed during the full sweep**: (1) the first evaluation of
   `theta_init` in `optimize_theta_riemannian` lacked the multiplicity
   retry every other evaluation had; (2) `bound_and_evaluate_sweep.py`
@@ -1484,6 +1491,82 @@ Results: `results/single_gore_soundness_{summary.txt,results.json}`,
 and `.log`; `results/birdsfoot24_swap_champion_two_swap_{results.json,summary.txt}`
 and `.log` (the `.log` files from the two-swap runs are UTF-16).
 
+### 7.19 Full flasher B&B: first overnight run and a MOSEK stall (2026-11-19)
+
+**Question** (Day 10 of §8.7): can B&B select an exactly constrained,
+cyclically symmetric all-V design for the whole flasher
+(`full_flasher_system.py`: hub + 5 gores, 26 bodies, target rank 150; 24
+orbit candidates with tied angles, choose 15, 1.3M sets)?
+
+**Setup.** Clarabel fails on these 150×150 SDPs and its SCS fallback is
+slow and badly wrong, so every SDP uses MOSEK (`flasher_timing.py`,
+2026-11-18: root bound 3.0 s, leaf bound ~1.4 s, one evaluation ~140 s).
+`flasher_bnb.py allv --threads 7 --swap-passes 2 --max-hours 14`: random
+full-rank start, one-swap search for the incumbent, then B&B (screen f =
+0.8, bound margin 3e-4).
+
+**Incumbent (finished, 2.2 h).**
+
+| stage | λ_min |
+|---|---|
+| random full-rank start `[0,1,4,5,6,8,9,10,11,12,13,16,18,20,22]` | 9.45e-5 |
+| pass 1: swap 0 → 23 | 5.56e-4 |
+| pass 2: swap 16 → 15 | **6.56e-4** |
+
+Final set `[1,4,5,6,8,9,10,11,12,13,15,18,20,22,23]` (per crease
+P0-P1:1 P0-P4:2 P0-H:2 P1-P4':3 P1-P2:2 P1-P3:1 P2-P3':2 P3-P4:2), 6.9×
+the start. Each pass: 135 swaps, ~22 infeasible, ~85 pruned by bound,
+~28 evaluated; 248 bound solves and 57 evaluations in all. Pass 2 still
+improved, so this isn't a one-swap local optimum yet.
+
+**B&B (crashed before its first progress line).** Diagnosis by replaying
+the tree from the incumbent (scratch scripts, not committed):
+
+- The root solves cleanly: t = 1.358e-3, "optimal", 2.7 s.
+- The 4th node (`fa=[13]`, `fi=[10,22]`) and 13 of the next 46 node SDPs
+  ended with MOSEK status **UNKNOWN**: it converges to ~1.35e-3, then
+  stalls a few iterations short of its default 1e-8 tolerances (primal
+  −1.3511e-3, dual −1.3161e-3, identical last three iterations). cvxpy
+  raises `SolverError` on that, and the node loop only caught
+  `RuntimeError`/`ValueError`, so the run died. The swap search had the
+  same gap but never hit a failure (its SDPs are fully decided sets).
+- Likely cause: poor scaling. K entries reach 2.3e4 while t ≈ 1e-3.
+  Multiplying K by 100 or 1000 doesn't help.
+- Relaxed tolerances do: at relative gap 1e-6 (feasibility 1e-7) all 6
+  failing nodes tested return "optimal", within ~0.3% of the stalled
+  values (and above them on 5 of 6). `accept_unknown=True` also returns a
+  value, but it's the stalled primal and isn't guaranteed to be an upper
+  bound.
+- Side effect if failures are only caught: a failed node gets z = 0.5
+  everywhere, so B&B branches on orbits 0, 1, 2, … in index order and
+  loses the relaxation's guidance.
+
+**Fix** (`sdp_theta_optimizer._solve`, `branch_and_bound.py`): on a
+MOSEK `SolverError`, retry once at relaxed tolerances and report
+"optimal_inaccurate"; B&B multiplies such node bounds by an extra 1.01
+(~3× the scatter seen) and counts them as `sdp_relaxed`. If the retry
+fails too, `_solve` raises `RuntimeError`: B&B branches without pruning,
+swap search records the set and moves on. Re-running the 80-node replay:
+**0 failures**, 18 node bounds from the retry, 3 nodes and 6 leaves
+pruned by bound, 19 leaves evaluated (all screened), no new incumbent.
+
+**Implications**:
+
+- **The 14 h run won't finish.** About 13 s per node (node bound plus
+  leaf work) gives roughly 4,000 nodes; node bounds at depth ~20 are
+  still 8–9e-4 against the 6.56e-4 incumbent, so pruning is rare.
+  Expect an incomplete run that may raise the incumbent but won't
+  certify it.
+- **The end-of-run screen recheck is expensive here.** At the 80-node
+  cap it re-evaluated all 19 screened leaves in full: ~50 min, no
+  improvement. Cap `screen_recheck` before a long run.
+- **Before rerunning**: pass the known incumbent instead of repeating the
+  2.2 h swap search (needs an `--incumbent` option in `flasher_bnb.py`).
+
+Results: `results/flasher_bnb_allv.log` (incumbent search only; the
+crash prevented the summary and JSON). Timing check:
+`results/flasher_timing_{summary.txt,results.json}`.
+
 ---
 
 ## 8. Roadmap (agreed 2026-10-13)
@@ -1702,7 +1785,14 @@ for the week of 11/30.*
 - **Leaf-bound solver accuracy** (§7.18): default Clarabel returns
   "optimal_inaccurate" on the gore SDPs and underestimates bounds by up
   to 1.5e-4 relative. Before the flasher runs, switch leaf bounds to
-  MOSEK or add a safety margin of about 3e-4 relative.
+  MOSEK or add a safety margin of about 3e-4 relative. **Done for the
+  flasher (2026-11-19)**: `flasher_bnb.py` uses MOSEK for every SDP plus
+  the 3e-4 margin; MOSEK stalls are retried at relaxed tolerances with an
+  extra 1% margin on node bounds (§7.19).
+- **Flasher B&B throughput** (§7.19): ~13 s per node and weak pruning
+  near the root; a 14 h run won't finish. Options: two-swap escape for a
+  stronger incumbent, cap the screen recheck, or accept an incomplete
+  run and report the best design found.
 - **Housekeeping**: independent child RNG per restart (§6.3; deferred
   from Day 3 of §8.7); the polish's trust-region-floor stopping on
   birds-foot (§7.5).
@@ -1727,7 +1817,7 @@ for the week of 11/30.*
 ### 8.7 Schedule to Thanksgiving (drafted 2026-11-09)
 
 Twelve business days, Mon 11/9 – Tue 11/24; Wed 11/25 is buffer. Each day
-ends with a check that says it's done. Status (updated 2026-11-18):
+ends with a check that says it's done. Status (updated 2026-11-19):
 ✅ done · ⏳ running · 🟡 partial · ⬜ not started · ➡️ moved.
 
 | Day | Date | Task | Done when | Status |
@@ -1740,8 +1830,8 @@ ends with a check that says it's done. Status (updated 2026-11-18):
 | 6 | Mon 11/16 | Full gore under exact constraint (§8.2): is there a 42-row design, all V-grooves or mixed? | Answer logged; a valid full-gore baseline exists for Day 10. | ✅ Done 11/16 (ran over the weekend). Yes for both. All-V: 21 couplings, best 0.006767, certified within 1.74%, 9.0 h, 130.5% of §7.4's over-constrained design. Mixed: valid designs exist, but the 24 h run without an incumbent stopped incomplete at 0.006644 (§7.17). Follow-up: mixed run seeded with the all-V incumbent. |
 | 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. | ➡️ Moved to §8.6 (11/18). |
 | 8 | Wed 11/18 | Arm experiments on two-panel and birds-foot, with and without arms; sweep `length_scale` and k_arm. | When arms win, and by how much, logged. | ➡️ Moved to §8.6 (11/18). |
-| 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types (no arm sites; §8.6). | System loads; panel and crease counts checked; rotational symmetry permutations verified. | ⬜ Not started |
-| 10 | Fri 11/20 | Flasher selection with cyclically symmetric designs enforced (the same choice in every gore): greedy + swap incumbent, then B&B or the Day 3 fallback. | Exactly constrained design with certified bound and gap, or a record of where it stopped scaling. | ⬜ Not started |
+| 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types (no arm sites; §8.6). | System loads; panel and crease counts checked; rotational symmetry permutations verified. | ✅ Done 11/18, as the whole flasher (hub + 5 gores, `full_flasher_system.py`) rather than 2–3 gores; timing check: MOSEK required (§7.19). |
+| 10 | Fri 11/20 | Flasher selection with cyclically symmetric designs enforced (the same choice in every gore): greedy + swap incumbent, then B&B or the Day 3 fallback. | Exactly constrained design with certified bound and gap, or a record of where it stopped scaling. | 🟡 All-V incumbent 6.56e-4 from swap search (2 passes, 2.2 h). First B&B run crashed on a MOSEK stall; fixed 11/19, not yet rerun. Expect it to stop at the time cap (§7.19). |
 | 11 | Mon 11/23 | Scale the flasher up: more gores, or the cyclic-symmetry (Bloch-wave) reduction of §8.5 if time allows. Final evaluation (5 restarts, optional polish). | Best flasher design evaluated; trend with gore count recorded. | ⬜ Not started |
 | 12 | Tue 11/24 | Figures and write-up: Status, §4, §7, roadmap. | Results committed; this doc reflects what's done and what's open. | ⬜ Not started |
 

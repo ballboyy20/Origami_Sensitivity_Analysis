@@ -281,15 +281,32 @@ def _solve(problem, solver, solver_kwargs):
         solver = DEFAULT_SOLVER
         solver_kwargs = {**DEFAULT_SOLVER_KWARGS, **solver_kwargs}
     used_scs = False
+    relaxed = False
     if solver is not None:
         try:
             problem.solve(solver=solver, **solver_kwargs)
         except cp.error.SolverError as e:
-            # e.g. MOSEK returning a status cvxpy can't unpack. Callers
-            # treat RuntimeError as "this SDP failed" (B&B: branch, don't
-            # prune; swap search: record and move on) -- a bare
-            # SolverError escapes those handlers and kills the run.
-            raise RuntimeError(f"{solver} failed: {e}") from e
+            # MOSEK on the full flasher's B&B nodes (K entries ~1e4, t ~1e-3)
+            # sometimes stalls one step short of its default 1e-8 tolerances
+            # and returns UNKNOWN, which cvxpy raises on. One retry at 1e-6
+            # solves every such node seen (2026-11-19); it's reported as
+            # 'optimal_inaccurate' so callers that prune on the value can
+            # add margin. If that fails too, raise RuntimeError -- callers
+            # treat it as "this SDP failed" (B&B: branch, don't prune; swap
+            # search: record and move on); a bare SolverError escapes those
+            # handlers and kills the run.
+            if solver != cp.MOSEK:
+                raise RuntimeError(f"{solver} failed: {e}") from e
+            mp = {**solver_kwargs.get('mosek_params', {}),
+                  'MSK_DPAR_INTPNT_CO_TOL_REL_GAP': 1e-6,
+                  'MSK_DPAR_INTPNT_CO_TOL_PFEAS': 1e-7,
+                  'MSK_DPAR_INTPNT_CO_TOL_DFEAS': 1e-7}
+            try:
+                problem.solve(solver=solver, **{**solver_kwargs, 'mosek_params': mp})
+            except cp.error.SolverError as e2:
+                raise RuntimeError(f"{solver} failed, also with relaxed "
+                                   f"tolerances: {e2}") from e2
+            relaxed = True
     else:
         try:
             problem.solve(solver=cp.CLARABEL, **solver_kwargs)
@@ -308,6 +325,8 @@ def _solve(problem, solver, solver_kwargs):
         pass
     if used_scs and problem.status != 'optimal':
         return f'scs_{problem.status}'
+    if relaxed and problem.status == 'optimal':
+        return 'optimal_inaccurate'
     return problem.status
 
 

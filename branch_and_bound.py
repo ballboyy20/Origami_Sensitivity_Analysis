@@ -376,7 +376,7 @@ class BranchAndBound:
         seconds. log_every: print progress every this many nodes."""
         t0 = time.perf_counter()
         st = dict(nodes=0, pruned_cardinality=0, pruned_cut=0, pruned_symmetry=0,
-                  pruned_rank=0, pruned_bound=0, sdp_errors=0, leaves_sdp_errors=0, leaves=0,
+                  pruned_rank=0, pruned_bound=0, sdp_errors=0, sdp_relaxed=0, leaves_sdp_errors=0, leaves=0,
                   leaves_pruned_bound=0, leaves_infeasible=0, leaves_evaluated=0,
                   incumbent_updates=0, leaves_screened=0, screen_rechecked=0,
                   screen_recheck_updates=0)
@@ -473,6 +473,11 @@ class BranchAndBound:
                                          target_rank=self.target_rank, ref_thetas=ref,
                                          registry=self.ev.registry, **mixed_kw)
                 b, z = res['t'] * (1 + self.bound_margin), res['z']
+                if res.get('solver_status') == 'optimal_inaccurate':
+                    # solved only at relaxed tolerances (sdp_theta_optimizer
+                    # ._solve retry): ~0.3% scatter seen, so pad by 1%
+                    st['sdp_relaxed'] += 1
+                    b *= 1.01
             except (RuntimeError, ValueError):
                 st['sdp_errors'] += 1          # can't bound: branch, never prune
                 b, z = float('inf'), np.full(len(und), 0.5)
