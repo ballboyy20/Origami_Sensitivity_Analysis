@@ -1,3 +1,7 @@
 Full flasher B&B, part 'allv': hub + 5 gores, 26 bodies, target rank 150, 24 orbit sites (cyclic, tied angles); MOSEK (7 threads), bound margin 3e-04, screen f = 0.8, cap 14.0 h
 Creases per gore (3 sites each, site = 3 * crease + j): P0-P1, P0-P4, P0-H, P1-P4', P1-P2, P1-P3, P2-P3', P3-P4
 ==============================================================================
+Random full-rank start [0, 1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 16, 18, 20, 22]: lambda_min 9.454917e-05 (117s)
+  pass 1: 135 swaps, 22 infeasible, 88 pruned by bound, 25 evaluated -> swap 0->23, lambda_min 0.000095 -> 0.000556
+  pass 2: 135 swaps, 23 infeasible, 81 pruned by bound, 31 evaluated -> swap 16->15, lambda_min 0.000556 -> 0.000656
+One-swap search: [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 18, 20, 22, 23] lambda_min 6.560721e-04 (P0-P1:1 P0-P4:2 P0-H:2 P1-P4':3 P1-P2:2 P1-P3:1 P2-P3':2 P3-P4:2); 7829s, 248 bound solves, 57 evaluations
