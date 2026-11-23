@@ -69,7 +69,11 @@ validated soundly, and reported honestly.
   certified within 1.74%, 130.5% of the earlier over-constrained 46-row
   design (§7.17). Mixed-type 42-row designs exist, but the first search
   (no incumbent) stopped at the 24 h cap below the all-V result, so
-  mixed vs. all-V on the gore is still open.
+  mixed vs. all-V on the gore is still open. **Whole flasher (hub + 5
+  gores, 26 bodies, cyclic designs) is built**; one-swap search gives an
+  all-V incumbent of 6.56e-4. The first B&B run crashed on a MOSEK stall
+  (fixed 2026-11-19, not yet rerun); a full B&B is not expected to finish
+  in 14 h (§7.19).
 - **Soundness flag resolved: solver tolerance, not a modelling error**
   (§7.18). On the single gore, default Clarabel returns
   "optimal_inaccurate" on 212 of 216 sets and underestimates the bound by
