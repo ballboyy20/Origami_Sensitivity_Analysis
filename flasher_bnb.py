@@ -10,7 +10,8 @@ angles. Parts (argv[1]; each saves its own files, so both can run at once):
           (screen f = 0.8, bound margin 3e-4), capped at --max-hours.
   mixed   Flat / V-groove / socket per site (72 candidates), exactly 150
           rows (30 per gore). Incumbent: the same all-V swap result (each
-          part recomputes it; deterministic), lifted to typed candidates,
+          part recomputes it; deterministic) or --incumbent, lifted to typed
+          candidates,
           then B&B with the same settings. Likely stops at the cap; the
           incumbent trace records how good it got.
 
@@ -22,7 +23,13 @@ can't prune anything.
 
 Options: --max-hours H (default 13), --threads N (MOSEK threads, default 7;
 set OMP/OPENBLAS/MKL_NUM_THREADS to match), --frac F (screen, default 0.8),
---swap-passes P (default 10; 0 = skip swap, start from the random set).
+--swap-passes P (default 10; 0 = skip swap, start from the random set),
+--incumbent I (comma-separated all-V orbit indices, e.g. the 2026-11-19
+swap result 1,4,5,6,8,9,10,11,12,13,15,18,20,22,23; skips the random start
+and swap search, ~2 h; the set is evaluated once and B&B reuses it),
+--screen-recheck R (screened leaves re-evaluated in full after the search,
+default 5; each costs a full ~140 s evaluation, and the default of 20
+took ~50 min with no gain in the sec 7.19 replay; 0 = no recheck).
 
 Saves: results/flasher_bnb_<part>_{summary.txt,results.json} and a UTF-8
 progress log results/flasher_bnb_<part>.log.
@@ -61,10 +68,20 @@ def check_mosek(threads):
 
 
 def allv_incumbent(args, log):
-    """Random full-rank 15-orbit start, then one-swap search (all-V)."""
+    """All-V incumbent: --incumbent if given, else a random full-rank
+    15-orbit start followed by one-swap search."""
     system = build_flasher_system()
     tr = system.total_dofs - 6
     ev = SetEvaluator(system, tr, START_THETAS_DEG, seed=SEED)
+    if args.incumbent is not None:
+        inc = args.incumbent
+        t0 = time.perf_counter()
+        r = ev.evaluate(inc)
+        if not r['feasible']:
+            sys.exit(f"--incumbent {inc} can't reach full rank; aborting.")
+        log(f"Given incumbent {inc}: lambda_min {r['lambda_min']:.6e} "
+            f"({describe_counts(inc)}); {time.perf_counter() - t0:.0f}s")
+        return system, ev, inc, r['lambda_min'], None
     rng = np.random.default_rng(SEED)
     while True:
         start = sorted(rng.choice(N_SITES, K_ALLV, replace=False).tolist())
@@ -118,6 +135,17 @@ def save(part, L, results):
     print(f"Saved: {base}_summary.txt / _results.json")
 
 
+def parse_incumbent(s):
+    try:
+        inc = sorted({int(x) for x in s.replace(' ', '').split(',') if x})
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a comma-separated list of ints: {s!r}")
+    if len(inc) != K_ALLV or not all(0 <= i < N_SITES for i in inc):
+        raise argparse.ArgumentTypeError(
+            f"need {K_ALLV} distinct orbit indices in [0, {N_SITES - 1}], got {inc}")
+    return inc
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('part', choices=['allv', 'mixed'])
@@ -125,6 +153,8 @@ def main():
     ap.add_argument('--threads', type=int, default=7)
     ap.add_argument('--frac', type=float, default=0.8)
     ap.add_argument('--swap-passes', type=int, default=10)
+    ap.add_argument('--incumbent', type=parse_incumbent, default=None)
+    ap.add_argument('--screen-recheck', type=int, default=5)
     args = ap.parse_args()
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -134,7 +164,8 @@ def main():
 
     L = [f"Full flasher B&B, part '{args.part}': hub + 5 gores, 26 bodies, target rank 150, "
          f"24 orbit sites (cyclic, tied angles); MOSEK ({args.threads} threads), bound margin "
-         f"{MARGIN:.0e}, screen f = {args.frac}, cap {args.max_hours} h",
+         f"{MARGIN:.0e}, screen f = {args.frac}, screen recheck {args.screen_recheck}, "
+         f"cap {args.max_hours} h",
          f"Creases per gore (3 sites each, site = 3 * crease + j): {', '.join(CREASE_NAMES)}",
          "=" * 78]
     print("\n".join(L), flush=True)
@@ -144,7 +175,8 @@ def main():
         L.append(s)
 
     system, ev, inc, inc_lam, sw = allv_incumbent(args, log)
-    results = dict(part=args.part, incumbent_start=inc, incumbent_lambda=inc_lam,
+    results = dict(part=args.part, incumbent_given=args.incumbent is not None,
+                   screen_recheck=args.screen_recheck, incumbent_start=inc, incumbent_lambda=inc_lam,
                    swap=None if sw is None else {k: v for k, v in sw.items()
                                                  if k in ('active', 'lambda_min', 'start_active',
                                                           'start_lambda_min', 'passes',
@@ -153,7 +185,7 @@ def main():
 
     if args.part == 'allv':
         bnb = BranchAndBound(ev, k=K_ALLV, seed=SEED, verbose=True, screen_frac=args.frac,
-                             bound_margin=MARGIN)
+                             screen_recheck=args.screen_recheck, bound_margin=MARGIN)
         r = run_bnb(bnb, inc, args)
         summarize(L, r, lambda a: f"{a} ({describe_counts(a)})")
     else:
@@ -165,7 +197,8 @@ def main():
         log(f"Mixed: {tc.m} candidates; incumbent (all-V, lifted) "
             f"{tc.describe(inc_m, 3)}")
         bnb = BranchAndBound(evm, rows=tc.rows, site_of=tc.site_of, seed=SEED, verbose=True,
-                             screen_frac=args.frac, bound_margin=MARGIN)
+                             screen_frac=args.frac, screen_recheck=args.screen_recheck,
+                             bound_margin=MARGIN)
         r = run_bnb(bnb, inc_m, args)
         summarize(L, r, lambda a: tc.describe(a, 3))
         results['incumbent_start_typed'] = inc_m

@@ -1565,7 +1565,11 @@ pruned by bound, 19 leaves evaluated (all screened), no new incumbent.
   cap it re-evaluated all 19 screened leaves in full: ~50 min, no
   improvement. Cap `screen_recheck` before a long run.
 - **Before rerunning**: pass the known incumbent instead of repeating the
-  2.2 h swap search (needs an `--incumbent` option in `flasher_bnb.py`).
+  2.2 h swap search. **Done 2026-11-23**: `flasher_bnb.py` now takes
+  `--incumbent 1,4,5,...` (evaluated once, ~160 s, and reused by B&B) and
+  `--screen-recheck R` (default now 5). A 0.03 h test reproduced
+  λ_min 6.560721e-4 exactly; 14 of its 22 node bounds needed the relaxed
+  retry, with no SDP errors.
 
 Results: `results/flasher_bnb_allv.log` (incumbent search only; the
 crash prevented the summary and JSON). Timing check:
