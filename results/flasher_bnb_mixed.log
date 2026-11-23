@@ -1,0 +1,3 @@
+Full flasher B&B, part 'mixed': hub + 5 gores, 26 bodies, target rank 150, 24 orbit sites (cyclic, tied angles); MOSEK (7 threads), bound margin 3e-04, screen f = 0.8, screen recheck 5, cap 19.0 h
+Creases per gore (3 sites each, site = 3 * crease + j): P0-P1, P0-P4, P0-H, P1-P4', P1-P2, P1-P3, P2-P3', P3-P4
+==============================================================================
