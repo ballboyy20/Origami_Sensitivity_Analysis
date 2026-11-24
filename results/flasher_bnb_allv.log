@@ -1,3 +1,139 @@
 Full flasher B&B, part 'allv': hub + 5 gores, 26 bodies, target rank 150, 24 orbit sites (cyclic, tied angles); MOSEK (7 threads), bound margin 3e-04, screen f = 0.8, screen recheck 5, cap 19.0 h
 Creases per gore (3 sites each, site = 3 * crease + j): P0-P1, P0-P4, P0-H, P1-P4', P1-P2, P1-P3, P2-P3', P3-P4
 ==============================================================================
+Given incumbent [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 18, 20, 22, 23]: lambda_min 6.560721e-04 (P0-P1:1 P0-P4:2 P0-H:2 P1-P4':3 P1-P2:2 P1-P3:1 P2-P3':2 P3-P4:2); 292s
+    [    282s] nodes 25, stack 20, depth 22, incumbent 0.000656, leaves evaluated 1 (1 screened), pruned bound/sym/rank/cut 0/0/1/0
+    [    684s] nodes 50, stack 17, depth 19, incumbent 0.000656, leaves evaluated 5 (5 screened), pruned bound/sym/rank/cut 2/0/1/0
+    [   1215s] nodes 75, stack 16, depth 20, incumbent 0.000656, leaves evaluated 10 (10 screened), pruned bound/sym/rank/cut 7/0/1/0
+    [   1654s] nodes 100, stack 19, depth 23, incumbent 0.000656, leaves evaluated 13 (13 screened), pruned bound/sym/rank/cut 7/0/3/0
+    [   1922s] nodes 125, stack 14, depth 19, incumbent 0.000656, leaves evaluated 15 (15 screened), pruned bound/sym/rank/cut 11/0/8/0
+    [   2153s] nodes 150, stack 19, depth 23, incumbent 0.000656, leaves evaluated 17 (17 screened), pruned bound/sym/rank/cut 16/0/9/0
+    [   2439s] nodes 175, stack 16, depth 21, incumbent 0.000656, leaves evaluated 20 (20 screened), pruned bound/sym/rank/cut 20/0/9/0
+    [   2692s] nodes 200, stack 17, depth 21, incumbent 0.000656, leaves evaluated 22 (22 screened), pruned bound/sym/rank/cut 25/0/9/0
+    [   2933s] nodes 225, stack 16, depth 20, incumbent 0.000656, leaves evaluated 24 (24 screened), pruned bound/sym/rank/cut 29/0/9/0
+    [   3428s] nodes 250, stack 19, depth 21, incumbent 0.000656, leaves evaluated 29 (29 screened), pruned bound/sym/rank/cut 31/0/9/0
+    new incumbent 0.000657 [0, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 17, 21, 22, 23] (node 263)
+    [   4221s] nodes 275, stack 18, depth 22, incumbent 0.000657, leaves evaluated 35 (34 screened), pruned bound/sym/rank/cut 33/0/9/0
+    [   4831s] nodes 300, stack 17, depth 23, incumbent 0.000657, leaves evaluated 42 (41 screened), pruned bound/sym/rank/cut 34/0/9/0
+    [   5354s] nodes 325, stack 16, depth 23, incumbent 0.000657, leaves evaluated 49 (48 screened), pruned bound/sym/rank/cut 37/0/9/0
+    [   5704s] nodes 350, stack 15, depth 19, incumbent 0.000657, leaves evaluated 53 (52 screened), pruned bound/sym/rank/cut 42/0/10/0
+    [   5837s] nodes 375, stack 16, depth 21, incumbent 0.000657, leaves evaluated 54 (53 screened), pruned bound/sym/rank/cut 48/0/10/0
+    [   6309s] nodes 400, stack 15, depth 23, incumbent 0.000657, leaves evaluated 59 (58 screened), pruned bound/sym/rank/cut 51/0/10/0
+    [   6519s] nodes 425, stack 18, depth 22, incumbent 0.000657, leaves evaluated 61 (60 screened), pruned bound/sym/rank/cut 53/0/10/0
+    new incumbent 0.000699 [0, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 17, 21, 22, 23] (node 437)
+    [   8150s] nodes 450, stack 15, depth 21, incumbent 0.000699, leaves evaluated 72 (70 screened), pruned bound/sym/rank/cut 53/0/10/0
+    [   8552s] nodes 475, stack 18, depth 23, incumbent 0.000699, leaves evaluated 76 (74 screened), pruned bound/sym/rank/cut 54/0/10/0
+    [   8975s] nodes 500, stack 15, depth 22, incumbent 0.000699, leaves evaluated 81 (79 screened), pruned bound/sym/rank/cut 56/0/10/0
+    [   9260s] nodes 525, stack 14, depth 22, incumbent 0.000699, leaves evaluated 85 (83 screened), pruned bound/sym/rank/cut 59/0/11/0
+    [   9732s] nodes 550, stack 13, depth 15, incumbent 0.000699, leaves evaluated 88 (86 screened), pruned bound/sym/rank/cut 61/0/13/0
+    [   9964s] nodes 575, stack 16, depth 20, incumbent 0.000699, leaves evaluated 90 (88 screened), pruned bound/sym/rank/cut 70/0/13/0
+    [  10209s] nodes 600, stack 17, depth 20, incumbent 0.000699, leaves evaluated 93 (91 screened), pruned bound/sym/rank/cut 73/0/13/0
+    [  10867s] nodes 625, stack 16, depth 21, incumbent 0.000699, leaves evaluated 99 (97 screened), pruned bound/sym/rank/cut 75/0/13/0
+    [  11372s] nodes 650, stack 15, depth 22, incumbent 0.000699, leaves evaluated 104 (102 screened), pruned bound/sym/rank/cut 75/0/13/0
+    [  11742s] nodes 675, stack 16, depth 22, incumbent 0.000699, leaves evaluated 109 (107 screened), pruned bound/sym/rank/cut 76/0/13/0
+    [  12126s] nodes 700, stack 15, depth 22, incumbent 0.000699, leaves evaluated 114 (112 screened), pruned bound/sym/rank/cut 76/0/13/0
+    [  12574s] nodes 725, stack 14, depth 19, incumbent 0.000699, leaves evaluated 119 (117 screened), pruned bound/sym/rank/cut 82/0/13/0
+    [  12814s] nodes 750, stack 15, depth 21, incumbent 0.000699, leaves evaluated 121 (119 screened), pruned bound/sym/rank/cut 84/0/13/0
+    [  13569s] nodes 775, stack 16, depth 22, incumbent 0.000699, leaves evaluated 126 (123 screened), pruned bound/sym/rank/cut 85/0/14/0
+    [  14050s] nodes 800, stack 15, depth 19, incumbent 0.000699, leaves evaluated 130 (127 screened), pruned bound/sym/rank/cut 89/0/14/0
+    [  14265s] nodes 825, stack 12, depth 16, incumbent 0.000699, leaves evaluated 132 (129 screened), pruned bound/sym/rank/cut 99/0/14/0
+    [  14479s] nodes 850, stack 15, depth 21, incumbent 0.000699, leaves evaluated 134 (131 screened), pruned bound/sym/rank/cut 99/0/14/0
+    [  14622s] nodes 875, stack 12, depth 14, incumbent 0.000699, leaves evaluated 135 (132 screened), pruned bound/sym/rank/cut 102/0/16/0
+    [  15213s] nodes 900, stack 17, depth 22, incumbent 0.000699, leaves evaluated 142 (139 screened), pruned bound/sym/rank/cut 103/0/16/0
+    [  15901s] nodes 925, stack 16, depth 21, incumbent 0.000699, leaves evaluated 150 (147 screened), pruned bound/sym/rank/cut 104/0/16/0
+    [  16507s] nodes 950, stack 17, depth 21, incumbent 0.000699, leaves evaluated 156 (153 screened), pruned bound/sym/rank/cut 106/0/16/0
+    [  17809s] nodes 975, stack 16, depth 21, incumbent 0.000699, leaves evaluated 164 (160 screened), pruned bound/sym/rank/cut 107/0/16/0
+    [  18261s] nodes 1000, stack 15, depth 22, incumbent 0.000699, leaves evaluated 168 (164 screened), pruned bound/sym/rank/cut 107/0/17/0
+    [  18887s] nodes 1025, stack 16, depth 21, incumbent 0.000699, leaves evaluated 174 (170 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  19630s] nodes 1050, stack 17, depth 22, incumbent 0.000699, leaves evaluated 182 (178 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  20317s] nodes 1075, stack 16, depth 22, incumbent 0.000699, leaves evaluated 189 (184 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  21353s] nodes 1100, stack 15, depth 21, incumbent 0.000699, leaves evaluated 200 (195 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  22559s] nodes 1125, stack 16, depth 21, incumbent 0.000699, leaves evaluated 211 (205 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  23689s] nodes 1150, stack 13, depth 17, incumbent 0.000699, leaves evaluated 224 (218 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  24280s] nodes 1175, stack 16, depth 22, incumbent 0.000699, leaves evaluated 232 (226 screened), pruned bound/sym/rank/cut 109/0/17/0
+    [  25141s] nodes 1200, stack 15, depth 21, incumbent 0.000699, leaves evaluated 241 (235 screened), pruned bound/sym/rank/cut 110/0/17/0
+    [  25649s] nodes 1225, stack 18, depth 23, incumbent 0.000699, leaves evaluated 246 (240 screened), pruned bound/sym/rank/cut 110/0/17/0
+    [  26535s] nodes 1250, stack 15, depth 22, incumbent 0.000699, leaves evaluated 258 (252 screened), pruned bound/sym/rank/cut 110/0/17/0
+    [  27558s] nodes 1275, stack 14, depth 17, incumbent 0.000699, leaves evaluated 270 (264 screened), pruned bound/sym/rank/cut 110/0/17/0
+    [  28135s] nodes 1300, stack 17, depth 23, incumbent 0.000699, leaves evaluated 276 (270 screened), pruned bound/sym/rank/cut 110/0/18/0
+    [  28828s] nodes 1325, stack 16, depth 21, incumbent 0.000699, leaves evaluated 283 (277 screened), pruned bound/sym/rank/cut 110/0/18/0
+    [  30074s] nodes 1350, stack 15, depth 21, incumbent 0.000699, leaves evaluated 292 (285 screened), pruned bound/sym/rank/cut 112/0/18/0
+    [  30540s] nodes 1375, stack 16, depth 21, incumbent 0.000699, leaves evaluated 297 (290 screened), pruned bound/sym/rank/cut 113/0/18/0
+    [  31561s] nodes 1400, stack 13, depth 18, incumbent 0.000699, leaves evaluated 308 (301 screened), pruned bound/sym/rank/cut 113/0/18/0
+    new incumbent 0.000790 [0, 3, 5, 6, 7, 8, 10, 11, 12, 14, 17, 19, 21, 22, 23] (node 1412)
+    [  33024s] nodes 1425, stack 12, depth 16, incumbent 0.000790, leaves evaluated 320 (312 screened), pruned bound/sym/rank/cut 113/0/18/0
+    [  33332s] nodes 1450, stack 15, depth 21, incumbent 0.000790, leaves evaluated 323 (315 screened), pruned bound/sym/rank/cut 114/0/18/0
+    [  34437s] nodes 1475, stack 12, depth 18, incumbent 0.000790, leaves evaluated 333 (325 screened), pruned bound/sym/rank/cut 115/0/18/0
+    [  35201s] nodes 1500, stack 17, depth 21, incumbent 0.000790, leaves evaluated 340 (332 screened), pruned bound/sym/rank/cut 115/0/18/0
+    [  35701s] nodes 1525, stack 16, depth 21, incumbent 0.000790, leaves evaluated 346 (338 screened), pruned bound/sym/rank/cut 115/0/21/0
+    [  36357s] nodes 1550, stack 15, depth 19, incumbent 0.000790, leaves evaluated 354 (346 screened), pruned bound/sym/rank/cut 116/0/21/0
+    [  36868s] nodes 1575, stack 16, depth 21, incumbent 0.000790, leaves evaluated 357 (349 screened), pruned bound/sym/rank/cut 117/0/22/0
+    [  37244s] nodes 1600, stack 15, depth 21, incumbent 0.000790, leaves evaluated 361 (353 screened), pruned bound/sym/rank/cut 121/0/24/0
+    [  37793s] nodes 1625, stack 16, depth 21, incumbent 0.000790, leaves evaluated 366 (358 screened), pruned bound/sym/rank/cut 122/0/25/0
+    [  38498s] nodes 1650, stack 15, depth 22, incumbent 0.000790, leaves evaluated 374 (366 screened), pruned bound/sym/rank/cut 123/0/25/0
+    [  39414s] nodes 1675, stack 16, depth 23, incumbent 0.000790, leaves evaluated 382 (374 screened), pruned bound/sym/rank/cut 124/0/25/0
+    [  39992s] nodes 1700, stack 15, depth 22, incumbent 0.000790, leaves evaluated 388 (380 screened), pruned bound/sym/rank/cut 125/0/25/0
+    [  40458s] nodes 1725, stack 14, depth 20, incumbent 0.000790, leaves evaluated 393 (385 screened), pruned bound/sym/rank/cut 128/0/25/0
+    [  40850s] nodes 1750, stack 13, depth 21, incumbent 0.000790, leaves evaluated 397 (389 screened), pruned bound/sym/rank/cut 131/0/26/0
+    [  41840s] nodes 1775, stack 14, depth 21, incumbent 0.000790, leaves evaluated 405 (397 screened), pruned bound/sym/rank/cut 132/0/26/0
+    [  42440s] nodes 1800, stack 15, depth 22, incumbent 0.000790, leaves evaluated 411 (403 screened), pruned bound/sym/rank/cut 134/0/26/0
+    [  43090s] nodes 1825, stack 12, depth 20, incumbent 0.000790, leaves evaluated 418 (410 screened), pruned bound/sym/rank/cut 135/0/26/0
+    [  43939s] nodes 1850, stack 11, depth 21, incumbent 0.000790, leaves evaluated 427 (419 screened), pruned bound/sym/rank/cut 135/0/26/0
+    [  44539s] nodes 1875, stack 16, depth 23, incumbent 0.000790, leaves evaluated 433 (425 screened), pruned bound/sym/rank/cut 136/0/26/0
+    [  45050s] nodes 1900, stack 15, depth 20, incumbent 0.000790, leaves evaluated 439 (431 screened), pruned bound/sym/rank/cut 136/0/26/0
+    [  45739s] nodes 1925, stack 14, depth 23, incumbent 0.000790, leaves evaluated 448 (440 screened), pruned bound/sym/rank/cut 136/0/26/0
+    [  46657s] nodes 1950, stack 15, depth 22, incumbent 0.000790, leaves evaluated 458 (450 screened), pruned bound/sym/rank/cut 136/0/26/0
+    [  47466s] nodes 1975, stack 14, depth 22, incumbent 0.000790, leaves evaluated 466 (458 screened), pruned bound/sym/rank/cut 140/0/27/0
+    [  48186s] nodes 2000, stack 11, depth 17, incumbent 0.000790, leaves evaluated 472 (464 screened), pruned bound/sym/rank/cut 142/0/29/0
+    [  48761s] nodes 2025, stack 12, depth 20, incumbent 0.000790, leaves evaluated 479 (471 screened), pruned bound/sym/rank/cut 144/0/29/0
+    [  49167s] nodes 2050, stack 15, depth 23, incumbent 0.000790, leaves evaluated 483 (475 screened), pruned bound/sym/rank/cut 147/0/32/0
+    [  50199s] nodes 2075, stack 16, depth 23, incumbent 0.000790, leaves evaluated 490 (482 screened), pruned bound/sym/rank/cut 148/0/32/0
+    [  51057s] nodes 2100, stack 13, depth 22, incumbent 0.000790, leaves evaluated 498 (490 screened), pruned bound/sym/rank/cut 150/0/32/0
+    [  51916s] nodes 2125, stack 12, depth 19, incumbent 0.000790, leaves evaluated 508 (500 screened), pruned bound/sym/rank/cut 150/0/32/0
+    [  52909s] nodes 2150, stack 15, depth 21, incumbent 0.000790, leaves evaluated 518 (509 screened), pruned bound/sym/rank/cut 150/0/32/0
+    [  53662s] nodes 2175, stack 12, depth 19, incumbent 0.000790, leaves evaluated 525 (516 screened), pruned bound/sym/rank/cut 151/0/32/0
+    [  54524s] nodes 2200, stack 11, depth 13, incumbent 0.000790, leaves evaluated 534 (525 screened), pruned bound/sym/rank/cut 151/0/32/0
+    [  54851s] nodes 2225, stack 16, depth 21, incumbent 0.000790, leaves evaluated 538 (529 screened), pruned bound/sym/rank/cut 153/0/32/0
+    [  54989s] nodes 2250, stack 15, depth 21, incumbent 0.000790, leaves evaluated 539 (530 screened), pruned bound/sym/rank/cut 156/0/32/0
+    [  55156s] nodes 2275, stack 14, depth 17, incumbent 0.000790, leaves evaluated 541 (532 screened), pruned bound/sym/rank/cut 159/0/34/0
+    [  55571s] nodes 2300, stack 13, depth 17, incumbent 0.000790, leaves evaluated 545 (536 screened), pruned bound/sym/rank/cut 162/0/34/0
+    [  56022s] nodes 2325, stack 16, depth 22, incumbent 0.000790, leaves evaluated 550 (541 screened), pruned bound/sym/rank/cut 164/0/34/0
+    [  56482s] nodes 2350, stack 17, depth 21, incumbent 0.000790, leaves evaluated 555 (546 screened), pruned bound/sym/rank/cut 166/0/34/0
+    [  56731s] nodes 2375, stack 14, depth 21, incumbent 0.000790, leaves evaluated 558 (549 screened), pruned bound/sym/rank/cut 170/0/34/0
+    [  57008s] nodes 2400, stack 13, depth 18, incumbent 0.000790, leaves evaluated 561 (552 screened), pruned bound/sym/rank/cut 174/0/34/0
+    [  57256s] nodes 2425, stack 14, depth 19, incumbent 0.000790, leaves evaluated 564 (555 screened), pruned bound/sym/rank/cut 178/0/36/0
+    [  57345s] nodes 2450, stack 11, depth 14, incumbent 0.000790, leaves evaluated 564 (555 screened), pruned bound/sym/rank/cut 188/0/36/0
+    [  57969s] nodes 2475, stack 14, depth 18, incumbent 0.000790, leaves evaluated 570 (561 screened), pruned bound/sym/rank/cut 189/0/38/0
+    [  58561s] nodes 2500, stack 15, depth 23, incumbent 0.000790, leaves evaluated 577 (568 screened), pruned bound/sym/rank/cut 189/0/40/0
+    [  59116s] nodes 2525, stack 14, depth 20, incumbent 0.000790, leaves evaluated 584 (574 screened), pruned bound/sym/rank/cut 191/0/41/0
+    [  59890s] nodes 2550, stack 17, depth 22, incumbent 0.000790, leaves evaluated 590 (580 screened), pruned bound/sym/rank/cut 194/0/41/0
+    [  60473s] nodes 2575, stack 18, depth 23, incumbent 0.000790, leaves evaluated 596 (586 screened), pruned bound/sym/rank/cut 196/0/41/0
+    [  61084s] nodes 2600, stack 15, depth 21, incumbent 0.000790, leaves evaluated 603 (593 screened), pruned bound/sym/rank/cut 198/0/41/0
+    [  61677s] nodes 2625, stack 14, depth 22, incumbent 0.000790, leaves evaluated 609 (599 screened), pruned bound/sym/rank/cut 200/0/42/0
+    [  62296s] nodes 2650, stack 17, depth 23, incumbent 0.000790, leaves evaluated 616 (606 screened), pruned bound/sym/rank/cut 200/0/42/0
+    [  63182s] nodes 2675, stack 14, depth 20, incumbent 0.000790, leaves evaluated 624 (614 screened), pruned bound/sym/rank/cut 202/0/43/0
+    [  63388s] nodes 2700, stack 13, depth 20, incumbent 0.000790, leaves evaluated 626 (616 screened), pruned bound/sym/rank/cut 203/0/44/0
+    [  63892s] nodes 2725, stack 14, depth 22, incumbent 0.000790, leaves evaluated 630 (620 screened), pruned bound/sym/rank/cut 206/0/47/0
+    [  64415s] nodes 2750, stack 11, depth 21, incumbent 0.000790, leaves evaluated 636 (626 screened), pruned bound/sym/rank/cut 206/0/50/0
+    [  64639s] nodes 2775, stack 16, depth 21, incumbent 0.000790, leaves evaluated 638 (628 screened), pruned bound/sym/rank/cut 208/0/51/0
+    [  64966s] nodes 2800, stack 15, depth 21, incumbent 0.000790, leaves evaluated 641 (631 screened), pruned bound/sym/rank/cut 208/0/51/0
+    [  65500s] nodes 2825, stack 16, depth 23, incumbent 0.000790, leaves evaluated 647 (637 screened), pruned bound/sym/rank/cut 210/0/51/0
+    [  66084s] nodes 2850, stack 15, depth 23, incumbent 0.000790, leaves evaluated 655 (645 screened), pruned bound/sym/rank/cut 211/0/51/0
+    [  66587s] nodes 2875, stack 16, depth 22, incumbent 0.000790, leaves evaluated 661 (651 screened), pruned bound/sym/rank/cut 212/0/51/0
+    [  66940s] nodes 2900, stack 13, depth 18, incumbent 0.000790, leaves evaluated 664 (654 screened), pruned bound/sym/rank/cut 215/0/51/0
+    [  67487s] nodes 2925, stack 14, depth 20, incumbent 0.000790, leaves evaluated 669 (659 screened), pruned bound/sym/rank/cut 216/0/51/0
+    [  68009s] nodes 2950, stack 13, depth 22, incumbent 0.000790, leaves evaluated 673 (663 screened), pruned bound/sym/rank/cut 218/0/52/0
+
+Full flasher B&B, part 'allv': hub + 5 gores, 26 bodies, target rank 150, 24 orbit sites (cyclic, tied angles); MOSEK (7 threads), bound margin 3e-04, screen f = 0.8, screen recheck 5, cap 19.0 h
+Creases per gore (3 sites each, site = 3 * crease + j): P0-P1, P0-P4, P0-H, P1-P4', P1-P2, P1-P3, P2-P3', P3-P4
+==============================================================================
+Given incumbent [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 18, 20, 22, 23]: lambda_min 6.560721e-04 (P0-P1:1 P0-P4:2 P0-H:2 P1-P4':3 P1-P2:2 P1-P3:1 P2-P3':2 P3-P4:2); 292s
+   B&B: found 0.000790 [0, 3, 5, 6, 7, 8, 10, 11, 12, 14, 17, 19, 21, 22, 23]; certified UB inf (gap inf%), complete False
+      nodes 2964; leaves evaluated 677 (667 screened, 5 rechecked, 0 recheck updates); 70504s
+      pruned bound/rank/cut/cardinality 219/52/0/0; leaves 1204 (pruned by bound 373, infeasible 154, evaluated 677); SDP errors: nodes 0, leaves 0; node bounds at relaxed tolerance 456
+   best design: [0, 3, 5, 6, 7, 8, 10, 11, 12, 14, 17, 19, 21, 22, 23] (P0-P1:1 P0-P4:2 P0-H:3 P1-P4':2 P1-P2:2 P1-P3:1 P2-P3':1 P3-P4:3)
+   incumbent history:
+      6.573369e-04 [0, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 17, 21, 22, 23] (P0-P1:1 P0-P4:2 P0-H:2 P1-P4':3 P1-P2:3 P1-P3:1 P2-P3':0 P3-P4:3), node 263, 4066s
+      6.986640e-04 [0, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 17, 21, 22, 23] (P0-P1:1 P0-P4:2 P0-H:2 P1-P4':3 P1-P2:3 P1-P3:1 P2-P3':0 P3-P4:3), node 437, 7562s
+      7.904216e-04 [0, 3, 5, 6, 7, 8, 10, 11, 12, 14, 17, 19, 21, 22, 23] (P0-P1:1 P0-P4:2 P0-H:3 P1-P4':2 P1-P2:2 P1-P3:1 P2-P3':1 P3-P4:3), node 1412, 32513s
+Saved: C:\Users\craftyb\Documents\GitHub\Origami_Sensitivity_Analysis\results\flasher_bnb_allv_summary.txt / _results.json
