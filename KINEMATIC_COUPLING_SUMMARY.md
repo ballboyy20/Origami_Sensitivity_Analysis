@@ -75,10 +75,10 @@ validated soundly, and reported honestly.
   fixed) raised it 20.5% to 7.904e-4**, uncertified. The mixed-type run
   only reached 6.70e-4 and never got to the all-V design that lies
   inside its own search space, so mixed vs. all-V is open here too
-  (§7.20). **Caveat**: on cyclic designs λ_min is often an exact
-  symmetry-forced pair, which the evaluator wrongly rejects as
-  degenerate. 5 leaves were scored 0.0 that way, and flasher λ_min
-  values may be underestimates until that's fixed (§7.20).
+  (§7.20). **Those values were underestimates**: on cyclic designs
+  λ_min is often an exact symmetry-forced pair, which the evaluator
+  rejected as degenerate. Patched 2026-11-25; the all-V best now
+  evaluates to **8.571e-4** (+8.4%) (§7.20).
 - **Soundness flag resolved: solver tolerance, not a modelling error**
   (§7.18). On the single gore, default Clarabel returns
   "optimal_inaccurate" on 212 of 216 sets and underestimates the bound by
@@ -438,12 +438,17 @@ the final set can't reach full rank.
   relaxed tolerances and reports the result as "optimal_inaccurate"
   (B&B pads those node bounds by 1%); if the retry fails it raises
   `RuntimeError`, which every caller already handles.
-- **False multiplicity alarms on cyclic designs** (§7.20, open): with
-  tied angles, λ_min is often an exact symmetry-forced pair. The 1e-8
-  simplicity check rejects it even though the gradient is well defined.
-  Restarts burn their 30-attempt budget, and sets can be scored 0.0
-  (infeasible) by `SetEvaluator`; a screen recheck then overwrites the
-  leaf's known first-restart value with that 0.0.
+- **Symmetry-forced eigenvalue pairs** (§7.20, fixed 2026-11-25): with
+  tied angles on a cyclic design, λ_min is often an exact pair. The 1e-8
+  simplicity check used to reject it even though the gradient is well
+  defined; `eval_lambda_min_and_grad` now accepts a tie above when every
+  V^T dK V is a multiple of the identity. A failed screen recheck keeps
+  the first-restart value instead of writing 0.0.
+- **Near-mechanisms pass the rank test** (§7.20, open): sets with
+  λ_7 ~ 1e-12 to 1e-9 count as full rank under `np.linalg.matrix_rank`'s
+  default tolerance, then fail every start as a tie with the gauge
+  eigenvalue (reported as `MultiplicityError`, scored 0.0). The score is
+  effectively right but the label is misleading.
 - **Bugs fixed during the full sweep**: (1) the first evaluation of
   `theta_init` in `optimize_theta_riemannian` lacked the multiplicity
   retry every other evaluation had; (2) `bound_and_evaluate_sweep.py`
@@ -1673,26 +1678,71 @@ committed). The leaf is `[0,8,10,12,15,19,25,27,32,33,37,47,51,55,58,64,69]`
   them (cross term ~1e-14). So λ_min is smooth there and the envelope
   gradient is valid; `eval_lambda_min_and_grad`'s simplicity check
   (relative 1e-8) is a false alarm for symmetry-forced pairs.
-- **Consequences.**
-  - 5 leaves were scored 0.0 this way: the 3 mixed ones (bounds
-    6.81e-4, 6.82e-4, 7.72e-4) and **3 all-V leaves with bounds 7.10e-4,
-    9.48e-4 and 1.04e-3**. Two of the all-V ones could still beat
-    7.904e-4. Not re-evaluated yet.
+- **Consequences** (as assessed before the patch; outcomes in the
+  re-evaluation below).
+  - 6 evaluated leaves were scored 0.0: 3 mixed (bounds 6.81e-4,
+    6.82e-4, 7.72e-4, the last being the recheck leaf) and 3 all-V
+    (bounds 7.10e-4, 9.48e-4, 1.04e-3). Only the recheck leaf turned
+    out to be this bug; the other 5 are near-mechanisms.
   - Starts and steps where a doubled mode is the minimum are thrown away
     or resampled, so the Riemannian search keeps to the θ region where a
-    rotation-invariant mode is lowest. If the max-min optimum lies where
-    a doubled mode is lowest (a 24-of-40 start rate for the all-V best
-    suggests that region is large), **flasher λ_min values could be
-    underestimates.** Untested.
-  - Any set whose λ_min is doubled over most of θ-space can come out
-    as 0.0 (infeasible) instead of its real value.
-- **Fix options** (not implemented): treat a pair as simple when it is
-  symmetry-forced (gap at roundoff and the gradient agrees across the
-  eigenspace, as checked above); or solve per irrep with the
-  cyclic-symmetry (Bloch-wave) block reduction of §8.5, which removes the
-  pairs entirely; and in any case make `SetEvaluator` keep a recheck's
-  first-restart value instead of replacing it with 0.0. Then re-evaluate
-  the 5 zero leaves and the two best designs.
+    rotation-invariant mode is lowest (24 of 40 random starts for the
+    all-V best were rejected). Confirmed below: the all-V best was
+    underestimated by 8%.
+- **Fix options**: treat a pair as simple when it is symmetry-forced
+  (done, below), or solve per irrep with the cyclic-symmetry
+  (Bloch-wave) block reduction of §8.5, which removes the pairs entirely
+  and also speeds up eigen and SDP solves (not done; worth it only for
+  more flasher B&B or more gores).
+
+**Patch (2026-11-25, uncommitted at time of writing):**
+
+- `riemannian_gradient_sampling.eval_lambda_min_and_grad`: when λ_min is
+  tied with the eigenvalue(s) *above* it, form V^T dK_k V over the tied
+  eigenvectors for every active coupling. If each is a multiple of the
+  identity (deviation ≤ `symmetric_pair_tol` = 1e-4 × max |gradient| +
+  1e-14 × max |dK|), accept: gradient = that multiple. Otherwise raise as
+  before. A tie with the gauge eigenvalue *below* (λ_min ≈ 0) always
+  raises. `symmetric_pair_tol=None` restores the old rule.
+- `branch_and_bound.py`: a screen recheck whose full evaluation fails
+  keeps the leaf's first-restart value and records `full: null` plus
+  the error; leaves whose evaluation fails are counted
+  (`leaves_eval_errors`) and carry `error` in `evaluated_leaves`.
+- Tests: new check E in `test_riemannian_gradient_sampling.py` (on the
+  flasher, 4 of 6 random points are symmetry-forced pairs; all accepted,
+  gradient vs. central differences within 1.5e-4 relative). Checks A–D,
+  `test_bound_and_evaluate.py` and `test_coupling_types.py` still pass.
+  `screen_validation.py small` passes, with the same best values and
+  certified bounds as the saved run. The pair path fired 0 times in its
+  302,509 λ_min evaluations (two-panel, birds-foot: no symmetry-forced
+  pairs), so the patch changes nothing on non-cyclic systems; its
+  two-panel 6-site tree differs from the saved JSON, which predates the
+  11/19 B&B changes.
+
+**Re-evaluation with the patch** (same reference and restart RNG keys as
+`SetEvaluator`; Riemannian only, no MOSEK):
+
+| set | 11/24 run | patched |
+|---|---|---|
+| all-V best `[0,3,5,6,7,8,10,11,12,14,17,19,21,22,23]` | 7.904e-4 | **8.571e-4 (+8.4%)**, 1 start failure |
+| mixed best `F-T VF- V-V -VV T-- T-F VT- V-F` | 6.701e-4 | 6.632e-4 (different restart draws), 0 failures |
+| mixed recheck leaf (bound 7.72e-4) | 0.0 (screened 4.697e-4) | **5.120e-4**, 0 failures |
+| other 5 zero-scored leaves (3 all-V, 2 mixed) | 0.0 | still fail (near-mechanisms, below) |
+
+- **The flasher λ_min values were underestimates**, at least for the
+  all-V best: rejecting every start where a pair is lowest kept the
+  search out of part of θ-space. Every flasher value from before the
+  patch (§7.19, §7.20) should be treated as a lower estimate.
+- **The 5 remaining zero leaves are a different case: near-mechanisms.**
+  At random starts, at the reference angles and near them, λ_7 is
+  1e-12 to 1e-9 (vs. ~1e-4 for good designs). They pass
+  `np.linalg.matrix_rank` only because its default tolerance is loose
+  at this scale, then fail as a tie with the gauge eigenvalue below. The
+  all-V leaf with bound 1.04e-3 succeeds on 4 of 60 starts, best
+  5.6e-5. So 0.0 is effectively right for them, and their 6.8e-4 to
+  1.04e-3 SDP bounds are just loose (not a soundness problem). The
+  misleading part is the label: they surface as `MultiplicityError`, not
+  as rank deficiency.
 
 Results: `results/flasher_bnb_{allv,mixed}_{results.json,summary.txt}`
 and `.log`.
@@ -1921,10 +1971,9 @@ for the week of 11/30.*
   extra 1% margin on node bounds (§7.19).
 - **Flasher B&B throughput** (§7.19, §7.20): measured 23.8 s per node
   (all-V) and 7.8 s (mixed) over 19 h, with weak pruning; neither run
-  finishes. First, fix the false multiplicity alarm on cyclic designs
-  (§7.20) and re-evaluate the zero-scored leaves and both best designs,
-  since flasher λ_min values may be underestimates. Next: swap search (one- and two-swap) from the all-V 7.904e-4
-  design, and a mixed run seeded with that design lifted, so mixed has to
+  finishes. The false multiplicity alarm is patched (§7.20), so earlier
+  flasher runs underestimated λ_min. Next: swap search (one- and
+  two-swap) from the all-V best (now 8.571e-4), and a mixed run seeded with that design lifted, so mixed has to
   beat the best known all-V design rather than the old one. Report the
   best design found, uncertified, with an unscreened re-evaluation.
 - **Housekeeping**: independent child RNG per restart (§6.3; deferred

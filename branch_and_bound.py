@@ -379,14 +379,14 @@ class BranchAndBound:
                   pruned_rank=0, pruned_bound=0, sdp_errors=0, sdp_relaxed=0, leaves_sdp_errors=0, leaves=0,
                   leaves_pruned_bound=0, leaves_infeasible=0, leaves_evaluated=0,
                   incumbent_updates=0, leaves_screened=0, screen_rechecked=0,
-                  screen_recheck_updates=0)
+                  screen_recheck_updates=0, leaves_eval_errors=0)
         inc_set, inc_lam = None, 0.0
         if incumbent_active is not None:
             r = self.ev.evaluate(incumbent_active)
             if r['feasible']:
                 inc_set, inc_lam = sorted(incumbent_active), r['lambda_min']
         start_lam = inc_lam
-        evaluated_leaves = []       # (set, bound, achieved, screened)
+        evaluated_leaves = []       # (set, bound, achieved, screened, error)
         trace = []                  # incumbent history
         rechecks = []               # (set, first-restart value, full value)
 
@@ -443,8 +443,12 @@ class BranchAndBound:
                     r = self.ev.evaluate(leaf)
                 screened = bool(r.get('screened', False))
                 st['leaves_screened'] += screened
+                # a bounded leaf has a full-rank reference, so an infeasible
+                # evaluation here is a failure (e.g. persistent multiplicity,
+                # sec 7.20), not a proof of rank deficiency: count it
+                st['leaves_eval_errors'] += (not r['feasible'])
                 evaluated_leaves.append([leaf, b, r['lambda_min'] if r['feasible'] else 0.0,
-                                         screened])
+                                         screened, r.get('error')])
                 if r['feasible'] and r['lambda_min'] > inc_lam:
                     inc_set, inc_lam = leaf, r['lambda_min']
                     st['incumbent_updates'] += 1
@@ -508,9 +512,16 @@ class BranchAndBound:
             for e in screened[:self.screen_recheck]:
                 first = e[2]
                 r = self.ev.evaluate(e[0])
-                full = r['lambda_min'] if r['feasible'] else 0.0
-                e[2], e[3] = full, False
                 st['screen_rechecked'] += 1
+                if not r['feasible']:
+                    # the full evaluation failed after the screened restart
+                    # succeeded (sec 7.20): keep the screened value, don't zero it
+                    e[4] = r.get('error', 'infeasible')
+                    rechecks.append(dict(active=e[0], first_restart=first, full=None,
+                                         error=e[4]))
+                    continue
+                full = r['lambda_min']
+                e[2], e[3] = full, False
                 rechecks.append(dict(active=e[0], first_restart=first, full=full))
                 if r['feasible'] and full > inc_lam:
                     inc_set, inc_lam = e[0], full
@@ -527,7 +538,8 @@ class BranchAndBound:
         return dict(active=inc_set, lambda_min=inc_lam, start_lambda_min=start_lam,
                     certified_upper_bound=ub, certified_gap=ub - inc_lam,
                     complete=complete, stats=st, incumbent_trace=trace,
-                    evaluated_leaves=[dict(active=s, bound=b, lambda_min=l, screened=sc)
-                                      for s, b, l, sc in evaluated_leaves],
+                    evaluated_leaves=[dict(active=s, bound=b, lambda_min=l, screened=sc,
+                                           **({'error': er} if er else {}))
+                                      for s, b, l, sc, er in evaluated_leaves],
                     screen_rechecks=rechecks,
                     elapsed_sec=time.perf_counter() - t0)

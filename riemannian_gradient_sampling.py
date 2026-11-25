@@ -74,6 +74,13 @@ a misleading gradient. This should be RARE for individually-sampled
 points (gradient sampling only ever evaluates at randomly perturbed
 points, which are simple eigenvalues with probability 1) -- see this
 module's test file for how often it actually fires in practice.
+Exception: in a symmetric system whose theta parametrization respects the
+symmetry (the cyclic flasher with tied angles, sec 7.20 of
+KINEMATIC_COUPLING_SUMMARY.md), lambda_min is an exact pair at a large
+fraction of points. There the envelope gradient IS well defined (every
+projected derivative V^T dK V is a multiple of the identity), so such
+symmetry-forced clusters are accepted (eval_lambda_min_and_grad's
+symmetric_pair_tol) and only accidental ties raise.
 
 PART B -- manifold primitives
 ==============================
@@ -150,10 +157,16 @@ def calibrate_topology(system, active_indices, ref_thetas, length_scale=1.0):
 
 def eval_lambda_min_and_grad(system, active_indices, theta, K0, Kc, Ks,
                               target_rank, length_scale=1.0,
-                              simplicity_tol=1e-8):
+                              simplicity_tol=1e-8, symmetric_pair_tol=1e-4):
     """
     (lambda_min, gradient, eigenvector) at `theta` (radians, length =
     len(active_indices), index-aligned to sorted(active_indices)).
+
+    symmetric_pair_tol: if lambda_min is tied (within simplicity_tol) with
+    the eigenvalue(s) above it, accept the cluster as symmetry-forced when
+    every projected derivative V^T dK_k V equals a multiple of the identity
+    to within this tolerance (relative to the largest gradient entry; sec
+    7.20). None restores the old behaviour (always raise).
 
     Mutates system: sets each active coupling's theta to the given value
     (via set_theta) -- same "leaves the system at whatever was last
@@ -163,7 +176,9 @@ def eval_lambda_min_and_grad(system, active_indices, theta, K0, Kc, Ks,
     lambda_min would be 0 by this codebase's own convention, and there's
     no well-defined "locked" eigenvector there). Raises MultiplicityError
     if lambda_min isn't a simple eigenvalue within simplicity_tol
-    (relative) of its neighbors -- see module docstring.
+    (relative) of its neighbors -- see module docstring -- unless the tie
+    above is a symmetry-forced cluster (symmetric_pair_tol). A tie with
+    the gauge eigenvalue below (lambda_min ~ 0) always raises.
     """
     active_indices = sorted(int(i) for i in active_indices)
     theta = np.asarray(theta, dtype=float)
@@ -201,19 +216,42 @@ def eval_lambda_min_and_grad(system, active_indices, theta, K0, Kc, Ks,
             f"of its neighbor below (eigs[n_free-1]={eigvals[n_free - 1]:.6g}) "
             f"-- not a simple eigenvalue; envelope-theorem gradient is "
             f"undefined here.")
-    if n_free + 1 < d and (eigvals[n_free + 1] - lam) < simplicity_tol * scale:
+    top = n_free          # last index of the cluster of eigenvalues tied with lam
+    while top + 1 < d and (eigvals[top + 1] - lam) < simplicity_tol * scale:
+        top += 1
+
+    dKs = [(-2. * np.sin(2. * theta[k]) * Kc[i] + 2. * np.cos(2. * theta[k]) * Ks[i])
+           for k, i in enumerate(active_indices)]
+    if top == n_free:
+        grad = np.array([float(v @ (dK @ v)) for dK in dKs])
+        return lam, grad, v
+
+    # lambda_min is tied with the eigenvalue(s) above. If the tie is forced
+    # by a symmetry every theta direction respects (cyclic designs with tied
+    # angles, sec 7.20: K commutes with the rotation, so modes outside the
+    # invariant ones come in exact pairs), then by Schur's lemma each
+    # V^T dK_k V is a multiple of the identity: the pair moves together,
+    # lambda_min is smooth along every theta direction, and its gradient is
+    # that multiple. An accidental crossing fails this test (its projected
+    # derivatives differ at the size of the gradient itself) and is still
+    # rejected.
+    V = eigvecs[:, n_free:top + 1]
+    m = V.shape[1]
+    grad = np.empty(len(active_indices))
+    dev = 0.0
+    for k, dK in enumerate(dKs):
+        M = V.T @ dK @ V
+        M = 0.5 * (M + M.T)
+        grad[k] = float(np.trace(M)) / m
+        dev = max(dev, float(np.max(np.abs(M - grad[k] * np.eye(m)))))
+    atol = 1e-14 * max(float(np.max(np.abs(dK))) for dK in dKs)
+    if symmetric_pair_tol is None or dev > symmetric_pair_tol * float(np.max(np.abs(grad))) + atol:
         raise MultiplicityError(
             f"lambda_min={lam:.6g} is within {simplicity_tol:.1e} (relative) "
             f"of its neighbor above (eigs[n_free+1]={eigvals[n_free + 1]:.6g}) "
-            f"-- not a simple eigenvalue; envelope-theorem gradient is "
-            f"undefined here.")
-
-    grad = np.empty(len(active_indices))
-    for k, i in enumerate(active_indices):
-        dK_dtheta = (-2. * np.sin(2. * theta[k]) * Kc[i]
-                     + 2. * np.cos(2. * theta[k]) * Ks[i])
-        grad[k] = float(v @ (dK_dtheta @ v))
-
+            f"-- not a simple eigenvalue, and not a symmetry-forced cluster "
+            f"(projected-derivative deviation {dev:.1e}); envelope-theorem "
+            f"gradient is undefined here.")
     return lam, grad, v
 
 

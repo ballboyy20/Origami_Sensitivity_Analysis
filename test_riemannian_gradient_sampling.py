@@ -472,6 +472,55 @@ def test_sign_convention():
 # Main
 # ══════════════════════════════════════════════════════════════════════
 
+def test_symmetric_pair_gradient():
+    """E: on the cyclic flasher (tied angles), lambda_min is often an exact
+    symmetry-forced pair (sec 7.20). Such points must (a) raise under the
+    old rule (symmetric_pair_tol=None), (b) be accepted now, with (c) a
+    gradient matching central finite differences."""
+    print("=" * 72)
+    print("E: symmetry-forced pairs on the cyclic flasher")
+    print("=" * 72)
+    from full_flasher_system import build_flasher_system, START_THETAS_DEG
+    from sdp_topology_bound import find_full_rank_reference
+    system = build_flasher_system()
+    tr = system.total_dofs - 6
+    active = [0, 3, 5, 6, 7, 8, 10, 11, 12, 14, 17, 19, 21, 22, 23]   # all-V best, sec 7.20
+    ref = find_full_rank_reference(system, active, tr, 1.0, START_THETAS_DEG,
+                                   np.random.default_rng(0), 300)
+    K0, Kc, Ks = calibrate_topology(system, active, ref, 1.0)
+    rng = np.random.default_rng(5)
+    n_pairs, n_tried, worst = 0, 0, 0.0
+    ok = True
+    while n_pairs < 4 and n_tried < 60:
+        n_tried += 1
+        theta = rng.uniform(0, np.pi, len(active))
+        try:
+            eval_lambda_min_and_grad(system, active, theta, K0, Kc, Ks, tr,
+                                     symmetric_pair_tol=None)
+            continue                      # simple eigenvalue: not this test
+        except MultiplicityError:
+            pass
+        except ValueError:
+            continue
+        try:
+            lam, grad, _ = eval_lambda_min_and_grad(system, active, theta, K0, Kc, Ks, tr)
+        except MultiplicityError as e:
+            print(f"    rejected (not symmetry-forced): {str(e)[:100]}")
+            continue
+        n_pairs += 1
+        fd = _fd_gradient(system, active, theta, K0, Kc, Ks, tr, 1.0, 1e-4)
+        rel = float(np.max(np.abs(fd - grad)) / np.max(np.abs(grad)))
+        worst = max(worst, rel)
+        print(f"    pair at lambda {lam:.4e}: max |grad| {np.max(np.abs(grad)):.2e}, "
+              f"FD rel. error {rel:.1e}")
+        ok &= rel < 1e-3
+    ok &= n_pairs >= 3
+    print(f"  {n_pairs} symmetry-forced pairs in {n_tried} random points; "
+          f"worst FD rel. error {worst:.1e}")
+    print(f"  -> {'PASS' if ok else 'FAIL'}\n")
+    return ok
+
+
 def main():
     print("\n" + "#" * 72)
     print("# riemannian_gradient_sampling.py validation battery")
@@ -485,6 +534,7 @@ def main():
     results['D2: convergence from off-optimum'] = test_convergence_from_off_optimum()
     results['D3: boundary-seam regression'] = test_boundary_seam_regression()
     results['D4: sign-convention (ascent)'] = test_sign_convention()
+    results['E: symmetry-forced pair gradient'] = test_symmetric_pair_gradient()
 
     print("=" * 72)
     print("OVERALL RESULT")
