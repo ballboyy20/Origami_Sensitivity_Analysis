@@ -1,6 +1,6 @@
 # Kinematic Coupling Placement — Findings & Roadmap
 
-Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-19.
+Branch: `Kinematic-Coupling-Placement`. Last updated: 2026-11-25.
 
 This document tracks the coupling *placement* and *orientation*
 optimization work (`RigidBodyModel.py`, `coupling_optimizer.py`, and
@@ -71,9 +71,14 @@ validated soundly, and reported honestly.
   (no incumbent) stopped at the 24 h cap below the all-V result, so
   mixed vs. all-V on the gore is still open. **Whole flasher (hub + 5
   gores, 26 bodies, cyclic designs) is built**; one-swap search gives an
-  all-V incumbent of 6.56e-4. The first B&B run crashed on a MOSEK stall
-  (fixed 2026-11-19, not yet rerun); a full B&B is not expected to finish
-  in 14 h (§7.19).
+  all-V incumbent of 6.56e-4 (§7.19). **The 19 h all-V B&B (MOSEK stall
+  fixed) raised it 20.5% to 7.904e-4**, uncertified. The mixed-type run
+  only reached 6.70e-4 and never got to the all-V design that lies
+  inside its own search space, so mixed vs. all-V is open here too
+  (§7.20). **Caveat**: on cyclic designs λ_min is often an exact
+  symmetry-forced pair, which the evaluator wrongly rejects as
+  degenerate. 5 leaves were scored 0.0 that way, and flasher λ_min
+  values may be underestimates until that's fixed (§7.20).
 - **Soundness flag resolved: solver tolerance, not a modelling error**
   (§7.18). On the single gore, default Clarabel returns
   "optimal_inaccurate" on 212 of 216 sets and underestimates the bound by
@@ -433,6 +438,12 @@ the final set can't reach full rank.
   relaxed tolerances and reports the result as "optimal_inaccurate"
   (B&B pads those node bounds by 1%); if the retry fails it raises
   `RuntimeError`, which every caller already handles.
+- **False multiplicity alarms on cyclic designs** (§7.20, open): with
+  tied angles, λ_min is often an exact symmetry-forced pair. The 1e-8
+  simplicity check rejects it even though the gradient is well defined.
+  Restarts burn their 30-attempt budget, and sets can be scored 0.0
+  (infeasible) by `SetEvaluator`; a screen recheck then overwrites the
+  leaf's known first-restart value with that 0.0.
 - **Bugs fixed during the full sweep**: (1) the first evaluation of
   `theta_init` in `optimize_theta_riemannian` lacked the multiplicity
   retry every other evaluation had; (2) `bound_and_evaluate_sweep.py`
@@ -1571,9 +1582,120 @@ pruned by bound, 19 leaves evaluated (all screened), no new incumbent.
   λ_min 6.560721e-4 exactly; 14 of its 22 node bounds needed the relaxed
   retry, with no SDP errors.
 
-Results: `results/flasher_bnb_allv.log` (incumbent search only; the
-crash prevented the summary and JSON). Timing check:
+Results: the crashed run's `results/flasher_bnb_allv.log` (incumbent
+search only) was overwritten by the §7.20 rerun; the swap-search numbers
+above are its record. Timing check:
 `results/flasher_timing_{summary.txt,results.json}`.
+
+### 7.20 Full flasher B&B: overnight rerun, all-V and mixed (2026-11-24)
+
+**Question**: with the MOSEK stall fixed (§7.19) and the swap-search
+incumbent passed in, how far do all-V and mixed-type B&B get on the
+whole flasher in one long run?
+
+**Setup** (lab machine, `flasher_bnb.py {allv,mixed} --incumbent
+1,4,5,6,8,9,10,11,12,13,15,18,20,22,23 --max-hours 19`): MOSEK, 7
+threads, screen f = 0.8, screen recheck 5, bound margin 3e-4. The given
+incumbent re-evaluated to 6.560721e-4 (292 s), matching §7.19. Mixed
+mode lifts it to V-grooves at the same 15 orbit sites (72 typed
+candidates, 24 sites × 3 types, exact row budget) and re-evaluates it at
+6.637441e-4 there: same set, but a different per-set RNG key (typed
+indices), hence different restarts.
+
+**Results** (both stopped at the 19 h cap, incomplete, no certificate):
+
+| | all-V | mixed |
+|---|---|---|
+| start → best found | 6.561e-4 → **7.904e-4 (+20.5%)** | 6.637e-4 → 6.701e-4 (+1.0%) |
+| incumbent updates | 3 (1.1 h, 2.1 h, 9.0 h) | 1 (4.8 h) |
+| nodes (s/node) | 2,964 (23.8) | 9,048 (7.8) |
+| depth on the stack | ~20–23 | ~60–72 |
+| leaves: evaluated / pruned by bound / infeasible | 677 / 373 / 154 | 279 / 893 / 667 |
+| nodes pruned: bound / rank / cardinality | 219 / 52 / 0 | 1,412 / 515 / 737 |
+| node bounds from the relaxed retry | 456 | 3,331 |
+| SDP errors (both solves failed) | 0 | 46 nodes |
+
+- **All-V best**: `[0,3,5,6,7,8,10,11,12,14,17,19,21,22,23]`, per crease
+  P0-P1:1 P0-P4:2 P0-H:3 P1-P4':2 P1-P2:2 P1-P3:1 P2-P3':1 P3-P4:3. From
+  the swap incumbent it moves one coupling P2-P3' → P0-H and one P1-P4'
+  → P3-P4. 12.0× the random start of §7.19. Nothing new in the last
+  10.5 h.
+- **Mixed best**: `F-T VF- V-V -VV T-- T-F VT- V-F` (30 rows per gore),
+  found at node 3162; nothing new in the last 14.6 h.
+- **Mixed vs. all-V on the flasher is still open.** Every all-V design
+  is also a mixed design, so the all-V 7.904e-4 set (lifted) beats the
+  mixed best inside the mixed space; the mixed run just never reached
+  it. The mixed tree is ~3× deeper, so most of its 19 h went to node
+  bounds, not leaves.
+- **No certificate, as §7.19 predicted.** Bounds stay loose: the leaf
+  that gave 7.904e-4 had bound 1.10e-3 (39% above). Of 677 all-V leaf
+  evaluations, 667 were screened; median achieved 1.2e-4.
+- **The relaxed-tolerance retry held up.** No all-V SDP errors in 19 h;
+  in mixed mode both solves failed on 46 node SDPs, which B&B branched
+  without pruning (sound, but they cost time).
+- **Restart 1 is a weaker proxy here than on birds-foot.** In the
+  recheck, `[0,4,5,6,7,8,10,11,12,13,14,17,21,22,23]` was stopped at
+  5.15e-4 after restart 1, but its best of 5 is 6.704e-4 (+30%;
+  birds-foot's largest recheck gap was 1.4%, §7.16). No loss this time:
+  it was evaluated (leaf 83) after 6.987e-4 was found (leaf 65), so it
+  could not have raised the incumbent. Two other rechecks rose 9% and
+  7%. More reason to rank the recheck by leaf bound (§7.16) or rerun
+  the top leaves unscreened before reporting a design of record.
+- **One mixed recheck returned 0.0 after a feasible first restart**
+  (4.697e-4): see the check below.
+
+**Check: the 0.0 recheck is a false multiplicity alarm from cyclic
+symmetry** (2026-11-25, this laptop, no MOSEK; scratch scripts, not
+committed). The leaf is `[0,8,10,12,15,19,25,27,32,33,37,47,51,55,58,64,69]`
+= `F-T VFF V-V FTF V-- T-F VV- V-F` (150 rows, bound 7.72e-4).
+
+- **Reproduction.** Rebuilding its reference and restart RNG exactly as
+  `SetEvaluator` does, the screened call needs 6 attempts for its first
+  restart (5 `MultiplicityError`s) and returns 4.696579e-4, matching the
+  run. The full call needs **28 of its 30 allowed attempts** (23
+  multiplicity failures) to collect 5 restarts: 4.697e-4, 1.2e-6,
+  8.3e-5, 1.1e-4, 1.8e-4. On the lab machine it evidently ran out of
+  attempts; `riemannian_multistart` then raises `MultiplicityError`,
+  `SetEvaluator.evaluate` records the set as infeasible at 0.0, and the
+  recheck overwrites the leaf's known 4.697e-4. (The error isn't saved in
+  the JSON, so the exception type on the lab machine is inferred; the
+  other path to 0.0, a Clarabel failure in the min-norm QP, raises
+  `RuntimeError`, but nothing points to it.)
+- **Cause: exactly doubled λ_min, not a degeneracy.** Designs are
+  cyclic with tied angles, so K(θ) commutes with the 5-fold rotation and
+  every eigenvalue outside the rotation-invariant modes comes in an exact
+  pair. Using the optimizer's own K(θ) at random starts, λ_min equals
+  its upper neighbor to 1e-8 at 37 of 40 starts for this leaf, 4 of 40
+  for the mixed best, and **24 of 40 for the all-V best**. At such
+  starts the pair gap is 1e-13 to 1e-12 (roundoff), stays at roundoff
+  along random tied-angle steps up to 0.3 rad, and the directional
+  derivative is identical from either eigenvector or any rotation of
+  them (cross term ~1e-14). So λ_min is smooth there and the envelope
+  gradient is valid; `eval_lambda_min_and_grad`'s simplicity check
+  (relative 1e-8) is a false alarm for symmetry-forced pairs.
+- **Consequences.**
+  - 5 leaves were scored 0.0 this way: the 3 mixed ones (bounds
+    6.81e-4, 6.82e-4, 7.72e-4) and **3 all-V leaves with bounds 7.10e-4,
+    9.48e-4 and 1.04e-3**. Two of the all-V ones could still beat
+    7.904e-4. Not re-evaluated yet.
+  - Starts and steps where a doubled mode is the minimum are thrown away
+    or resampled, so the Riemannian search keeps to the θ region where a
+    rotation-invariant mode is lowest. If the max-min optimum lies where
+    a doubled mode is lowest (a 24-of-40 start rate for the all-V best
+    suggests that region is large), **flasher λ_min values could be
+    underestimates.** Untested.
+  - Any set whose λ_min is doubled over most of θ-space can come out
+    as 0.0 (infeasible) instead of its real value.
+- **Fix options** (not implemented): treat a pair as simple when it is
+  symmetry-forced (gap at roundoff and the gradient agrees across the
+  eigenspace, as checked above); or solve per irrep with the
+  cyclic-symmetry (Bloch-wave) block reduction of §8.5, which removes the
+  pairs entirely; and in any case make `SetEvaluator` keep a recheck's
+  first-restart value instead of replacing it with 0.0. Then re-evaluate
+  the 5 zero leaves and the two best designs.
+
+Results: `results/flasher_bnb_{allv,mixed}_{results.json,summary.txt}`
+and `.log`.
 
 ---
 
@@ -1797,10 +1919,14 @@ for the week of 11/30.*
   flasher (2026-11-19)**: `flasher_bnb.py` uses MOSEK for every SDP plus
   the 3e-4 margin; MOSEK stalls are retried at relaxed tolerances with an
   extra 1% margin on node bounds (§7.19).
-- **Flasher B&B throughput** (§7.19): ~13 s per node and weak pruning
-  near the root; a 14 h run won't finish. Options: two-swap escape for a
-  stronger incumbent, cap the screen recheck, or accept an incomplete
-  run and report the best design found.
+- **Flasher B&B throughput** (§7.19, §7.20): measured 23.8 s per node
+  (all-V) and 7.8 s (mixed) over 19 h, with weak pruning; neither run
+  finishes. First, fix the false multiplicity alarm on cyclic designs
+  (§7.20) and re-evaluate the zero-scored leaves and both best designs,
+  since flasher λ_min values may be underestimates. Next: swap search (one- and two-swap) from the all-V 7.904e-4
+  design, and a mixed run seeded with that design lifted, so mixed has to
+  beat the best known all-V design rather than the old one. Report the
+  best design found, uncertified, with an unscreened re-evaluation.
 - **Housekeeping**: independent child RNG per restart (§6.3; deferred
   from Day 3 of §8.7); the polish's trust-region-floor stopping on
   birds-foot (§7.5).
@@ -1839,7 +1965,7 @@ ends with a check that says it's done. Status (updated 2026-11-19):
 | 7 | Tue 11/17 | Arms: candidate generation (fixed arm lengths, contacts on the neighbor, any face orientation via `ref_dir`); arm compliance in the row weights, w = 1/(1/k_contact + 1/k_arm). | Arm contact on two-panel matches a hand calculation; rank and gauge checks pass; arm sites are ordinary candidates. | ➡️ Moved to §8.6 (11/18). |
 | 8 | Wed 11/18 | Arm experiments on two-panel and birds-foot, with and without arms; sweep `length_scale` and k_arm. | When arms win, and by how much, logged. | ➡️ Moved to §8.6 (11/18). |
 | 9 | Thu 11/19 | Build the flasher test system from the DXF: a repeated subset (2–3 assembled gores) with all candidate types (no arm sites; §8.6). | System loads; panel and crease counts checked; rotational symmetry permutations verified. | ✅ Done 11/18, as the whole flasher (hub + 5 gores, `full_flasher_system.py`) rather than 2–3 gores; timing check: MOSEK required (§7.19). |
-| 10 | Fri 11/20 | Flasher selection with cyclically symmetric designs enforced (the same choice in every gore): greedy + swap incumbent, then B&B or the Day 3 fallback. | Exactly constrained design with certified bound and gap, or a record of where it stopped scaling. | 🟡 All-V incumbent 6.56e-4 from swap search (2 passes, 2.2 h). First B&B run crashed on a MOSEK stall; fixed 11/19, not yet rerun. Expect it to stop at the time cap (§7.19). |
+| 10 | Fri 11/20 | Flasher selection with cyclically symmetric designs enforced (the same choice in every gore): greedy + swap incumbent, then B&B or the Day 3 fallback. | Exactly constrained design with certified bound and gap, or a record of where it stopped scaling. | 🟡 All-V incumbent 6.56e-4 from swap search (2 passes, 2.2 h). First B&B run crashed on a MOSEK stall; fixed 11/19. Rerun 11/23–24 (19 h cap, incomplete): all-V best **7.904e-4** (+20.5%), mixed best 6.701e-4; no certificate (§7.20). |
 | 11 | Mon 11/23 | Scale the flasher up: more gores, or the cyclic-symmetry (Bloch-wave) reduction of §8.5 if time allows. Final evaluation (5 restarts, optional polish). | Best flasher design evaluated; trend with gore count recorded. | ⬜ Not started |
 | 12 | Tue 11/24 | Figures and write-up: Status, §4, §7, roadmap. | Results committed; this doc reflects what's done and what's open. | ⬜ Not started |
 
